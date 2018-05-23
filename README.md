@@ -1,4 +1,3 @@
-
 # Magic
 
 A new magical flutter package.
