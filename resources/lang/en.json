@@ -1,0 +1,29 @@
+{
+  "hello_world": "Hello World!",
+
+  "error": "Error",
+  "ok": "Ok",
+
+  "auth.login": "Login",
+  "auth.failed": "These credentials do not match our records.",
+  "auth.register": "Register",
+  "auth.register.failed": "The server can't complete the register request.",
+  "auth.logout": "Logout",
+
+  "attribute.email": "E-mail Address",
+  "attribute.password": "Password",
+  "attribute.password_confirmation": "Password Confirmation",
+  "attribute.name": "Name",
+
+  "hint.email": "you@example.com",
+  "hint.password": "Enter your password",
+  "hint.password_confirmation": "Enter your password again",
+  "hint.name": "Joe Scott",
+
+  "validation.required": "The :attribute field is required.",
+  "validation.email": "The :attribute must be a valid email address.",
+  "validation.max": "The :attribute may not be greater than :max characters.",
+  "validation.min": "The :attribute must be at least :min characters.",
+  "validation.password": "The :attribute must contains at least one uppercase char and one number.",
+  "validation.confirmed": "The :attribute confirmation does not match."
+}
