@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:magic/magic.dart';
 
 class IndexWidget extends StatelessWidget {
   @override

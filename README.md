@@ -1,3 +1,4 @@
+
 # Magic
 
 A new magical flutter package.
@@ -10,6 +11,7 @@ A new magical flutter package.
 - API base HTTP
 - Model
 - Controller
+- Translation
 - And much more...
 
 ## Version comparability
@@ -22,15 +24,21 @@ The magic package has special structure. So, you need to start your project by u
 
 Clone the repository
 
-```git clone https://github.com/anilcancakir/magic.git```
+```
+git clone https://github.com/anilcancakir/magic.git
+```
 
 Go to path
 
-```cd magic```
+```
+cd magic
+```
 
 Run the flutter
 
-```flutter run```
+```
+flutter run
+```
 
 ## Documents
 

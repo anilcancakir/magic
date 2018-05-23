@@ -180,9 +180,9 @@ packages:
   magic:
     dependency: "direct main"
     description:
-      path: ".."
-      relative: true
-    source: path
+      name: magic
+      url: "https://pub.dartlang.org"
+    source: hosted
     version: "0.0.1"
   matcher:
     dependency: transitive
