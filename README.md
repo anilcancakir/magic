@@ -13,13 +13,7 @@ A new magical flutter package.
 - Translation
 - And much more...
 
-## Version comparability
-
-See CHANGELOG for all breaking (and non-breaking) changes.
-
 ## Getting started
-
-The magic package has special structure. So, you need to start your project by using the [magic repository](https://github.com/anilcancakir/magic).
 
 Clone the repository
 
