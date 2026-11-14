@@ -4,11 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### BREAKING
+
+- **`BaseGuard.storeToken` now marks a new session.** A token stored from outside is taken to be a sign-in, so a refresh still in the air can no longer write over it, and a stored refresh token is deleted unless the call passes a new one. A custom guard that rotates its own token through `storeToken` pays for that: its in-flight boot sync is discarded, a refused request is handed back instead of retried, and a rotation without a refresh token drops the stored one. Rotate through `refreshToken()` with a `refreshEndpoint`, which keeps the session. (`lib/src/auth/guards/base_guard.dart`)
+
 ### Changed
 
 - **The pub.dev listing and the README now lead with the product pitch and keep Laravel as a secondary note.** The description, topics, README, `llms.txt` and `CLAUDE.md` say what core carries and which layers (realtime, payments, SQLite, notifications and more) are official plugins, and the Platforms row names the platforms explicitly. The installation page's introduction leads with the same pitch and moves Laravel to a "Familiar to Laravel Developers" note, and the directory-structure page's opening line names the folders first and mentions Laravel's conventions last. (`pubspec.yaml`, `README.md`, `llms.txt`, `CLAUDE.md`, `doc/getting-started/`)
 - **The `magic-framework` agent skill covers the core package only.** Every official plugin ships its own skill now, so the twelve `references/plugin-*.md` pages are gone and the skill keeps a short table of what each plugin is and which skill to load (`npx skills add anilcancakir/<package>`). The description and body follow the skill conventions (no counts, one-line triggers), the repository links name `anilcancakir/magic`, and `references/plugins.md` carries the install steps and provider-order rules that are common to every plugin. (`skills/magic-framework/`)
-- **`BaseGuard.storeToken` now marks a new session.** A token stored from outside is taken to be a sign-in, so a refresh still in the air can no longer write over it, and a stored refresh token is deleted unless the call passes a new one. A custom guard that rotates its own token through `storeToken` pays for that: its in-flight boot sync is discarded, a refused request is handed back instead of retried, and a rotation without a refresh token drops the stored one. Rotate through `refreshToken()` with a `refreshEndpoint`, which keeps the session. (`lib/src/auth/guards/base_guard.dart`)
 - **`Vault` operations finish in the order they were issued.** Each read, write and delete waits for the ones issued before it, so on the web a token written before a sign-out can no longer land after the sign-out's delete. A platform call that never answers now stalls every later `Vault` call. (`lib/src/security/magic_vault_service.dart`)
 
 ### Fixed

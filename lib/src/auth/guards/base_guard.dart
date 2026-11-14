@@ -45,6 +45,11 @@ abstract class BaseGuard implements Guard {
   Authenticatable? _user;
   String? _cachedToken;
 
+  /// The token of the last session whose writes all landed (or that a
+  /// restore loaded), which a failed sign-in falls back to: [_cachedToken]
+  /// may meanwhile hold the token of another sign-in still in flight.
+  String? _committedToken;
+
   /// Moves, synchronously and before any await, whenever a session opens
   /// ([startSession]), ends ([logout], [clearTokens]) or is swapped for the
   /// one on disk ([loadTokenToCache] reading a different token). An in-flight
@@ -223,8 +228,13 @@ abstract class BaseGuard implements Guard {
   /// account's refresh token. A refresh that answers no new refresh token
   /// keeps the stored one.
   ///
+  /// A sign-in that a sign-out or a newer sign-in overtakes during its
+  /// refresh-token delete stops there: its access-token write would land
+  /// after theirs and put a token back on disk that they had removed.
+  ///
   /// When a step throws ([MagicVaultException] on a locked keychain or a
-  /// missing entitlement), the in-memory token goes back to what it was, as
+  /// missing entitlement), the in-memory token goes back to what it was (for
+  /// a sign-in, the token of the last session whose writes all landed), as
   /// long as the session has not changed since, and the failure propagates:
   /// a token whose session could not be stored must not ride on later
   /// requests. The Vault keeps whatever steps did land, so after a failure
@@ -245,13 +255,19 @@ abstract class BaseGuard implements Guard {
     required int epoch,
     bool newSession = false,
   }) async {
-    final previous = _cachedToken;
+    // A sign-in falls back to the last committed session's token, never to
+    // one another sign-in still in flight was holding when this one began.
+    final previous = newSession ? _committedToken : _cachedToken;
     _cachedToken = token;
     var revertible = true;
 
     try {
       if (newSession && refreshTokenKey != null) {
         await Vault.delete(refreshTokenKey!);
+
+        // A sign-out or a newer sign-in queued its own writes during the
+        // delete; this one's access-token write would land after them.
+        if (_sessionEpoch != epoch) return;
       }
 
       if (token == null) {
@@ -262,10 +278,13 @@ abstract class BaseGuard implements Guard {
 
       revertible = newSession;
       if (_sessionEpoch != epoch) return;
+      if (!newSession) _committedToken = token;
 
       if (refreshToken != null && refreshTokenKey != null) {
         await Vault.put(refreshTokenKey!, refreshToken);
       }
+
+      if (_sessionEpoch == epoch) _committedToken = token;
     } catch (_) {
       if (revertible && _sessionEpoch == epoch && _cachedToken == token) {
         _cachedToken = previous;
@@ -309,6 +328,7 @@ abstract class BaseGuard implements Guard {
 
     if (token != held) _sessionEpoch++;
     _cachedToken = token;
+    _committedToken = token;
 
     return true;
   }
@@ -336,6 +356,7 @@ abstract class BaseGuard implements Guard {
       failureStack = stack;
     }
     _cachedToken = null;
+    _committedToken = null;
 
     if (refreshTokenKey != null) {
       try {

@@ -319,7 +319,7 @@ MagicBuilder(
 
 **A guard that does not extend `BaseGuard`** keeps no token the interceptor can compare against, so it is judged on presence alone: a 401 ends its session only when the request carried the header `auth.token.header` names. A cookie-based guard, or one that sends its credential under another header, stays signed in while calls return 401; such a guard has to end its own session.
 
-`Auth.refreshToken()` also returns `false` when the session changed while the refresh was in the air, so a manual refresh signs out only when the stored token is still the one it refreshed (a sign-out, or the same account signing in again, replaces it):
+`Auth.refreshToken()` also returns `false` when the session changed while the refresh was in the air, so the example below signs out only when the stored token is still the one it refreshed. Comparing the stored token with the one that was refreshed does not detect a sign-in that stores the same token, so the example below can sign out a replacement session in that case. No public session-identity check is available.
 
 ```dart
 // Manual token refresh

@@ -916,5 +916,60 @@ void main() {
         expect(restoring.cachedToken, isNull);
       },
     );
+
+    test(
+      'a sign-out during a sign-in leaves no access token on disk',
+      () async {
+        // The sign-out queued its token delete while the sign-in waited on
+        // its refresh-token delete, and the sign-in's token write, queued
+        // after it, put the token back: a later restore signed in again.
+        vault.holdRemoveKey = 'refresh_token';
+
+        final signingIn = guard.login(<String, dynamic>{
+          'token': 'b-token',
+          'refresh_token': 'b-refresh',
+        }, _User()..setRawAttributes({'id': 2}, sync: true));
+        final signingOut = guard.logout();
+        vault.removeRelease.complete();
+        await signingIn;
+        await signingOut;
+
+        expect(await Vault.get('auth_token'), isNull);
+        expect(await Vault.get('refresh_token'), isNull);
+
+        await guard.restore();
+
+        expect(guard.cachedToken, isNull);
+        expect(guard.check(), isFalse);
+      },
+    );
+
+    test(
+      'a failed sign-in over a pending one keeps the committed session',
+      () async {
+        // C is still writing when B starts, so B took C's uncommitted token
+        // as the one to fall back to; C then stood down for B, B's write
+        // failed, and A's user was left holding C's token.
+        vault
+          ..holdValue = 'c-token'
+          ..refuseValue = 'b-token';
+
+        final signingInC = guard.login(<String, dynamic>{
+          'token': 'c-token',
+          'refresh_token': 'c-refresh',
+        }, _User()..setRawAttributes({'id': 3}, sync: true));
+        await vault.holdStarted.future;
+        final signingInB = guard.login(<String, dynamic>{
+          'token': 'b-token',
+          'refresh_token': 'b-refresh',
+        }, _User()..setRawAttributes({'id': 2}, sync: true));
+        vault.release.complete();
+        await signingInC;
+        await expectLater(signingInB, throwsA(isA<MagicVaultException>()));
+
+        expect(guard.id(), 1);
+        expect(guard.cachedToken, 'a-token');
+      },
+    );
   });
 }
