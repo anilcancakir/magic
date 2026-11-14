@@ -172,6 +172,18 @@ void main() {
       expect(controller.rxStatus.message, contains('Server error'));
     });
 
+    test('transport failure (status 0): sets isError, not isEmpty', () async {
+      // No connection or a timeout reaches the controller as status 0 with no
+      // data. "No rows" and "nobody answered" are different screens.
+      Http.fake({'items': Http.response(null, 0)});
+
+      await controller.fetchList<Map<String, dynamic>>('items', (m) => m);
+
+      expect(controller.isError, isTrue);
+      expect(controller.isEmpty, isFalse);
+      expect(controller.rxStatus.message, equals('Failed to load'));
+    });
+
     test('custom dataKey: reads list from specified key', () async {
       Http.fake({
         'items': Http.response({
@@ -287,6 +299,16 @@ void main() {
 
       expect(controller.isError, isTrue);
       expect(controller.rxStatus.message, contains('Not found'));
+    });
+
+    test('transport failure (status 0): reports the failed load, not a '
+        'missing resource', () async {
+      Http.fake({'user': Http.response(null, 0)});
+
+      await controller.fetchOne('user', (m) => m);
+
+      expect(controller.isError, isTrue);
+      expect(controller.rxStatus.message, equals('Failed to load'));
     });
 
     test('custom dataKey: reads object from specified key', () async {

@@ -92,8 +92,13 @@ class MagicResponse {
   /// Check if the response was successful (2xx status code).
   bool get successful => statusCode >= 200 && statusCode < 300;
 
-  /// Check if the response failed (4xx or 5xx status code).
-  bool get failed => statusCode >= 400;
+  /// Check if the response failed: a 4xx or 5xx status code, or status 0.
+  ///
+  /// Status 0 is a transport failure (a timeout, a dead link, no connectivity):
+  /// `DioNetworkDriver` answers it with no data because nobody answered. It is
+  /// neither [successful] nor [clientError] nor [serverError], but a caller that
+  /// asks whether the request failed has to get a yes.
+  bool get failed => statusCode == 0 || statusCode >= 400;
 
   /// Check if the response was a client error (4xx).
   bool get clientError => statusCode >= 400 && statusCode < 500;

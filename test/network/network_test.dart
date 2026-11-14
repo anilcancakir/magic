@@ -17,6 +17,15 @@ void main() {
       expect(MagicResponse(data: {}, statusCode: 200).failed, isFalse);
     });
 
+    test('failed returns true for a transport failure (status 0)', () {
+      // `DioNetworkDriver._handleError` answers a timeout or a dead link with
+      // no HTTP response as status 0: nobody answered, which is a failure.
+      expect(MagicResponse(data: null, statusCode: 0).failed, isTrue);
+      expect(MagicResponse(data: null, statusCode: 0).successful, isFalse);
+      expect(MagicResponse(data: null, statusCode: 0).clientError, isFalse);
+      expect(MagicResponse(data: null, statusCode: 0).serverError, isFalse);
+    });
+
     test('clientError returns true for 4xx status codes', () {
       expect(MagicResponse(data: {}, statusCode: 400).clientError, isTrue);
       expect(MagicResponse(data: {}, statusCode: 499).clientError, isTrue);
