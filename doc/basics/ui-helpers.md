@@ -1,6 +1,6 @@
 # UI Helpers
 
-Magic provides context-free UI feedback utilities, reactive widget builders, declarative page-title management, responsive layouts, form-processing helpers, and data-loading shortcuts that integrate with the controller state lifecycle.
+The UI helpers are context-free UI feedback utilities, reactive widget builders, declarative page-title management, responsive layouts, form-processing helpers, and data-loading shortcuts that integrate with the controller state lifecycle.
 
 - [Introduction](#introduction)
 - [Snackbars](#snackbars)
@@ -24,20 +24,20 @@ Magic provides context-free UI feedback utilities, reactive widget builders, dec
     - [fetchList](#fetch-list)
     - [fetchOne](#fetch-one)
     - [Rendering State with renderState](#render-state)
+- [Gotchas](#gotchas)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
 
-Magic provides context-free UI feedback utilities through the `Magic` facade. Show snackbars, dialogs, confirmations, loading overlays, and toasts from **anywhere**—controllers, services, or callbacks—without passing `BuildContext`.
+The `Magic` facade shows snackbars, dialogs, confirmations, loading overlays and toasts from **anywhere** (controllers, services or callbacks) without passing `BuildContext`.
 
 ```dart
-// No context needed!
+// No context needed
 Magic.success('Done', 'User created successfully');
 Magic.confirm(title: 'Delete?', message: 'This cannot be undone');
 Magic.loading();
 ```
-
-This is a game-changer for Flutter developers. No more passing `context` down through your widget tree just to show a simple notification.
 
 <a name="snackbars"></a>
 ## Snackbars
@@ -58,9 +58,11 @@ Use typed helpers for semantic styling:
 ```dart
 Magic.success('Success', 'Operation completed');  // Green
 Magic.error('Error', 'Something went wrong');     // Red
-Magic.info('Info', 'New update available');       // Blue
-Magic.warning('Warning', 'Low storage space');    // Amber
+Magic.snackbar('Info', 'New update available', type: 'info');        // Blue
+Magic.snackbar('Warning', 'Low storage space', type: 'warning');     // Amber
 ```
+
+`success` and `error` are shortcuts; `type` takes `'success'`, `'error'`, `'info'` (the default) or `'warning'`, the keys of `view.snackbar.style`.
 
 ### With Custom Duration
 
@@ -209,7 +211,7 @@ class OrderController extends MagicController with MagicStateMixin<Order> {
       final response = await Http.post('/orders', data: data);
       
       if (response.successful) {
-        setSuccess(Order.fromMap(response.body));
+        setSuccess(Order.fromMap(response.data));
         Magic.success(
           trans('common.success'),
           trans('orders.placed'),
@@ -242,7 +244,7 @@ Toasts are ideal for quick confirmations that don't require user interaction.
 <a name="configuration"></a>
 ## Configuration
 
-Customize appearance via `config/view.dart`:
+Customize appearance via `lib/config/view.dart`; any key you leave out keeps its default from `defaultViewConfig`:
 
 ```dart
 Map<String, dynamic> get viewConfig => {
@@ -290,7 +292,7 @@ Map<String, dynamic> get viewConfig => {
 ```
 
 > [!TIP]
-> Use Wind UI utility classes in your config for consistent styling across all UI helpers.
+> Use `wind_kit` utility classes in your config for consistent styling across all UI helpers.
 
 <a name="magic-builder"></a>
 ## MagicBuilder
@@ -321,7 +323,7 @@ Builder(
       listenable: controller.enabledNotifier,
       builder: (enabled) => Switch(
         value: enabled,
-        activeColor: theme.colorScheme.primary,
+        activeThumbColor: theme.colorScheme.primary,
         onChanged: (_) => controller.toggle(),
       ),
     );
@@ -332,7 +334,9 @@ Builder(
 The classic use case is a multi-section view where only one section depends on a notifier:
 
 ```dart
-class MonitorShowView extends MagicStatefulView<MonitorController> {
+class MonitorShowView extends MagicView<MonitorController> {
+  const MonitorShowView({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -358,7 +362,7 @@ class MonitorShowView extends MagicStatefulView<MonitorController> {
 ```
 
 > [!TIP]
-> For E2E drivability, prefer `MagicBuilder` over `setState` on the parent widget. Targeted subtree rebuilds keep interactive element identity stable so dusk agents do not lose their references mid-action.
+> For E2E drivability, prefer `MagicBuilder` over `setState` on the parent widget. Targeted subtree rebuilds keep interactive element identity stable so E2E agents (tapir) do not lose their references mid-action.
 
 <a name="magic-selector"></a>
 ## MagicSelector
@@ -419,7 +423,10 @@ The word doing the work there is **inside**. A lookup written in the enclosing `
 MagicSelector<C, int>(
   controller: c,
   selector: (C c) => c.count,
-  builder: (int n) => WDiv(className: WindTheme.of(context).surface),
+  builder: (int n) => WText(
+    '$n',
+    className: Theme.of(context).brightness == Brightness.dark ? 'text-white' : 'text-gray-900',
+  ),
 )
 
 // Right: the lookup happens inside the built subtree, which registers its own
@@ -428,8 +435,10 @@ MagicSelector<C, int>(
   controller: c,
   selector: (C c) => c.count,
   builder: (int n) => Builder(
-    builder: (BuildContext inner) =>
-        WDiv(className: WindTheme.of(inner).surface),
+    builder: (BuildContext inner) => WText(
+      '$n',
+      className: Theme.of(inner).brightness == Brightness.dark ? 'text-white' : 'text-gray-900',
+    ),
   ),
 )
 ```
@@ -481,12 +490,12 @@ MagicTitle(
 ```
 
 > [!NOTE]
-> `MagicTitle` updates the browser tab title on web and integrates with route-level title observers. It does not replace the `title` parameter on `MagicRoute.page()`. Use `MagicRoute.page()` titles for static route titles and `MagicTitle` for dynamic or data-dependent ones.
+> `MagicTitle` updates the browser tab title on web and integrates with route-level title observers. It does not replace the `.title()` method on a route definition. Use `.title()` for static route titles and `MagicTitle` for dynamic or data-dependent ones.
 
 <a name="magic-responsive-view"></a>
 ## MagicResponsiveView
 
-`MagicResponsiveView<T extends MagicController>` is an abstract view base class that dispatches to a different widget method depending on the current screen width. Breakpoints are read from the active `WindThemeData.screens` so they stay consistent with your Wind utility classes.
+`MagicResponsiveView<T extends MagicController>` is an abstract view base class that dispatches to a different widget method depending on the current screen width. Breakpoints are read from the active `WindThemeData.screens` so they stay consistent with your `wind_kit` utility classes.
 
 Subclass it and override the layout methods you need:
 
@@ -519,7 +528,7 @@ Only `phone` is abstract; the others fall back up the chain by default (`watch` 
 <a name="extended-breakpoints"></a>
 ### Extended Breakpoints
 
-For fine-grained control over all five Wind breakpoints, extend `MagicResponsiveViewExtended<T>` instead:
+For fine-grained control over every Wind breakpoint, extend `MagicResponsiveViewExtended<T>` instead:
 
 ```dart
 class AdminView extends MagicResponsiveViewExtended<AdminController> {
@@ -561,8 +570,8 @@ Available getters:
 |--------|------|---------|
 | `screenWidth` | `double` | `MediaQuery.of(context).size.width` |
 | `screenHeight` | `double` | `MediaQuery.of(context).size.height` |
-| `isPhone` | `bool` | Width is below the `sm` breakpoint |
-| `isTablet` | `bool` | Width is between `sm` and `lg` |
+| `isPhone` | `bool` | Width is below the `md` breakpoint |
+| `isTablet` | `bool` | Width is from `md` up to, but not including, `lg` |
 | `isDesktop` | `bool` | Width is at or above `lg` |
 | `activeBreakpoint` | `String` | Current Wind breakpoint name (e.g. `'md'`) |
 | `isAtLeast(String)` | `bool` | True if screen is at or above the given breakpoint |
@@ -597,7 +606,7 @@ Future<void> _submit() async {
 <a name="processing-listenable"></a>
 ### Granular Rebuilds with processingListenable
 
-Use `form.processingListenable` together with `MagicBuilder<bool>` to rebuild only the submit button while the rest of the form stays static. This keeps the widget tree stable and preserves dusk locators during the async operation:
+Use `form.processingListenable` together with `MagicBuilder<bool>` to rebuild only the submit button while the rest of the form stays static. This keeps the widget tree stable during the async operation:
 
 ```dart
 MagicBuilder<bool>(
@@ -612,9 +621,6 @@ MagicBuilder<bool>(
 ```
 
 Passing `null` to `onTap` while `isProcessing` is `true` also prevents double-tap submissions because `form.process()` would throw a `StateError` on a concurrent call regardless.
-
-> [!TIP]
-> This pattern is the scaffolded default in generated view stubs.
 
 <a name="data-loading-helpers"></a>
 ## Data Loading Helpers
@@ -706,4 +712,24 @@ class UserProfileView extends MagicView<UserController> {
 }
 ```
 
-`renderState` uses `AnimatedBuilder` on the controller so the view rebuilds automatically whenever status or state changes. All four callbacks are optional; omitted states fall back to built-in default widgets.
+`renderState` uses `AnimatedBuilder` on the controller so the view rebuilds automatically whenever status or state changes. `onLoading`, `onError` and `onEmpty` are optional; omitted states fall back to built-in default widgets.
+
+<a name="gotchas"></a>
+## Gotchas
+
+| Mistake | Fix |
+|---------|-----|
+| Calling `Magic.info()` or `Magic.warning()` | Only `success` and `error` have shortcuts; use `Magic.snackbar(title, message, type: 'info')` or `type: 'warning'` |
+| Calling `Magic.loading()` and not closing it when the work throws | Close it in a `finally` block with `Magic.closeLoading()`, or the blocking overlay stays on screen |
+| A `MagicSelector` builder that reads a value from the enclosing `build` | The cached subtree never sees it change; select every value the builder needs (a record compares by content) and do inherited lookups inside a `Builder` |
+| A `MagicSelector` selector that returns a fresh `List` or `Map` | Collections compare by identity, so it rebuilds on every notification; select a scalar, a record or an object with a stable identity |
+| Mixing `context.isPhone` with `MagicResponsiveView.phone` | They use different breakpoints: `isPhone` is below `md`, while `phone` runs below `sm`; pick one source of truth per screen |
+| Calling `form.process()` again while it is running | It throws a `StateError`; disable the button with `isProcessing` from `processingListenable` |
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Views](./views.md)
+- [Forms](./forms.md)
+- [Controllers](./controllers.md)
+- [Routing](./routing.md)

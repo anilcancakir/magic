@@ -26,6 +26,8 @@ Magic's routing wraps `go_router` with a Laravel-style fluent API: define routes
 - [Navigator Observers](#navigator-observers)
 - [Page Titles](#page-titles)
 - [Router Config](#router-config)
+- [Gotchas](#gotchas)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -93,7 +95,7 @@ MagicRoute.page('/posts/:postId/comments/:commentId', (postId, commentId) {
 ```
 
 > [!NOTE]
-> Magic uses `:param` syntax (like Express.js) instead of Laravel's `{param}` syntax.
+> Magic uses `:param` syntax instead of Laravel's `{param}` syntax.
 
 ### Reading Parameters From a Widget
 
@@ -309,7 +311,7 @@ MagicRoute.group(
 <a name="layouts-shell-routes"></a>
 ### Layouts (Shell Routes)
 
-Assign a persistent layout to all routes within a group. The layout persists while child pages change—perfect for tab bars, navigation rails, and sidebars:
+Assign a persistent layout to all routes within a group. The layout persists while child pages change, which suits tab bars, navigation rails and sidebars:
 
 ```dart
 MagicRoute.group(
@@ -437,7 +439,7 @@ Only the running app is wrapped: the loading and failure screens shown before `M
 <a name="context-free-navigation"></a>
 ## Context-Free Navigation
 
-You may navigate from anywhere in your application—controllers, services, or pure Dart classes—without needing `BuildContext`:
+You may navigate from anywhere in your application (controllers, services or pure Dart classes) without needing `BuildContext`:
 
 ```dart
 // Replace current route
@@ -461,7 +463,7 @@ MagicRoute.to('/search', query: {'q': 'flutter'});
 
 ### Cross-Shell Back Navigation
 
-`MagicRoute.back()` works reliably even when navigating across shell routes (layouts). Magic maintains a lightweight history stack automatically—no setup required. When the standard pop is not possible, it falls back to the last tracked history entry.
+`MagicRoute.back()` works reliably even when navigating across shell routes (layouts). Magic maintains a lightweight history stack automatically, with no setup. When the standard pop is not possible, it falls back to the last tracked history entry.
 
 Pass an optional `fallback` path to control where navigation lands when the history stack is empty:
 
@@ -538,7 +540,7 @@ Navigating to the path you are already on depends on whether you name a query:
 |---|---|---|
 | `/monitors/42` | `'/monitors/42'` | nothing; a re-tapped destination does not stack a screen on itself |
 | `/monitors/42?tab=checks` | `'/monitors/42'` | nothing; naming no query is asking for the screen, not asking to clear its tab |
-| `/monitors/42?tab=overview` | `'/monitors/42', queryParameters: {'tab': 'checks'}` | the top page is swapped, so the screen rebuilds with the new tab and the pages under it survive |
+| `/monitors/42?tab=overview` | `'/monitors/42', query: {'tab': 'checks'}` | the top page is swapped, so the screen rebuilds with the new tab and the pages under it survive |
 
 That swap rebuilds rather than remounts, which is what every other navigation in Magic does with a query change. See [Reading Query Parameters](#query-parameters) for where a screen has to read its query for that to be visible.
 
@@ -610,7 +612,7 @@ MagicApplication(
 )
 ```
 
-It is applied with `copyWith`, so your Wind theme's colors, typography and component defaults are untouched, and leaving it null changes nothing at all.
+It is applied with `copyWith`, so your `wind_kit` theme's colors, typography and component defaults are untouched, and leaving it null changes nothing at all.
 
 A per-route `RouteTransition` cannot express this, which is why the knob exists: the transition is chosen once at registration, and the case that comes up is the opposite shape, keep the mobile builds' native animation and give the desktop or web build none.
 
@@ -675,7 +677,7 @@ See the [Middleware documentation](./middleware.md) for details on creating cust
 <a name="url-strategy"></a>
 ## URL Strategy
 
-Flutter web defaults to hash-based URLs (`/#/path`). Magic can enable clean path-based URLs (`/path`) via config — no code changes needed elsewhere.
+Flutter web defaults to hash-based URLs (`/#/path`). Magic can enable clean path-based URLs (`/path`) via config, with no code changes needed elsewhere.
 
 <a name="url-strategy-path-vs-hash"></a>
 ### URL Strategy (Path vs Hash)
@@ -684,7 +686,7 @@ Set `url_strategy` in your `config/routing.dart`:
 
 ```dart
 'routing': {
-  'url_strategy': 'path', // 'path' | 'hash' | null (default: null — hash strategy)
+  'url_strategy': 'path', // 'path' | 'hash' | null (default: null, the hash strategy)
 },
 ```
 
@@ -697,7 +699,7 @@ Set `url_strategy` in your `config/routing.dart`:
 Magic applies `usePathUrlStrategy()` during bootstrap (before `runApp`) when the value is `'path'`.
 
 > [!NOTE]
-> This setting has no effect on iOS, Android, or desktop — it is web-only.
+> This setting has no effect on iOS, Android or desktop: it is web-only.
 
 **Web server rewrite requirement:** when using path-based URLs, every path must serve your Flutter app's `index.html`. Without this, a direct visit to `https://example.com/dashboard` returns a 404 from the server. Example nginx configuration:
 
@@ -713,18 +715,18 @@ location / {
 Register `NavigatorObserver` instances for analytics, monitoring, or performance tracking. Observers must be added before the router is built (typically in your `RouteServiceProvider`):
 
 ```dart
+class ScreenLogObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    Log.debug('Screen: ${route.settings.name}');
+  }
+}
+
 class RouteServiceProvider extends ServiceProvider {
   @override
   Future<void> boot() async {
     // Add observers before registering routes
-    MagicRouter.instance.addObserver(SentryNavigatorObserver(
-      enableAutoTransactions: true,
-      setRouteNameAsTransaction: true,
-    ));
-
-    MagicRouter.instance.addObserver(FirebaseAnalyticsObserver(
-      analytics: FirebaseAnalytics.instance,
-    ));
+    MagicRouter.instance.addObserver(ScreenLogObserver());
 
     registerAppRoutes();
   }
@@ -748,8 +750,9 @@ MagicRoute.page('/settings', () => SettingsPage());             // -> '/settings
 > [!NOTE]
 > `GoRoute.name` and `RouteSettings.name` are different things, and only the
 > second one reaches an observer. Anything that identifies screens depends on
-> it: analytics, breadcrumb trails, and Sentry's Flutter Web release health,
-> which starts a session only when it sees this value change.
+> it: analytics and breadcrumb trails.
+
+Sentry's navigator observer is registered for you by the `magic_sentry` plugin (`flutter pub add magic_sentry`, then `dart run magic:dowel plugin:install magic_sentry`); see its [Boot and Provider page](https://anilcancakir.com/magic_sentry/docs/basics/boot-and-provider).
 
 Pages inside a layout are named the same way and reach the same observers.
 Layouts compile to `ShellRoute`, whose children push onto the shell's own
@@ -764,7 +767,7 @@ Observers are passed directly to GoRouter and receive all navigation events (`di
 <a name="page-titles"></a>
 ## Page Titles
 
-Magic provides automatic page title management via `SystemChrome.setApplicationSwitcherDescription` — updates the browser tab title on web and the app switcher description on mobile.
+Magic provides automatic page title management via `SystemChrome.setApplicationSwitcherDescription`, which updates the browser tab title on web and the app switcher description on mobile.
 
 On Android the switcher card also carries a color, and on web the same value becomes the `theme-color` meta. `MagicApplication` hands its theme's `primaryColor` to `TitleManager.instance.setPrimaryColor()`, the color `MaterialApp` uses, so once the app has built a title change keeps that color.
 
@@ -777,11 +780,11 @@ Set a global suffix via `MagicApplication`:
 ```dart
 MagicApplication(
   title: 'My App',
-  titleSuffix: 'Kodizm.AI',
+  titleSuffix: 'Acme',
 )
 ```
 
-Page titles render as `"Dashboard - Kodizm.AI"`. The suffix is only applied to route-level and override titles — when no page title is set, the fallback app title is shown without suffix.
+Page titles render as `"Dashboard - Acme"`. The suffix is only applied to route-level and override titles: when no page title is set, the fallback app title is shown without suffix.
 
 ### Static Route Titles
 
@@ -823,11 +826,11 @@ class ProjectPage extends StatelessWidget {
 
 ### Imperative Title API
 
-Set or read the title from anywhere — controllers, services, callbacks:
+Set or read the title from anywhere (controllers, services, callbacks):
 
 ```dart
 // Set title imperatively
-MagicRoute.setTitle('User Profile — John');
+MagicRoute.setTitle('User Profile: John');
 
 // Read the current title (without suffix)
 final title = MagicRoute.currentTitle;
@@ -837,16 +840,16 @@ final title = MagicRoute.currentTitle;
 
 Highest to lowest:
 
-1. `MagicTitle` widget / `MagicRoute.setTitle()` — explicit override
-2. `RouteDefinition.title()` — static route title
-3. `MagicApplication.title` — app-level fallback
+1. `MagicTitle` widget / `MagicRoute.setTitle()`: explicit override
+2. `RouteDefinition.title()`: static route title
+3. `MagicApplication.title`: app-level fallback
 
 When a higher-priority source is cleared (e.g., `MagicTitle` disposes), the next level takes over automatically.
 
 <a name="router-config"></a>
 ## Router Config
 
-`MagicRoute.config` exposes the underlying `GoRouter` instance as a `RouterConfig<Object>`, suitable for passing directly to `MaterialApp.router`:
+`MagicRoute.config` exposes the underlying `GoRouter` instance as a `RouterConfig<Object>`, suitable for passing directly to `MaterialApp.router` (`MaterialApp` comes from `package:material_ui/material_ui.dart`):
 
 ```dart
 @override
@@ -859,3 +862,24 @@ Widget build(BuildContext context) {
 ```
 
 `MagicRoute.config` is only accessible after `Magic.init()` completes (it is the `GoRouter` produced by the router pre-build step in the bootstrap lifecycle). Accessing it before initialization throws a `StateError`.
+
+<a name="gotchas"></a>
+## Gotchas
+
+| Mistake | Fix |
+|---------|-----|
+| Reading `Request.query()` once in `initState()` | A query change does not remount the screen; read it in `build()` (or through `queryParameterOf(context, key)`) |
+| A `const` page widget in `MagicRoute.page('/search', () => const SearchPage())` | It hands back one identical instance, so nothing rebuilds on a query change; take a path parameter or read the query in `build()` |
+| Using `MagicRouter.instance.pathParameter()` from a widget | It answers for the page that built last, which may sit beneath the one on screen; use `pathParameterOf(context, key)` from `didChangeDependencies` or `build` |
+| Expecting a swipe back or a working Android back button on a `to()` route | `to()` replaces the page list; mark drill-down routes with `.stacked()` and `.transition(RouteTransition.platform)` |
+| Adding a `NavigatorObserver` after the router is built | `addObserver` throws a `StateError`; register observers in `boot()`, before `routerConfig` is read |
+| Giving two groups the same layout widget but no shared `layoutId` | Each group compiles to its own shell, so moving between them rebuilds the layout; give the groups one `layoutId` |
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Middleware](./middleware.md)
+- [Controllers](./controllers.md)
+- [Views](./views.md)
+- [Request Lifecycle](../architecture/request-lifecycle.md)
+- [Configuration](../getting-started/configuration.md)

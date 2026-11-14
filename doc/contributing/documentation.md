@@ -1,6 +1,6 @@
 # Documentation Authoring Guide
 
-This guide explains how to write, update, and maintain documentation pages in Magic's `doc/` directory so they stay accurate, consistently formatted, and correctly rendered on fluttersdk.com.
+This guide explains how to write, update, and maintain documentation pages in Magic's `doc/` directory so they stay accurate, consistently formatted, and correctly rendered on the docs site.
 
 - [Page Template](#page-template)
 - [Folder Taxonomy](#folder-taxonomy)
@@ -9,6 +9,7 @@ This guide explains how to write, update, and maintain documentation pages in Ma
 - [Per-Feature Doc-Sync Checklist](#per-feature-doc-sync-checklist)
 - [Code Samples](#code-samples)
 - [What Not to Add](#what-not-to-add)
+- [Related Documentation](#related-documentation)
 
 <a name="page-template"></a>
 ## Page Template
@@ -22,6 +23,7 @@ One-line description sentence (plain prose, feeds the downstream page descriptio
 
 - [Section One](#section-one)
 - [Section Two](#section-two)
+- [Related Documentation](#related-documentation)
 
 <a name="section-one"></a>
 ## Section One
@@ -32,15 +34,23 @@ Content.
 ## Section Two
 
 Content.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Sibling Page](./sibling-page.md): what it covers.
 ```
 
 Rules derived from this template:
 
 - **H1 title**: the bare `# Title` line, no YAML frontmatter above or below it.
-- **Lead sentence**: a single plain-prose sentence immediately after the H1, before the TOC bullets. fluttersdk.com's `DocsScaffolder` extracts this paragraph as the page description (truncated at 160 characters); omitting it leaves the page with an empty description.
+- **Lead sentence**: a single plain-prose sentence immediately after the H1, before the TOC bullets. The docs site extracts this paragraph as the page description; omitting it leaves the page with an empty description.
 - **Anchor-TOC**: a bulleted `- [Label](#anchor)` list before the first section. Every TOC entry must have a matching `<a name="anchor">` in the body, and every `<a name>` in the body must appear in the TOC. Mismatches break in-page navigation.
 - **Section anchors**: `<a name="kebab-case-slug"></a>` on the line immediately before the `##` or `###` heading. Use the same kebab-case slug in both the TOC link and the anchor.
+- **Related Documentation**: every page ends with a `## Related Documentation` section of relative `.md` links to sibling pages, each with a short description.
 - **No YAML frontmatter**: do not add `---` blocks, `title:`, `description:`, or any ordering metadata. The downstream site derives all of this from the page itself (see [Downstream Rendering](#downstream-rendering)).
+
+`python3 tool/check-docs.py` checks the page shape, the relative links, the fragments and the TOC-to-anchor match from the repository root, and must print 0 issues.
 
 <a name="folder-taxonomy"></a>
 ## Folder Taxonomy
@@ -56,19 +66,19 @@ Pages live under `doc/` in one of these subdirectories. Do not create new subdir
 | `eloquent/` | Eloquent ORM getting started, mutators, serialization |
 | `digging-deeper/` | Cache, events, validation, localization, logging, file storage, launch, session, carbon, helpers |
 | `testing/` | Getting started with testing, HTTP tests, facade fakes |
-| `packages/` | Magic CLI, devtools (dusk + telescope), and other first-party integrations |
+| `packages/` | The CLI, devtools (tapir and crumbs), and other first-party integrations |
 | `contributing/` | Contribution guide (code) and this authoring guide (docs) |
 
 <a name="downstream-rendering"></a>
 ## Downstream Rendering
 
-fluttersdk.com syncs `doc/` via its `DocsScaffolder` (triggered by the `POST /api/v1/docs/magic/sync` endpoint or the `DocsSync` command). The scaffolder reads:
+The docs site ingests `doc/` at a release tag. It reads:
 
 - **H1** to set the page title.
 - **Lead paragraph** (the single sentence after H1, before the TOC) to set the page description.
-- **Directory name** to determine the section label (converted via `Str::headline`).
+- **Directory name** to determine the section label.
 
-Navigation order and menu labels live in the `doc_pages` database table, curated by the site admin in Filament. The `doc/` directory needs no nav manifest, no ordering file, and no frontmatter. Adding any of these would have no effect on the rendered site.
+Navigation order and menu labels are curated on the site. The `doc/` directory needs no nav manifest, no ordering file, and no frontmatter. Adding any of these would have no effect on the rendered site.
 
 <a name="api-accuracy-rule"></a>
 ## API Accuracy Rule
@@ -113,8 +123,8 @@ When a facade or framework feature changes, apply this checklist before marking 
 | Validation rules | `doc/digging-deeper/validation.md` |
 | Forms / `FormRequest` | `doc/basics/forms.md` |
 | Testing fakes | `doc/testing/facades.md` |
-| CLI commands | `doc/packages/magic-cli.md` |
-| Dusk / telescope integration | `doc/packages/magic-devtools.md` |
+| CLI commands | The CLI page under `doc/packages/` |
+| Tapir / crumbs integration | `doc/packages/magic-devtools.md` |
 
 **2. Update the page.**
 
@@ -170,8 +180,15 @@ Keep samples minimal: show the method call and its most common parameters. Omit 
 ## What Not to Add
 
 - **No YAML frontmatter.** The `---` block adds no downstream value and is explicitly excluded.
-- **No nav manifest or ordering file.** Navigation is DB-curated on fluttersdk.com; a repo-side manifest would be ignored.
+- **No nav manifest or ordering file.** Navigation is curated on the docs site; a repo-side manifest would be ignored.
 - **No invented version attribution** such as "Added in v1.2". Use `CHANGELOG.md` and release notes for that.
-- **No `<x-preview>` live-preview tags.** Magic's `preview_url` is null (no preview app is configured), so the tag renders a "not available" placeholder.
+- **No `<x-preview>` live-preview tags.** Magic has no preview app configured.
+- **No documentation of a plugin's API.** `Crypt`, `Echo`, `DB`, `Schema`, `Pick` and sync live in the plugin packages; a core page links to the plugin's docs instead.
 - **No new subdirectories.** The folder taxonomy is locked; place pages in the closest existing folder.
 - **No em-dash or en-dash.** Use comma, colon, semicolon, period, or parentheses instead.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Contribution Guide](./contribution-guide.md): setup, coding style and the pull-request process.
+- [Facades](../architecture/facades.md): the facade list the doc-sync checklist maps to pages.

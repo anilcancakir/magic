@@ -10,24 +10,26 @@ Middleware lets you inspect and filter navigation requests before they reach a r
     - [Assigning Middleware To Routes](#assigning-middleware-to-routes)
 - [Middleware & Responses](#middleware--responses)
 - [Authorization Middleware](#authorization-middleware)
+- [Gotchas](#gotchas)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
 
-Middleware provide a convenient mechanism for inspecting and filtering navigation requests entering your application. For example, Magic includes a middleware that verifies the user is authenticated. If the user is not authenticated, the middleware will redirect the user to your application's login screen. However, if the user is authenticated, the middleware will allow the request to proceed further into the application.
+Middleware provide a convenient mechanism for inspecting and filtering navigation requests entering your application. For example, an authentication middleware verifies the user is signed in. If the user is not, the middleware redirects them to your application's login screen; otherwise it lets the request proceed further into the application. You write that one yourself (see below); the core ships `AuthorizeMiddleware` for Gate abilities.
 
 Of course, additional middleware can be written to perform a variety of tasks besides authentication. Middleware are stored in the `lib/app/middleware` directory.
 
 <a name="generating-middleware"></a>
 ## Generating Middleware
 
-Use the Magic CLI to generate a new middleware class:
+Use dowel to generate a new middleware class:
 
 ```bash
-dart run magic:dowel make:middleware Auth
+dart run magic:dowel make:middleware EnsureAuthenticated
 ```
 
-This creates `lib/app/middleware/auth.dart` with a `MagicMiddleware` stub ready to implement.
+This creates `lib/app/middleware/ensure_authenticated.dart` with a `MagicMiddleware` stub ready to implement.
 
 <a name="defining-middleware"></a>
 ## Defining Middleware
@@ -66,9 +68,9 @@ All middleware is asynchronous. You may perform `await` operations before decidi
 class TeamAccessMiddleware extends MagicMiddleware {
   @override
   Future<void> handle(void Function() next) async {
-    final team = await Team.find(Request.route('teamId'));
-    
-    if (team != null && team.hasMember(Auth.id())) {
+    final response = await Http.get('/teams/${Request.route('teamId')}/access');
+
+    if (response.successful) {
       next();
     } else {
       MagicRoute.to('/unauthorized');
@@ -190,7 +192,7 @@ Future<void> handle(void Function() next) async {
 <a name="authorization-middleware"></a>
 ## Authorization Middleware
 
-Magic includes `AuthorizeMiddleware` that integrates with the Gate authorization system—equivalent to Laravel's `can` middleware.
+Magic includes `AuthorizeMiddleware` that integrates with the Gate authorization system, the counterpart of Laravel's `can` middleware.
 
 ### Basic Usage
 
@@ -235,10 +237,9 @@ For authorization requiring a model (like checking ownership), create a custom m
 class CanEditPostMiddleware extends MagicMiddleware {
   @override
   Future<void> handle(void Function() next) async {
-    final postId = Request.route('id');
-    final post = await Post.find(postId);
+    final response = await Http.show('posts', Request.route('id')!);
 
-    if (post != null && Gate.allows('edit-post', post)) {
+    if (response.successful && Gate.allows('edit-post', Post.fromMap(response.data))) {
       next();
     } else {
       MagicRoute.to('/unauthorized');
@@ -257,3 +258,24 @@ MagicRoute.page('/posts/:id/edit', (id) => EditPostView(id: id))
 ```
 
 See the [Authorization documentation](../security/authorization.md) for more on defining abilities and policies.
+
+<a name="gotchas"></a>
+## Gotchas
+
+| Mistake | Fix |
+|---------|-----|
+| A `redirectTarget` that does not return `null` when `location` already equals the target | Return `null` for the target itself, otherwise the redirect loops |
+| Redirecting with `MagicRoute.to()` from inside `handle()` | Use `redirectTarget`: it runs before the route builds, so the destination mounts once instead of remounting |
+| Using a route alias nobody registered | `Magic.init` stops with a `StateError` naming the route and the alias; register it with `Kernel.register` or `Kernel.registerAll` |
+| Passing an instance to `Kernel.register` | It takes a factory: `Kernel.register('auth', () => EnsureAuthenticated())` |
+| Skipping `next()` in `handle()` without redirecting | The route renders an empty box in place of its page; send the user somewhere or show feedback |
+| `AuthorizeMiddleware` with no `/unauthorized` route | A failed ability redirects to `unauthorizedRoute` (default `/unauthorized`); register that route or pass your own |
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Routing](./routing.md)
+- [Authentication](../security/authentication.md)
+- [Authorization](../security/authorization.md)
+- [Request Lifecycle](../architecture/request-lifecycle.md)
+- [Magic CLI](../packages/magic-cli.md): `make:middleware`.

@@ -12,6 +12,7 @@ Magic's event system provides a simple observer implementation, letting you deco
 - [Inline Listeners](#inline-listeners)
 - [Wildcard Listeners and ReportsBreadcrumb](#wildcard-listeners)
 - [Framework Events](#framework-events)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -47,12 +48,11 @@ This creates `lib/app/listeners/send_email.dart` with a `MagicListener<OrderShip
 
 ### Enabling Event Support
 
-Add `EventServiceProvider` to your providers in `config/app.dart`:
+Create an event service provider that extends `BaseEventServiceProvider` (see [Registering Events & Listeners](#registering-events--listeners)) and add it to your providers in `config/app.dart`:
 
 ```dart
 'providers': [
-  (app) => EventServiceProvider(app),
-  (app) => AppEventServiceProvider(app),  // Your custom events
+  (app) => AppEventServiceProvider(app),  // Your events and listeners
   // ... other providers
 ],
 ```
@@ -84,7 +84,7 @@ class OrderShipped extends MagicEvent {
 }
 ```
 
-Events are simple data classes—they don't contain any logic. The listener is responsible for processing the event.
+Events are simple data classes with no logic of their own. The listener is responsible for processing the event.
 
 <a name="defining-listeners"></a>
 ## Defining Listeners
@@ -131,7 +131,7 @@ import '../listeners/send_shipment_notification.dart';
 import '../listeners/update_analytics.dart';
 import '../listeners/send_welcome_email.dart';
 
-class AppEventServiceProvider extends EventServiceProvider {
+class AppEventServiceProvider extends BaseEventServiceProvider {
   AppEventServiceProvider(super.app);
 
   @override
@@ -194,7 +194,7 @@ Event.listen<OrderShipped>(() => LogOrderShipped());
 `T` is the registration key and must be named explicitly: leave it off and Dart infers `MagicEvent`, which no dispatched event matches exactly.
 
 > [!TIP]
-> Register `Event.listen` calls in your `EventServiceProvider`'s `register()` method, not `boot()`: a guard can dispatch `AuthLogin` during `AuthServiceProvider.boot`, before a later provider's `boot()` runs. Registrations last until `MagicApp.flush()`.
+> Register `Event.listen` calls in your event service provider's `register()` method, not `boot()`: a guard can dispatch `AuthLogin` during `AuthServiceProvider.boot`, before a later provider's `boot()` runs. Registrations last until `Magic.flush()`.
 
 <a name="wildcard-listeners"></a>
 ## Wildcard Listeners and ReportsBreadcrumb
@@ -206,11 +206,11 @@ final remove = Event.listenAny((event) => Log.debug('dispatched: ${event.runtime
 remove(); // stop listening
 ```
 
-`ReportsBreadcrumb` is a contract an event implements to opt into a crash reporter's breadcrumb trail without the reporter needing to know the event exists: a wildcard listener checks `event is ReportsBreadcrumb` on every dispatch and translates a match into a breadcrumb.
+`ReportsBreadcrumb` is a contract an event implements to opt into a crash reporter's breadcrumb trail without the reporter needing to know the event exists: a reporter (the `magic_sentry` plugin, for one) registers a wildcard listener that checks `event is ReportsBreadcrumb` on every dispatch and translates a match into a breadcrumb.
 
 ```dart
-class DeeplinkOpened extends MagicEvent implements ReportsBreadcrumb {
-  DeeplinkOpened(this.path);
+class ScreenOpened extends MagicEvent implements ReportsBreadcrumb {
+  ScreenOpened(this.path);
 
   final String path;
 
@@ -218,7 +218,7 @@ class DeeplinkOpened extends MagicEvent implements ReportsBreadcrumb {
   String get breadcrumbCategory => 'navigation';
 
   @override
-  String get breadcrumbMessage => 'Deeplink opened';
+  String get breadcrumbMessage => 'Screen opened';
 
   @override
   Map<String, Object?> get breadcrumbData => {'path': path};
@@ -302,12 +302,20 @@ Event.listen<GateAccessDenied>(() => LogDeniedAccess());
 
 ### Database Events
 
-Core defines these events; the `magic_local_storage` plugin fires them.
+Core defines `DatabaseConnected` and `QueryExecuted`, but fires neither itself: the `magic_local_storage` plugin, which owns the database layer, is the source of them. See [Installation](https://anilcancakir.com/magic_local_storage/docs/getting-started/installation).
 
 | Event | Fired When |
 |-------|------------|
 | `DatabaseConnected` | Database connection established |
-| `QueryExecuted` | After query execution (if enabled) |
+| `QueryExecuted` | After query execution |
 
 > [!TIP]
 > Use events to decouple your application logic. Instead of calling multiple services directly, dispatch an event and let listeners handle it independently.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Cache](./cache.md)
+- [Logging](./logging.md)
+- [Service Providers](../getting-started/service-providers.md)
+- [Eloquent Getting Started](../eloquent/getting-started.md)

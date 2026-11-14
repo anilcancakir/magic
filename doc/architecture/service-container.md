@@ -9,6 +9,7 @@ The Magic service container is a string-keyed IoC container for registering fact
 - [Resolving Services](#resolving-services)
 - [Automatic Resolution](#automatic-resolution)
 - [Using Controllers](#using-controllers)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -46,12 +47,12 @@ final api2 = Magic.make<ApiClient>('api');
 Use `Magic.singleton()` to register a service that's instantiated only once:
 
 ```dart
-Magic.singleton('cache', () => CacheManager());
+Magic.singleton('mailer', () => MailService());
 
 // Always returns the same instance
-final cache1 = Magic.make<CacheManager>('cache');
-final cache2 = Magic.make<CacheManager>('cache');
-// cache1 == cache2
+final mailer1 = Magic.make<MailService>('mailer');
+final mailer2 = Magic.make<MailService>('mailer');
+// mailer1 == mailer2
 ```
 
 ### Rebinding, and where fakes go
@@ -72,10 +73,10 @@ Magic.make<Service>('svc'); // AppService
 
 > [!WARNING]
 > The same rule applies to a value placed with `setInstance`, which is how
-> `Log.setDriver`, `Auth.setDriver`, `Cache.setDriver`, `Http.setDriver`,
-> and `Vault.setDriver` install a driver or a fake. A later
-> `bind` or `singleton` on that key evicts it. Install fakes AFTER
-> `Magic.init()` and after your providers have registered, never before.
+> `Auth.fake()`, `Cache.fake()`, `Http.fake()`, `Log.fake()` and
+> `Vault.fake()` install a fake. A later `bind` or `singleton` on that key
+> evicts it. Install fakes AFTER `Magic.init()` and after your providers have
+> registered, never before.
 
 ### Binding in Service Providers
 
@@ -87,14 +88,14 @@ class AppServiceProvider extends ServiceProvider {
   void register() {
     // Register services
     app.bind('api', () => ApiClient(Config.get('api.url')));
-    app.singleton('cache', () => CacheManager());
+    app.singleton('mailer', () => MailService());
   }
 
   @override
   Future<void> boot() async {
     // Perform initialization after all services are registered
-    final cache = app.make<CacheManager>('cache');
-    await cache.initialize();
+    final api = app.make<ApiClient>('api');
+    await api.warmUp();
   }
 }
 ```
@@ -129,7 +130,7 @@ Magic facades automatically resolve their underlying services. You don't need to
 // These facades auto-resolve from the container:
 Cache.get('key');           // Resolves CacheManager
 Auth.check();               // Resolves AuthManager
-Lang.setLocale(locale);     // Resolves LocalizationService
+Http.get('/users');         // Resolves the NetworkDriver
 ```
 
 <a name="using-controllers"></a>
@@ -194,3 +195,11 @@ class UserController extends MagicController {
 
 > [!TIP]
 > Use the `findOrPut` pattern for controllers to ensure a single instance is used throughout your application while maintaining proper lifecycle management.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Facades](./facades.md): the static stubs that resolve these bindings.
+- [Service Providers](../getting-started/service-providers.md): where bindings are registered and booted.
+- [Request Lifecycle](./request-lifecycle.md): when the container is built during `Magic.init()`.
+- [Controllers](../basics/controllers.md): `MagicController` and its lifecycle.

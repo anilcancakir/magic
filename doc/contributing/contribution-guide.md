@@ -9,25 +9,27 @@ This guide covers everything you need to contribute to the Magic framework: loca
 - [Testing](#testing)
 - [Pull Requests](#pull-requests)
 - [Documentation](#documentation)
+- [Questions](#questions)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
 
-Thank you for considering contributing to Magic! This guide will help you get started with contributing to the framework.
+Thank you for considering contributing to Magic. This guide will help you get started with contributing to the framework.
 
 <a name="development-setup"></a>
 ## Development Setup
 
 ### Prerequisites
 
-- Dart SDK 3.4.0 or higher
-- Flutter 3.22.0 or higher
+- Dart SDK 3.13.0 or higher
+- Flutter 3.47.0 or higher
 - Git
 
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/fluttersdk/magic.git
+git clone https://github.com/anilcancakir/magic.git
 cd magic
 ```
 
@@ -49,20 +51,34 @@ flutter test
 ```
 lib/
 ├── src/
+│   ├── actions/        # MagicAction and RunsActions
 │   ├── auth/           # Authentication system
 │   ├── cache/          # Caching
-│   ├── database/       # Database & Eloquent
+│   ├── cli/            # magic:install and the make:* generators
+│   ├── concerns/       # ValidatesRequests
+│   ├── data/           # Repository and RepositoryQuery
+│   ├── database/       # Base Eloquent model, casts, LocalModelStore
 │   ├── events/         # Event system
 │   ├── facades/        # Facade classes
+│   ├── forms/          # MagicFormObject
 │   ├── foundation/     # Core Magic class
-│   ├── http/           # HTTP client & controllers
+│   ├── http/           # Controllers, middleware pipeline, Kernel
+│   ├── launch/         # URL, email, phone and SMS launching
 │   ├── localization/   # i18n
+│   ├── logging/        # Log manager and drivers
+│   ├── network/        # HTTP client
 │   ├── providers/      # Service providers
 │   ├── routing/        # Router
+│   ├── security/       # Vault
+│   ├── session/        # Form flash and SessionScope
+│   ├── storage/        # File storage
 │   ├── support/        # Helpers & utilities
+│   ├── testing/        # Test fakes
 │   ├── ui/             # View system
 │   └── validation/     # Validation rules
-└── magic.dart  # Barrel export
+├── cli.dart            # Flutter-free dowel provider barrel
+├── magic.dart          # Barrel export
+└── testing.dart        # Test fakes barrel
 ```
 
 ### Key Files
@@ -79,7 +95,7 @@ lib/
 
 ### Dart Style
 
-Follow the [Dart Style Guide](https://dart.dev/guides/language/effective-dart/style):
+Follow the [Dart Style Guide](https://dart.dev/effective-dart/style):
 
 ```dart
 // Use camelCase for variables and functions
@@ -99,11 +115,11 @@ Document all public APIs using DartDoc:
 
 ```dart
 /// Retrieves a configuration value using dot notation.
-/// 
+///
 /// ```dart
 /// final name = Config.get<String>('app.name', 'Default');
 /// ```
-/// 
+///
 /// Returns [defaultValue] if the key doesn't exist.
 static T? get<T>(String key, [T? defaultValue]) {
   // ...
@@ -115,12 +131,12 @@ static T? get<T>(String key, [T? defaultValue]) {
 When designing APIs, follow Laravel's patterns:
 
 ```dart
-// ✅ Good - Laravel-like fluent API
+// ✅ Good: Laravel-like fluent API
 MagicRoute.page('/users', () => UserController.instance.index())
     .name('users.index')
     .middleware(['auth']);
 
-// ❌ Bad - Non-fluent API
+// ❌ Bad: Non-fluent API
 registerRoute('/users', 'users.index', UserController, 'index', ['auth']);
 ```
 
@@ -129,27 +145,30 @@ registerRoute('/users', 'users.index', UserController, 'index', ['auth']);
 
 ### Test Structure
 
-```
-test/
-├── unit/           # Unit tests for individual classes
-├── feature/        # Integration tests
-└── test_helper.dart
-```
+The `test/` tree mirrors `lib/src/`: a class in `lib/src/auth/` is tested in `test/auth/`.
 
 ### Writing Tests
 
+Write the failing test first, then the code that makes it pass. Every `setUp` resets the container and the facade caches, so state never leaks between tests. Mock by implementing the contract (or use the fakes in `package:magic/testing.dart`), not with a mocking package:
+
 ```dart
 import 'package:flutter_test/flutter_test.dart';
+import 'package:magic/magic.dart';
 
 void main() {
+  setUp(() {
+    MagicApp.reset();
+    Magic.flush();
+  });
+
   group('ClassName', () {
     test('method does something', () {
       // Arrange
       final instance = ClassName();
-      
+
       // Act
       final result = instance.method();
-      
+
       // Assert
       expect(result, equals(expected));
     });
@@ -171,29 +190,30 @@ flutter test --coverage
 ### Before Submitting
 
 1. **Fork** the repository
-2. **Create a branch** for your feature/fix
-3. **Write tests** for new functionality
+2. **Create a branch** from `master` for your feature or fix (`feat/*`, `fix/*`, `chore/*` or `docs/*`)
+3. **Write tests** for new functionality, failing test first
 4. **Run all tests** to ensure nothing is broken
-5. **Update documentation** if needed
-6. **Follow the coding style**
+5. **Run the analyzer and formatter**: `flutter analyze --no-fatal-infos` and `dart format .` are clean
+6. **Update documentation** and `CHANGELOG.md` (an entry under `[Unreleased]`)
 
 ### PR Template
 
 ```markdown
-## Description
-Brief description of changes.
+## What
 
-## Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
-- [ ] Documentation update
+-
 
-## Checklist
-- [ ] Tests pass locally
-- [ ] New tests added for new features
-- [ ] Documentation updated
-- [ ] No breaking changes (or documented if any)
+## Why
+
+-
+
+## Testing
+
+- [ ] A failing test came first, and `flutter test` is green
+- [ ] `flutter analyze --no-fatal-infos` and `dart format .` are clean
+- [ ] `CHANGELOG.md` has an entry under `[Unreleased]`
+- [ ] README, `llms.txt`, `doc/`, the agent skill and `CLAUDE.md` match the change
+- [ ] `python3 tool/check-docs.py` reports 0 issues
 ```
 
 ### Commit Messages
@@ -209,58 +229,61 @@ feat(auth): add token refresh functionality
 ```
 
 Prefixes:
-- `feat:` - New feature
-- `fix:` - Bug fix
-- `docs:` - Documentation only
-- `refactor:` - Code refactoring
-- `test:` - Adding tests
-- `chore:` - Maintenance
+- `feat:` for a new feature
+- `fix:` for a bug fix
+- `docs:` for documentation only
+- `refactor:` for code refactoring
+- `test:` for adding tests
+- `chore:` for maintenance
 
 <a name="documentation"></a>
 ## Documentation
 
 ### Updating Docs
 
-Documentation lives in the `docs/` directory:
+Documentation lives in the `doc/` directory:
 
 ```
-docs/
+doc/
 ├── getting-started/
+├── architecture/
 ├── basics/
 ├── security/
 ├── digging-deeper/
 ├── eloquent/
 ├── testing/
-└── packages/
+├── packages/
+└── contributing/
 ```
 
 ### Documentation Style
 
 Follow Laravel's documentation style:
 
-1. Start with a table of contents
+1. Start with a one-sentence description, then a table of contents
 2. Use anchor links for sections
 3. Include code examples
 4. Use GitHub-style alerts for important notes
 5. Keep explanations concise
 
-### Building Docs
+The page template and the per-feature checklist are in the [Documentation Authoring Guide](./documentation.md).
 
-Preview documentation locally:
+### Checking Docs
+
+Check page shape, links and anchors from the repository root:
 
 ```bash
-# If using a docs site generator
-npm run docs:dev
+python3 tool/check-docs.py
 ```
 
----
+<a name="questions"></a>
+## Questions
 
-## Questions?
+If you have questions about contributing, open a GitHub issue.
 
-If you have questions about contributing, feel free to:
+<a name="related-documentation"></a>
+## Related Documentation
 
-1. Open a GitHub issue
-2. Join our Discord community
-3. Email the maintainers
-
-We appreciate all contributions, from bug reports to documentation improvements to new features. Thank you for helping make Magic better!
+- [Documentation Authoring Guide](./documentation.md): the page template and the doc-sync checklist.
+- [Testing](../testing/getting-started.md): the test bootstrap and the facade fakes.
+- [Facades](../architecture/facades.md): the public API surface a change usually touches.

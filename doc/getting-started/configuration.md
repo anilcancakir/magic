@@ -7,7 +7,6 @@ Magic's configuration system lets you load, read, write, and inspect application
     - [Environment Variable Types](#environment-variable-types)
     - [Determining the Current Environment](#determining-the-current-environment)
 - [Accessing Configuration Values](#accessing-configuration-values)
-- [Guarding Against a Blank Value](#guarding-against-a-blank-value)
 - [Retrieving All Values](#retrieving-all-values)
 - [Array Configuration](#array-configuration)
 - [Removing Configuration](#removing-configuration)
@@ -15,6 +14,8 @@ Magic's configuration system lets you load, read, write, and inspect application
 - [Configuration Files](#configuration-files)
 - [Theme Persistence](#theme-persistence)
 - [Configuration Caching](#configuration-caching)
+- [Guarding Against a Blank Value](#guarding-against-a-blank-value)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -73,6 +74,9 @@ Map<String, dynamic> get appConfig => {
 > [!NOTE]
 > Any variable in your `.env` file can be overridden by external environment variables at runtime.
 
+> [!NOTE]
+> `APP_KEY` is not read by core. The `magic_encryption` plugin reads it as `app.key`, and `dart run magic:dowel key:generate` (from that plugin) writes it. See [magic_encryption](https://anilcancakir.com/magic_encryption/docs/getting-started/installation).
+
 <a name="environment-variable-types"></a>
 ### Environment Variable Types
 
@@ -111,7 +115,7 @@ You may easily access configuration values using the `Config` facade from anywhe
 final appName = Config.get('app.name', 'Magic App');
 
 // Get a typed value
-final timeout = Config.get<int>('network.timeout', 5000);
+final timeout = Config.get<int>('network.drivers.api.timeout', 5000);
 
 // Get a nested configuration
 final guard = Config.get('auth.defaults.guard');
@@ -306,8 +310,8 @@ When the user manually toggles the theme, the preference is automatically persis
 void main() async {
   await Magic.init(
     configFactories: [
-      appConfig,
-      authConfig,
+      () => appConfig,
+      () => authConfig,
     ],
   );
 
@@ -316,12 +320,11 @@ void main() async {
       themeMode: ThemeMode.system,  // Follows system by default, or restores saved preference
       onThemeChanged: (brightness) {
         // Called when user manually toggles theme
-        // Preference is auto-saved to Vault — use this for extra side-effects
+        // Preference is auto-saved to Vault; use this for extra side-effects
         analytics.track('theme_changed', {
           'mode': brightness.name,
         });
       },
-      home: const HomePage(),
     ),
   );
 }
@@ -346,11 +349,11 @@ void main() async {
 Configuration is loaded during `Magic.init()` and cached in memory for the duration of the application lifecycle. To update configuration:
 
 1. Modify your config files
-2. Use `Magic.restart()` for a soft restart, or
+2. Use `Magic.reload()` to rebuild the widget tree without a hot restart, or
 3. Hot reload/restart your application
 
 ```dart
-// Soft restart (applies config changes without killing VM)
+// Rebuilds the widget tree without a hot restart
 Magic.reload();
 ```
 
@@ -374,3 +377,12 @@ Use it for any value that becomes a URL, a title, or anything else a blank strin
 ```dart
 final apiKey = Env.getOrFail('API_KEY'); // throws StateError when API_KEY is not set at all
 ```
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Installation](./installation.md): the files `magic:install` generates and the `Magic.init()` parameters.
+- [Directory Structure](./directory-structure.md): where `lib/config` sits in the project.
+- [Service Providers](./service-providers.md): the `app.providers` list.
+- [Request Lifecycle](../architecture/request-lifecycle.md): when `configFactories` are evaluated.
+- [Facades](../architecture/facades.md): the `Config` facade among the others.

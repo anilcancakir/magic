@@ -1,6 +1,6 @@
 # Perf Hooks
 
-`MagicPerfHooks.sink` is the one seam a diagnostic reads magic's runtime activity through: which controller repainted and why, what a repository merged, how long a query reload, an action or an event dispatch took, which casts ran, which timers fired and which realtime messages arrived. Magic depends on no tooling package; the tool assigns the sink.
+`MagicPerfHooks.sink` is the one seam a diagnostic reads magic's runtime activity through: which controller repainted and why, what a repository merged, how long a query reload, an action or an event dispatch took, which casts ran, which timers fired and which realtime messages arrived.
 
 - [Introduction](#introduction)
 - [Installing a Sink](#installing-a-sink)
@@ -8,11 +8,14 @@
 - [Notification Causes](#notification-causes)
 - [Pairing HTTP Requests](#pairing-http-requests)
 - [Cost and Failure Modes](#cost-and-failure-modes)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
 
 A frame profile says a frame was slow; it does not say that a `Countdown` tick made three controllers repaint, or that a broadcast storm re-cast the same `json` attribute two hundred times. The sink reports those facts as typed `MagicPerfEvent` values so a tool can attribute a frame to the magic activity inside it.
+
+Core depends on no tooling package; the tool assigns the sink. In development that is `MagicPerfIntegration` from the separate `magic_devtools` package.
 
 <a name="installing-a-sink"></a>
 ## Installing a Sink
@@ -99,3 +102,11 @@ A request built by hand, and every response `Http.fake` answers, carries a `null
 - With no sink installed, each instrumented site costs one null check and constructs no event object.
 - A sink that throws is reported through `debugPrint` and ignored. It runs before the notification it observes, so an unguarded throw would stop the screen repainting; a broken observer costs its own numbers, never the app's frames.
 - The sink is process-wide. A test that installs one resets it to `null` in `tearDown`.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Helpers](./helpers.md)
+- [Events](./events.md)
+- [Session Scope](./session-scope.md)
+- [HTTP Client](../basics/http-client.md)

@@ -1,6 +1,6 @@
 # Eloquent: Getting Started
 
-Eloquent is Magic's active-record ORM: define models as Dart classes, run queries with a fluent builder, and persist to a remote REST backend, or to local storage with the `magic_local_storage` plugin, using the same model interface.
+Eloquent is Magic's active-record ORM: define models as Dart classes and persist them to a remote REST backend, or to local storage with the `magic_local_storage` plugin, through the same model interface.
 
 - [Introduction](#introduction)
 - [Generating Models](#generating-models)
@@ -14,11 +14,12 @@ Eloquent is Magic's active-record ORM: define models as Dart classes, run querie
 - [Deleting Models](#deleting-models)
 - [Hybrid Persistence](#hybrid-persistence)
 - [Local Storage](#local-storage)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
 
-Magic's Eloquent ORM provides a beautiful, simple Active Record implementation for working with your data. Each model maps to a REST resource and, optionally, to a local table. Models allow you to query for data, insert new records, and update existing ones.
+Magic's Eloquent ORM provides an Active Record implementation for working with your data. Each model maps to a REST resource and, optionally, to a local table. Models allow you to retrieve records, insert new ones, and update existing ones.
 
 Models are API-first: they persist to a remote REST API by default. Magic's Eloquent also supports **Hybrid Persistence**, where a model persists to local storage, a remote REST API, or both. The local leg ships in the `magic_local_storage` plugin (see [Local Storage](#local-storage)).
 
@@ -54,8 +55,8 @@ This single command creates:
 - `lib/app/models/product.dart`
 - the migration, seeder and factory (when `magic_local_storage` is installed; otherwise a hint is printed)
 - `lib/app/policies/product_policy.dart`
-- `lib/app/controllers/product_controller.dart`
-- `lib/resources/views/product/` (index, show, create, edit)
+- `lib/app/repositories/product_repository.dart`
+- `lib/app/controllers/product_controller.dart`, a resource controller reading the repository
 
 <a name="defining-models"></a>
 ## Defining Models
@@ -180,9 +181,9 @@ Map<String, String> get casts => const {
 ```dart
 final user = await User.find(1);
 
-Carbon? createdAt = user.createdAt;       // Carbon instance
-bool isActive = user.isActive;             // bool
-Map<String, dynamic> settings = user.settings; // Map
+Carbon? createdAt = user?.createdAt;       // Carbon instance (from HasTimestamps)
+bool? isActive = user?.isActive;            // bool
+final settings = user?.getAttribute('settings') as Map<String, dynamic>?; // Map
 ```
 
 <a name="retrieving-models"></a>
@@ -351,7 +352,7 @@ String get resource => 'users';
 
 When using hybrid mode:
 
-1. **Read operations** check local storage first, then sync from API
+1. **Read operations** try local storage first and fall back to the API when the local read finds nothing or fails; rows fetched from the API are written back to local storage
 2. **Write operations** persist to both local and remote
 
 > [!TIP]
@@ -360,4 +361,12 @@ When using hybrid mode:
 <a name="local-storage"></a>
 ## Local Storage
 
-`useLocal` defaults to `false`, so a model talks to your REST API unless you opt in. The local leg is provided by the `magic_local_storage` plugin (SQLite database, query builder, migrations, seeders, factories and sync). Core only ships the `LocalModelStore` contract (container key `'local_model_store'`): a model with `useLocal => true` throws a `StateError` naming `magic_local_storage` when nothing is bound. Install it with `flutter pub add magic_local_storage`, then `dart run magic:dowel plugin:install magic_local_storage`.
+`useLocal` defaults to `false`, so a model talks to your REST API unless you opt in. The local leg is provided by the `magic_local_storage` plugin (SQLite database, query builder, migrations, seeders, factories and sync). Core only ships the `LocalModelStore` contract (container key `'local_model_store'`): a model with `useLocal => true` throws a `StateError` naming `magic_local_storage` when nothing is bound. Install it with `flutter pub add magic_local_storage`, then `dart run magic:dowel plugin:install magic_local_storage`. Its [models page](https://anilcancakir.com/magic_local_storage/docs/basics/models) covers the local leg.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Mutators & Casting](./mutators.md)
+- [Serialization](./serialization.md)
+- [Repositories](./repositories.md)
+- [Magic CLI](../packages/magic-cli.md)

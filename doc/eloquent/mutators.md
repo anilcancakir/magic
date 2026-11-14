@@ -8,11 +8,12 @@ Accessors, mutators, and attribute casts let you transform Eloquent model values
 - [Attribute Casting](#attribute-casting)
 - [Date Casting](#date-casting)
 - [JSON Casting](#json-casting)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
 
-Accessors and mutators allow you to transform Eloquent attribute values when you retrieve or set them on model instances. For example, you may want to encrypt a value while it is stored in the database and then automatically decrypt it when you access it on an Eloquent model.
+Accessors and mutators allow you to transform Eloquent attribute values when you retrieve or set them on model instances. For example, you may want to lower-case an email address as it is set and format a phone number as it is read.
 
 <a name="accessors"></a>
 ## Accessors
@@ -45,8 +46,8 @@ class User extends Model {
 ```dart
 final user = await User.find(1);
 
-print(user.fullName);        // "John Doe"
-print(user.formattedPhone);  // "+1 (555) 123-4567"
+print(user?.fullName);        // "John Doe"
+print(user?.formattedPhone);  // "+1 (555) 123-4567"
 ```
 
 <a name="mutators"></a>
@@ -109,13 +110,13 @@ class Task extends Model {
 
 ### Available Cast Types
 
-| Cast | Returns | Local Column Type (`magic_local_storage`) |
-|------|---------|-------------------------------------------|
-| `bool` | `bool` | INTEGER (0/1) |
-| `int` | `int` | INTEGER |
-| `double` | `double` | REAL |
-| `datetime` | `Carbon` | TEXT (ISO 8601) |
-| `json` | `Map` or `List` | TEXT (JSON) |
+| Cast | Returns |
+|------|---------|
+| `bool` | `bool` |
+| `int` | `int` |
+| `double` | `double` |
+| `datetime` | `Carbon` |
+| `json` | `Map` or `List` |
 
 ### Custom Casts (`CastsAttributes`)
 
@@ -139,8 +140,8 @@ class Monitor extends Model {
 
 Two casts ship with Magic:
 
-- **`EnumCast<T extends Enum>(values, {strict = false})`** — resolves a raw name to its enum value. Set `strict: true` to throw `ArgumentError` on unknown names instead of returning `null`.
-- **`ListCast<T>(inner)`** — applies `inner` to every list element. Stored as a JSON-encoded string.
+- **`EnumCast<T extends Enum>(values, {strict = false})`**: resolves a raw name to its enum value. Set `strict: true` to throw `ArgumentError` on unknown names instead of returning `null`.
+- **`ListCast<T>(inner)`**: applies `inner` to every list element. Stored as a JSON-encoded string.
 
 Roll your own by implementing `CastsAttributes<T>`:
 
@@ -177,9 +178,9 @@ class Event extends Model {
   Carbon? get publishedAt => getAttribute('published_at') as Carbon?;
   
   // Duration helper
-  Duration? get duration {
+  int? get durationInMinutes {
     if (startsAt == null || endsAt == null) return null;
-    return endsAt!.diff(startsAt!);
+    return endsAt!.diffInMinutes(startsAt!);
   }
   
   // Check if event is happening now
@@ -197,13 +198,13 @@ class Event extends Model {
 final event = await Event.find(1);
 
 // Format dates
-print(event.startsAt?.format('MMMM d, yyyy'));  // "January 15, 2024"
+print(event?.startsAt?.format('MMMM d, yyyy'));  // "January 15, 2024"
 
 // Human readable
-print(event.startsAt?.diffForHumans());  // "in 2 days"
+print(event?.startsAt?.diffForHumans());  // "in 2 days"
 
 // Comparison
-if (event.startsAt?.isFuture() == true) {
+if (event?.startsAt?.isFuture() == true) {
   print('Upcoming event');
 }
 ```
@@ -261,3 +262,10 @@ print(monitor.tags.first);           // "production"
 
 > [!TIP]
 > Always define typed getters for your attributes to get IDE autocompletion and type safety throughout your application.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Getting Started](./getting-started.md)
+- [Serialization](./serialization.md)
+- [Carbon](../digging-deeper/carbon.md)

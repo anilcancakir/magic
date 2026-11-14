@@ -10,11 +10,12 @@ Six primitives divide a magic app's write-heavy screens the way Laravel divides 
 - [SessionScope Resets Every Tenant Holder](#sessionscope-resets-every-tenant-holder)
 - [Listeners Replace a Central Realtime Dispatcher](#listeners-replace-a-central-realtime-dispatcher)
 - [How the Six Compose](#how-the-six-compose)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
 
-A controller that also validates, also writes, also owns a paginated collection, and also resubscribes a broadcast channel is not one class doing six jobs well; it is six responsibilities racing each other on one `notifyListeners()`. This page names the six pieces a magic app now has for that: `MagicController` (read state), `MagicAction` (a write), `MagicFormObject` (a screen's form), `Repository`/`RepositoryQuery` (a resource's rows), `SessionScope` (the tenant boundary), and `BroadcastListeners` (the shared channel registry, in the `magic_socket` plugin). None of them is new architecture on top of magic; each is the existing primitive from `doc/basics/controllers.md`, `doc/basics/forms.md`, `doc/eloquent/repositories.md`, `doc/digging-deeper/session-scope.md`, and the `magic_socket` docs, read together as one map.
+A controller that also validates, also writes, also owns a paginated collection, and also resubscribes a broadcast channel is not one class doing six jobs well; it is six responsibilities racing each other on one `notifyListeners()`. This page names the six pieces a magic app now has for that: `MagicController` (read state), `MagicAction` (a write), `MagicFormObject` (a screen's form), `Repository`/`RepositoryQuery` (a resource's rows), `SessionScope` (the tenant boundary), and `BroadcastListeners` (the shared channel registry, in the `magic_socket` plugin). None of them is new architecture on top of magic; each is the existing primitive from [Controllers](../basics/controllers.md), [Forms](../basics/forms.md), [Repositories](../eloquent/repositories.md), [Session Scope](../digging-deeper/session-scope.md), and the [magic_socket](https://anilcancakir.com/magic_socket/docs/basics/listeners) docs, read together as one map.
 
 <a name="controllers-own-read-state"></a>
 ## Controllers Own Read State
@@ -33,7 +34,7 @@ class MonitorController extends MagicController
 }
 ```
 
-See `doc/basics/controllers.md` for `MagicStateMixin`, fetch helpers, and lifecycle.
+See [Controllers](../basics/controllers.md) for `MagicStateMixin`, fetch helpers, and lifecycle.
 
 <a name="actions-own-writes"></a>
 ## Actions Own Writes
@@ -54,7 +55,7 @@ class PauseMonitor extends MagicAction<String, void> {
 }
 ```
 
-A test swaps the real action for a fake via `MagicAction.bind<PauseMonitor>(() => _FakePauseMonitor())` and clears every override with `MagicAction.flush()` in `tearDown`. See `doc/basics/actions.md`.
+A test swaps the real action for a fake via `MagicAction.bind<PauseMonitor>(() => _FakePauseMonitor())` and clears every override with `MagicAction.flush()` in `tearDown`. See [Actions](../basics/actions.md).
 
 <a name="form-objects-own-form-state"></a>
 ## Form Objects Own Form State
@@ -83,7 +84,7 @@ class MonitorFormObject extends MagicFormObject {
 }
 ```
 
-See `doc/basics/forms.md`.
+See [Forms](../basics/forms.md).
 
 <a name="repositories-own-rows"></a>
 ## Repositories Own Rows
@@ -105,7 +106,7 @@ class MonitorRepository extends Repository<Monitor> {
 }
 ```
 
-See `doc/eloquent/repositories.md`.
+See [Repositories](../eloquent/repositories.md).
 
 <a name="sessionscope-resets-every-tenant-holder"></a>
 ## SessionScope Resets Every Tenant Holder
@@ -120,14 +121,25 @@ Future<void> boot() async {
 }
 ```
 
-See `doc/digging-deeper/session-scope.md`.
+See [Session Scope](../digging-deeper/session-scope.md).
 
 <a name="listeners-replace-a-central-realtime-dispatcher"></a>
 ## Listeners Replace a Central Realtime Dispatcher
 
-Real-time broadcasting moved out of core into the `magic_socket` plugin: the `Echo` facade, the broadcasting manager and drivers, `ListensToBroadcasts` and `BroadcastListeners`. The plugin's `BroadcastListeners` owns exactly one channel subscription per alias, no matter how many controllers listen on it, and a controller declares what it wants through the `ListensToBroadcasts` mixin instead of talking to a socket directly. Install it with `flutter pub add magic_socket`, then `dart run magic:dowel plugin:install magic_socket`; the plugin's docs cover the listener map and the auth-scoped subscriptions. Core keeps the `BroadcastReceived` perf event the registry emits.
+Real-time broadcasting moved out of core into the `magic_socket` plugin: the `Echo` facade, the broadcasting manager and drivers, `ListensToBroadcasts` and `BroadcastListeners`. The plugin's `BroadcastListeners` owns exactly one channel subscription per alias, no matter how many controllers listen on it, and a controller declares what it wants through the `ListensToBroadcasts` mixin instead of talking to a socket directly. Install it with `flutter pub add magic_socket`, then `dart run magic:dowel plugin:install magic_socket`; the [plugin's listeners page](https://anilcancakir.com/magic_socket/docs/basics/listeners) covers the listener map and the auth-scoped subscriptions. Core keeps the `BroadcastReceived` perf event the registry emits.
 
 <a name="how-the-six-compose"></a>
 ## How the Six Compose
 
 A monitor list screen, put together: `MonitorController` (reads) holds a `RepositoryQuery<Monitor>` over `MonitorRepository.instance` (rows), runs `PauseMonitor` (a write) through `RunsActions`, edits through `MonitorFormObject` (form state), stays correct across a team switch because the repository is `SessionScoped`, and stays live because `MonitorController` mixes in `ListensToBroadcasts` (from `magic_socket`) instead of opening its own channel. No primitive here is optional scaffolding: each closes a failure mode the others do not (a write racing itself, a tenant's rows outliving its session, two controllers fighting over one socket) that a single fat controller used to absorb by accident.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Controllers](../basics/controllers.md): `MagicController`, `MagicStateMixin` and the fetch helpers.
+- [Actions](../basics/actions.md): `MagicAction`, `RunsActions` and `ActionOutcome`.
+- [Forms](../basics/forms.md): `MagicFormObject` and `MagicFormData`.
+- [Repositories](../eloquent/repositories.md): `Repository` and `RepositoryQuery`.
+- [Session Scope](../digging-deeper/session-scope.md): resetting every tenant holder on an identity change.
+- [Service Providers](../getting-started/service-providers.md): where `SessionScope.attach()` belongs.
+- [Listeners](https://anilcancakir.com/magic_socket/docs/basics/listeners): `BroadcastListeners` and `ListensToBroadcasts` in `magic_socket`.

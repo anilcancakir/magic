@@ -10,6 +10,7 @@
 - [Session Resets](#session-resets)
 - [Failure Modes](#failure-modes)
 - [Generating a Repository](#generating-a-repository)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -101,7 +102,7 @@ Every write path notifies its listeners (and so every `RepositoryQuery` over it)
 <a name="session-resets"></a>
 ## Session Resets
 
-A `Repository` implements `SessionScoped` and registers itself with `SessionScope` in its own constructor, so a login or a team switch drops every cached row before the owning controller refetches (see `doc/digging-deeper/session-scope.md`). A `RepositoryQuery` built over it registers its own reset hook through `Repository.addResetHook`, clearing its cursor, its filters' resolved ids, and its `isFirstLoad`/`hasMore` flags alongside the rows, so a screen mid-load when the identity changes shows its first-load skeleton for the new session rather than a stale page.
+A `Repository` implements `SessionScoped` and registers itself with `SessionScope` in its own constructor, so a login or a team switch drops every cached row before the owning controller refetches (see [Session Scope](../digging-deeper/session-scope.md)). A `RepositoryQuery` built over it registers its own reset hook through `Repository.addResetHook`, clearing its cursor, its filters' resolved ids, and its `isFirstLoad`/`hasMore` flags alongside the rows, so a screen mid-load when the identity changes shows its first-load skeleton for the new session rather than a stale page.
 
 <a name="failure-modes"></a>
 ## Failure Modes
@@ -122,3 +123,11 @@ dart run magic:dowel make:repository Monitor            # -> MonitorRepository
 dart run magic:dowel make:repository MonitorRepository  # Suffix already present
 dart run magic:dowel make:repository Monitor --force    # Overwrite existing file
 ```
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Getting Started](./getting-started.md)
+- [Controllers](../basics/controllers.md)
+- [Session Scope](../digging-deeper/session-scope.md)
+- [Magic CLI](../packages/magic-cli.md)

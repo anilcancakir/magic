@@ -14,6 +14,8 @@ Controllers extend `MagicController` (a `ChangeNotifier`) to hold reactive state
 - [Running Writes, Timers, and Broadcasts](#running-writes-timers-and-broadcasts)
 - [Controller Lifecycle](#controller-lifecycle)
 - [Generating Controllers](#generating-controllers)
+- [Gotchas](#gotchas)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -26,7 +28,7 @@ Instead of defining all of your request handling logic as closures in your route
 <a name="basic-controllers"></a>
 ### Basic Controllers
 
-To generate a new controller, use the `make:controller` Magic CLI command:
+To generate a new controller, use the `make:controller` dowel command:
 
 ```bash
 dart run magic:dowel make:controller User
@@ -41,7 +43,7 @@ import '../../resources/views/users/user_list_view.dart';
 import '../../resources/views/users/user_show_view.dart';
 
 class UserController extends MagicController {
-  /// Singleton accessor - the Magic way!
+  /// Singleton accessor, registered on first use.
   static UserController get instance => Magic.findOrPut(UserController.new);
 
   /// Display a listing of users.
@@ -49,7 +51,7 @@ class UserController extends MagicController {
 
   /// Display the specified user.
   Widget show(String id) => UserShowView(userId: id);
-  
+
   /// Show the form for creating a new user.
   Widget create() => const CreateUserView();
 }
@@ -64,7 +66,7 @@ MagicRoute.page('/users/:id', (id) => UserController.instance.show(id));
 ```
 
 > [!NOTE]
-> The `Magic.findOrPut()` pattern ensures a single controller instance exists, similar to Laravel's service container.
+> `Magic.findOrPut()` registers the controller in the container on first use and returns that same instance afterwards.
 
 <a name="single-action-controllers"></a>
 ### Single Action Controllers
@@ -101,18 +103,11 @@ class UserController extends MagicController
     return const UserListView();
   }
 
-  Future<void> loadUsers() async {
-    setLoading();
-    
-    try {
-      final users = await User.all();
-      setSuccess(users);
-    } catch (e) {
-      setError('Failed to load users: $e');
-    }
-  }
+  Future<void> loadUsers() => fetchList('users', User.fromMap);
 }
 ```
+
+`fetchList` drives `setLoading`, `setSuccess`, `setError` and `setEmpty` for you (see [Fetch Helpers](#fetch-helpers)); call the four methods below directly when you load by other means.
 
 #### State Methods
 
@@ -216,7 +211,7 @@ State transitions:
 <a name="rendering-state"></a>
 ### Rendering State
 
-Use `renderState` in your view to declaratively handle different states—like Blade's `@if` directives:
+Use `renderState` in your view to declaratively handle different states, like Blade's `@if` directives:
 
 ```dart
 class UserListView extends MagicView {
@@ -230,7 +225,7 @@ class UserListView extends MagicView {
         itemBuilder: (_, i) => UserCard(user: users[i]),
       ),
       onLoading: Center(child: CircularProgressIndicator()),
-      onError: (msg) => ErrorWidget(message: msg),
+      onError: (msg) => WText(msg),
       onEmpty: EmptyState(message: 'No users yet'),
     );
   }
@@ -283,7 +278,7 @@ class AuthController extends MagicController
 <a name="running-writes-timers-and-broadcasts"></a>
 ## Running Writes, Timers, and Broadcasts
 
-Two mixins close the gaps a controller doing more than read-and-render runs into: `RunsActions` for a write and `OwnsTimers` for anything on a `Timer`. A third, `ListensToBroadcasts` for a shared realtime channel, ships in the `magic_socket` plugin (`flutter pub add magic_socket`, then `dart run magic:dowel plugin:install magic_socket`). Each is documented in full at its own page; this is the controller-side shape.
+Two mixins close the gaps a controller doing more than read-and-render runs into: `RunsActions` for a write and `OwnsTimers` for anything on a `Timer`. A third, `ListensToBroadcasts` for a shared realtime channel, ships in the `magic_socket` plugin (`flutter pub add magic_socket`, then `dart run magic:dowel plugin:install magic_socket`); see its [listeners page](https://anilcancakir.com/magic_socket/docs/basics/listeners). The two mixins above are documented in full at their own pages; this is the controller-side shape.
 
 ```dart
 class MonitorController extends MagicController with RunsActions, OwnsTimers {
@@ -308,67 +303,79 @@ class UserController extends MagicController {
   @override
   void onInit() {
     super.onInit();
-    // Called when controller is first created
+    // Called once, the first time a stateful view backs the controller
     // Initialize data, start listeners, etc.
   }
 
   @override
   void onClose() {
-    // Called when controller is disposed
+    // Called when the controller is disposed
     // Cancel subscriptions, clean up resources
     super.onClose();
   }
 }
 ```
 
+A controller is a Type-keyed singleton, so `onInit` runs once per instance and not on every mount of a view; a view that must refetch on each mount mixes `RefetchesOnMount` into its state. `refreshUI()` is the call that notifies listeners: it is a no-op once the controller is disposed. `SimpleMagicController` runs `onInit` from its constructor instead.
+
 <a name="generating-controllers"></a>
 ## Generating Controllers
 
-The Magic CLI can generate controllers with various options:
-
 ```bash
-# Basic controller
+# Plain controller (the Controller suffix is appended when omitted)
 dart run magic:dowel make:controller User
 
-# Resource controller with CRUD actions and views
-dart run magic:dowel make:controller Product --resource
-
-# Nested in subfolder
+# Nested in a subfolder
 dart run magic:dowel make:controller Admin/Dashboard
 
-# Resource controller with model binding
-dart run magic:dowel make:controller Post --resource --model=Post
+# Read controller over a repository
+dart run magic:dowel make:controller Monitor --resource
+
+# Read controller over another model's repository
+dart run magic:dowel make:controller Monitor --resource --model=Ping
+
+# Mix in the helpers, and scaffold the matching test
+dart run magic:dowel make:controller Monitor --actions --timers --validates --test
 ```
 
 ### Command Options
 
 | Option | Alias | Description |
 |--------|-------|-------------|
-| `--resource` | `-r` | Generate CRUD controller with associated views |
+| `--resource` | `-r` | Generate a read controller that owns a `RepositoryQuery` over `<Model>Repository` |
+| `--model` | `-m` | The model a `--resource` controller reads (default: the controller's own name) |
+| `--actions` | | Mix in `RunsActions` |
+| `--timers` | | Mix in `OwnsTimers` |
+| `--validates` | | Mix in `ValidatesRequests` and `CollapsesIndexedErrorKeys` |
+| `--test` | | Also scaffold the matching test |
+| `--force` | | Overwrite an existing file |
+
+Every generated controller has the `instance` accessor and implements `SessionScoped` (a plain one gets a `resetForSession` stub to fill in).
 
 ### Resource Controllers
 
-When using `--resource`, the command generates a full resource controller with:
+A `--resource` controller imports `lib/app/models/<model>.dart` and `lib/app/repositories/<model>_repository.dart` and carries the read state only: `items`, `ensureFresh()` and `reload()`, with the query started in `onInit` and disposed in `onClose`. A write belongs on a `MagicAction`, not on the controller (see [Actions](./actions.md)).
 
-**Controller actions:**
-- `index()` - Display a listing
-- `create()` - Show creation form
-- `store(data)` - Handle creation
-- `show(id)` - Display single item
-- `edit(id)` - Show edit form
-- `update(id, data)` - Handle update
-- `destroy(id)` - Handle deletion
+<a name="gotchas"></a>
+## Gotchas
 
-**Views:**
-- `lib/resources/views/<name>/index_view.dart`
-- `lib/resources/views/<name>/show_view.dart`
-- `lib/resources/views/<name>/create_view.dart`
-- `lib/resources/views/<name>/edit_view.dart`
+| Mistake | Fix |
+|---------|-----|
+| Loading data in `onInit` and expecting it to run on every visit | `onInit` fires once per controller instance, because controllers are Type-keyed singletons. Mix `RefetchesOnMount` into the view state when each mount must refetch |
+| Omitting `super.onInit()` or `super.onClose()` | Both are `@mustCallSuper`; `OwnsTimers` cancels its timers inside `onClose`, so skipping the super call leaks them |
+| Calling `notifyListeners()` directly | Call `refreshUI()`: it guards against a disposed controller and feeds the perf hooks |
+| Caching per-user rows on a controller with no session hook | Implement `SessionScoped` so a login or team switch clears them, see [Session Scope](../digging-deeper/session-scope.md) |
+| A view built on a controller nobody registered | `MagicView.controller` is `Magic.find<T>()`, so reach the controller through the `Magic.findOrPut(Controller.new)` accessor (or `Magic.put`) first |
+| Calling `own(...)` on a controller that is already disposed | It throws a `StateError`; register timers in `onInit` or while the controller is alive |
 
-Example:
+<a name="related-documentation"></a>
+## Related Documentation
 
-```bash
-dart run magic:dowel make:controller Task --resource
-```
-
-This generates a TaskController with all CRUD actions and four corresponding views.
+- [Actions](./actions.md)
+- [Views](./views.md)
+- [Forms](./forms.md)
+- [Routing](./routing.md)
+- [Validation](../digging-deeper/validation.md)
+- [Session Scope](../digging-deeper/session-scope.md)
+- [Helpers](../digging-deeper/helpers.md)
+- [Magic CLI](../packages/magic-cli.md): `make:controller` and its options.

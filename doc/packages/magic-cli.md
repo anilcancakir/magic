@@ -1,6 +1,6 @@
 # Magic CLI
 
-The Magic CLI is a `dowel` plugin that ships as part of the magic package, providing `magic:install` and 17 `make:*` scaffold commands through magic's bundled `dowel` executable (`dart run magic:dowel`).
+The Magic CLI is a `dowel` plugin that ships as part of the magic package, providing `magic:install`, the `make:*` generators and the preview and design commands through magic's bundled `dowel` executable (`dart run magic:dowel`).
 
 - [Introduction](#introduction)
 - [Installation](#installation)
@@ -28,11 +28,12 @@ The Magic CLI is a `dowel` plugin that ships as part of the magic package, provi
     - [design:sync](#designsync)
     - [design:lint](#designlint)
     - [DESIGN.md format](#designmd-format)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
 
-Magic CLI is the command-line tool for Magic, modelled on Laravel's `php artisan`: if you've used it, you'll feel right at home. It runs on [dowel](https://pub.dev/packages/dowel). Scaffold controllers, models, views, actions, and more with a single command.
+Magic CLI is the command-line tool for Magic, modelled on Laravel's `php artisan`. It runs on [dowel](https://pub.dev/packages/dowel) and scaffolds controllers, models, views, actions and more with a single command.
 
 <a name="installation"></a>
 ## Installation
@@ -58,12 +59,24 @@ dart run magic:dowel magic:install
 ```
 
 This command:
-1. Creates the directory structure (`lib/app/`, `lib/config/`, `lib/routes/`, etc.)
-2. Generates configuration files with sensible defaults (app, routing, view are always created; others are optional)
-3. Creates starter service providers (`AppServiceProvider`, `RouteServiceProvider`)
-4. Writes `lib/main.dart` with Magic bootstrap
-5. Creates `.env` and `.env.example` files
-6. Registers `.env` as a Flutter asset in `pubspec.yaml`
+1. Writes the config files: `lib/config/app.dart`, `view.dart` and `routing.dart` always, and `auth.dart`, `network.dart`, `cache.dart` and `logging.dart` unless skipped
+2. Creates the starter service providers (`AppServiceProvider`, `RouteServiceProvider`), `lib/app/kernel.dart`, `lib/routes/app.dart` and a welcome view
+3. Writes `lib/main.dart` with the Magic bootstrap
+4. Creates `.env`, `.env.example` and `assets/lang/en.json`
+5. Replaces the default `test/widget_test.dart` with a smoke test
+6. Adds the `material_ui` and `wind_kit` dependencies, then has dowel scaffold `bin/dispatcher.dart` and `bin/dowel`, registers magic in `.dowel/plugins.json` and regenerates `lib/app/_plugins.g.dart`
+
+#### Existing `lib/main.dart`
+
+The default `flutter create` counter app is overwritten silently. Any other existing `lib/main.dart` prompts for overwrite, preserve, diff or cancel; with `--non-interactive` the command stops with an error instead.
+
+| Flag | Effect |
+|------|--------|
+| `--force` | Overwrite without asking |
+| `--preserve` | Inject the Magic bootstrap into the existing `main()`; a synchronous `main()` is rejected with exit 1 |
+| `--dry-run` | Print the staged operations without writing |
+
+`--force` and `--preserve` together exit with code 2.
 
 #### Excluding Features
 
@@ -78,28 +91,15 @@ dart run magic:dowel magic:install --without-auth --without-cache
 | `--without-auth` | Auth config, `VaultServiceProvider`, `AuthServiceProvider` |
 | `--without-network` | `config/network.dart`, `NetworkServiceProvider` |
 | `--without-cache` | `config/cache.dart`, `CacheServiceProvider` |
-| `--without-localization` | `assets/lang/` directory, `LocalizationServiceProvider` |
+| `--without-localization` | `LocalizationServiceProvider` |
 | `--without-logging` | `config/logging.dart` |
 
 The SQLite layer, encryption, the file picker and real-time broadcasting are separate plugin packages (`magic_local_storage`, `magic_encryption`, `magic_picker`, `magic_socket`), so the installer no longer carries flags for them. Add a plugin with `flutter pub add <package>` then `dart run magic:dowel plugin:install <package>`.
 
-#### Installing the debug tooling in one step
+#### The `--with-devtools` flag
 
 > [!WARNING]
-> `--with-devtools` is unavailable on magic 0.1.x: `magic_devtools` has no release for it yet (it waits on dowel based releases of Dusk and Telescope), so the command stops with an error before it writes anything. Install the debug tooling by hand until then.
-
-The optional debug trio (`magic_devtools` + `fluttersdk_dusk` + `fluttersdk_telescope`) gives you the LLM-agent E2E driver (Dusk) and the runtime inspector (Telescope). Pass `--with-devtools` to wire all three in a single command instead of the manual multi-step bootstrap:
-
-```bash
-dart run magic:dowel magic:install --with-devtools
-```
-
-When set, after the core install completes the command:
-
-1. Adds `magic_devtools`, `fluttersdk_dusk`, and `fluttersdk_telescope` to `dependencies` (not `dev_dependencies`: `lib/main.dart` imports them, and the `kDebugMode` gate tree-shakes the subsystem out of release builds).
-2. Wires the runtime setup into `lib/main.dart` under `kDebugMode`: `DuskPlugin.install()` and `TelescopePlugin.install()` (plus its `ExceptionWatcher` + `DumpWatcher`) before `Magic.init()`, then `MagicDuskIntegration.install()` and `MagicTelescopeIntegration.install()` after it.
-
-The wiring is idempotent: re-running `magic:install --with-devtools` never duplicates the blocks or the dependency entries. Run `flutter pub get` afterwards, then `dart run magic:dowel mcp:install` to surface the Dusk/Telescope MCP tools.
+> `--with-devtools` currently prints an error and returns exit code 1 before anything is written. Run `magic:install` without it.
 
 <a name="make-commands"></a>
 ## Make Commands
@@ -368,7 +368,7 @@ dart run magic:dowel make:middleware Admin/RoleCheck
 <a name="makeenum"></a>
 ### make:enum
 
-Creates a string-backed enum with `fromValue()` factory and `selectOptions` getter:
+Creates a string-backed enum with a `value`, a `label` and a `fromValue()` factory:
 
 ```bash
 dart run magic:dowel make:enum MonitorType
@@ -481,7 +481,7 @@ dart run magic:dowel previews:refresh --path=lib/ui/components
 
 **Output:** `<scan-dir>/_previews.g.dart` (default scan dir `lib`).
 
-Each `*.preview.dart` file must declare exactly ONE public `*Preview` class. The command validates the class name, fails fast on a slug collision, sorts deterministically, and writes atomically. The generated file returns a `List<PreviewEntry>` from the `previewEntries()` function (never a top-level const list) so the catalog tree-shakes from release builds. Feed it to the catalog via `MagicPreview.register(previewEntries())`.
+Each `*.preview.dart` file must declare exactly ONE public `*Preview` class. The command validates the class name, fails fast on a slug collision, sorts deterministically, and writes atomically. The generated file returns a `List<PreviewEntry>` from the `previewEntries()` function (never a top-level const list) so the catalog tree-shakes from release builds. Feed it to the catalog via `MagicPreview.register(previewEntries())` (from `magic_devtools`).
 
 #### Options
 
@@ -497,7 +497,7 @@ dart run magic:dowel design:sync
 dart run magic:dowel design:sync --input=DESIGN.md --output=lib/config/wind_theme.g.dart
 ```
 
-**Output:** a Dart source file exposing a `Map<String, String> designAliases` and a `Map<String, MaterialColor> designColors`. The aliases map carries the 17 property-prefixed semantic keys (`bg-surface`, `text-fg`, `border-color-border`, ...) with arbitrary-hex light + `dark:` pairs (`'bg-surface': 'bg-[#f9f9ff] dark:bg-[#0f1419]'`), drop-in for `WindThemeData(aliases: designAliases)`. The brand `primary` `MaterialColor` carries a generated 50-900 ramp (seeded from the DESIGN.md `primary` light hex) for `WindThemeData.toThemeData()` Material interop.
+**Output:** a Dart source file exposing a `Map<String, String> designAliases` and a `Map<String, MaterialColor> designColors`. The aliases map carries the property-prefixed semantic keys (`bg-surface`, `text-fg`, `border-color-border`, ...) with arbitrary-hex light + `dark:` pairs (`'bg-surface': 'bg-[#f9f9ff] dark:bg-[#0f1419]'`), drop-in for `WindThemeData(aliases: designAliases)`. The brand `primary` `MaterialColor` carries a generated 50-900 ramp (seeded from the DESIGN.md `primary` light hex) for `WindThemeData.toThemeData()` Material interop.
 
 The command is idempotent (byte-identical output on re-run for an unchanged DESIGN.md) and writes atomically via `.tmp` + rename. Do not hand-edit the generated file; re-run `design:sync` instead.
 
@@ -571,6 +571,15 @@ components:
 ...
 ```
 
-Each color role is either a bare hex scalar (light only; dark mirrors light) or a `{ light, dark }` overlay map. The 17 semantic roles map onto the wind alias keys as: `surface`/`surface-container`/`surface-container-high` -> `bg-surface*`; `fg` (or `on-surface`)/`fg-muted`/`fg-disabled` -> `text-fg*`; `primary`/`on-primary`/`primary-container` -> `bg-primary` / `text-on-primary` / `bg-primary-container`; `accent` -> `bg-accent`; `border`/`border-subtle` -> `border-color-border*`; `destructive`/`on-destructive`/`destructive-container` -> `bg-destructive` / `text-on-destructive` / `bg-destructive-container`; `success`/`warning` -> `bg-success` / `bg-warning`.
+Each color role is either a bare hex scalar (light only; dark mirrors light) or a `{ light, dark }` overlay map. The semantic roles map onto the wind alias keys as: `surface`/`surface-container`/`surface-container-high` -> `bg-surface*`; `fg` (or `on-surface`)/`fg-muted`/`fg-disabled` -> `text-fg*`; `primary`/`on-primary`/`primary-container` -> `bg-primary` / `text-on-primary` / `bg-primary-container`; `accent` -> `bg-accent`; `border`/`border-subtle` -> `border-color-border*`; `destructive`/`on-destructive`/`destructive-container` -> `bg-destructive` / `text-on-destructive` / `bg-destructive-container`; `success`/`warning` -> `bg-success` / `bg-warning`.
 
 This is a wind-flavored superset of the open DESIGN.md format: the single-file `dark:` overlay is the deliberate divergence that lets one document drive both light and dark wind aliases.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Installation](../getting-started/installation.md)
+- [Directory Structure](../getting-started/directory-structure.md)
+- [Service Providers](../getting-started/service-providers.md)
+- [Repositories](../eloquent/repositories.md)
+- [Authorization](../security/authorization.md)

@@ -1,6 +1,6 @@
 # Facade Testing
 
-Magic ships in-memory fakes for every stateful facade so tests never touch real storage, network, or platform channels.
+The `Auth`, `Cache`, `Vault`, `Log` and `Http` facades each ship an in-memory fake so tests never touch real storage, network, or platform channels.
 
 - [Introduction](#introduction)
 - [Fake Catalog](#fake-catalog)
@@ -11,6 +11,7 @@ Magic ships in-memory fakes for every stateful facade so tests never touch real 
 - [Broadcasting Fakes](#broadcasting-fakes)
 - [Full Example](#full-example)
 - [Unfaking](#unfaking)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -70,7 +71,7 @@ Pass `user` to pre-authenticate before the test body runs.
 
 ```dart
 test('dashboard redirects guests to login', () {
-  Auth.fake(); // No user — guest state
+  Auth.fake(); // No user: guest state
 
   expect(Auth.check(), isFalse);
   expect(Auth.guest, isTrue);
@@ -379,15 +380,15 @@ fake.reset();
 <a name="broadcasting-fakes"></a>
 ## Broadcasting Fakes
 
-The `Echo` facade and its `FakeBroadcastManager` moved into the `magic_socket` plugin, which exports the fake from its own `testing.dart` barrel and documents the assertions. Install it with `flutter pub add magic_socket`, then `dart run magic:dowel plugin:install magic_socket`.
+The `Echo` facade and its `FakeBroadcastManager` live in the `magic_socket` plugin, which exports the fake from `package:magic_socket/testing.dart`. Install it with `flutter pub add magic_socket`, then `dart run magic:dowel plugin:install magic_socket`; its assertions are documented on the plugin's [testing page](https://anilcancakir.com/magic_socket/docs/guides/testing).
 
 <a name="full-example"></a>
 ## Full Example
 
-A controller that integrates Auth, Cache, Vault, and Log, with tests covering all four fakes:
+A controller that integrates Auth, Cache, Vault, and Log, with tests covering each fake:
 
 ```dart
-// lib/controllers/session_controller.dart
+// lib/app/controllers/session_controller.dart
 class SessionController extends MagicController {
   Future<void> login(String token, User user) async {
     await Auth.login({'token': token}, user);
@@ -404,9 +405,10 @@ class SessionController extends MagicController {
   }
 }
 
-// test/http/session_controller_test.dart
+// test/app/controllers/session_controller_test.dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:magic/magic.dart';
+import 'package:magic/testing.dart';
 
 void main() {
   group('SessionController', () {
@@ -489,7 +491,7 @@ final logFake = Log.fake(); // Install once for the group
 test('first', () {
   Log.error('a');
   logFake.assertLoggedCount(1);
-  logFake.reset(); // Clear for next test — fake remains installed
+  logFake.reset(); // Clear for next test; the fake remains installed
 });
 
 test('second', () {
@@ -498,6 +500,8 @@ test('second', () {
 });
 ```
 
-## See Also
+<a name="related-documentation"></a>
+## Related Documentation
 
-- [HTTP Tests](http-tests.md) — `Http.fake()`, URL pattern stubs, request assertions
+- [Getting Started](./getting-started.md)
+- [HTTP Tests](./http-tests.md): `Http.fake()`, URL pattern stubs, request assertions

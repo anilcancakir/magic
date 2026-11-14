@@ -9,11 +9,12 @@ The default Magic project layout organizes your app into folders that mirror Lar
 - [The Resources Directory](#the-resources-directory)
 - [The Routes Directory](#the-routes-directory)
 - [The Database Directory](#the-database-directory)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
 
-The default Magic application structure is intended to provide a great starting point for both large and small applications. But you are free to organize your application however you like. Magic imposes almost no restrictions on where any given class is located—as long as the classes can be imported.
+The default Magic application structure is intended to provide a great starting point for both large and small applications. But you are free to organize your application however you like. Magic imposes almost no restrictions on where any given class is located, as long as the classes can be imported.
 
 <a name="the-root-directory"></a>
 ## The Root Directory
@@ -41,14 +42,14 @@ The `app` directory contains the core code of your application. Almost all of th
 
 ```
 lib/app/
-├── actions/                 # MagicAction writes (see doc/basics/actions.md)
+├── actions/                 # MagicAction writes
 ├── controllers/             # Request handlers
-├── forms/                   # MagicFormObject form state (see doc/basics/forms.md)
+├── forms/                   # MagicFormObject form state
 ├── middleware/              # Route middleware
 ├── models/                  # Eloquent models
 ├── policies/                # Authorization policies
 ├── providers/               # Service providers
-├── repositories/            # Repository row caches (see doc/eloquent/repositories.md)
+├── repositories/            # Repository row caches
 └── kernel.dart              # Application kernel
 ```
 
@@ -72,14 +73,14 @@ The `middleware` directory contains your application's route middleware. Middlew
 
 ```dart
 // lib/app/middleware/auth_middleware.dart
-class AuthMiddleware extends Middleware {
+class AuthMiddleware extends MagicMiddleware {
   @override
-  Future<bool> handle() async {
-    if (!Auth.check()) {
+  Future<void> handle(void Function() next) async {
+    if (Auth.check()) {
+      next();
+    } else {
       MagicRoute.to('/login');
-      return false;
     }
-    return true;
   }
 }
 ```
@@ -110,9 +111,16 @@ The `providers` directory contains all of the service providers for your applica
 ```dart
 // lib/app/providers/route_service_provider.dart
 class RouteServiceProvider extends ServiceProvider {
+  RouteServiceProvider(super.app);
+
   @override
-  void boot() {
-    registerRoutes();
+  void register() {
+    registerKernel();
+  }
+
+  @override
+  Future<void> boot() async {
+    registerAppRoutes();
   }
 }
 ```
@@ -129,6 +137,8 @@ lib/config/
 ├── network.dart             # API endpoints, timeouts
 ├── cache.dart               # Cache drivers
 ├── logging.dart             # Log channels
+├── routing.dart             # Router options
+├── view.dart                # Snackbar, dialog and loading styles
 └── localization.dart        # Supported locales
 ```
 
@@ -176,15 +186,14 @@ The `routes` directory contains all of the route definitions for your applicatio
 
 ```
 lib/routes/
-├── web.dart                 # Main application routes
-└── api.dart                 # API routes (optional)
+└── app.dart                 # Application routes
 ```
 
 Routes are defined using the `MagicRoute` facade:
 
 ```dart
-// lib/routes/web.dart
-void registerRoutes() {
+// lib/routes/app.dart
+void registerAppRoutes() {
   MagicRoute.group(
     prefix: '/',
     middleware: ['auth'],
@@ -202,4 +211,17 @@ void registerRoutes() {
 <a name="the-database-directory"></a>
 ## The Database Directory
 
-A fresh project has no `database` directory. Migrations, seeders and model factories belong to the `magic_local_storage` plugin, which creates `lib/database/` when you install it: `flutter pub add magic_local_storage`, then `dart run magic:dowel plugin:install magic_local_storage`. See [Eloquent: Local Storage](../eloquent/getting-started.md#local-storage).
+A fresh project has no `database` directory. Migrations, seeders and model factories belong to the `magic_local_storage` plugin, which creates `lib/database/` when you install it: `flutter pub add magic_local_storage`, then `dart run magic:dowel plugin:install magic_local_storage`. See [Eloquent: Local Storage](../eloquent/getting-started.md#local-storage) and the [plugin's installation page](https://anilcancakir.com/magic_local_storage/docs/getting-started/installation).
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Installation](./installation.md): the `magic:install` command that generates this layout.
+- [Configuration](./configuration.md): the files under `lib/config`.
+- [Service Providers](./service-providers.md): the files under `lib/app/providers`.
+- [Actions](../basics/actions.md), [Forms](../basics/forms.md) and [Controllers](../basics/controllers.md): the `lib/app` classes.
+- [Middleware](../basics/middleware.md): the files under `lib/app/middleware`.
+- [Views](../basics/views.md): the files under `lib/resources/views`.
+- [Routing](../basics/routing.md): the files under `lib/routes`.
+- [Repositories](../eloquent/repositories.md): the files under `lib/app/repositories`.
+- [Magic CLI](../packages/magic-cli.md): the `make:*` generators that create these files.

@@ -9,15 +9,15 @@ The `Vault` facade provides a simple interface for reading and writing sensitive
 - [Removing Items](#removing-items)
 - [Testing](#testing)
 - [Encrypting Values](#encrypting-values)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
 
-The `Vault` facade provides a simple interface for securely storing sensitive data on the device. It uses the platform's native secure storage mechanisms:
+The `Vault` facade provides a simple interface for securely storing sensitive data on the device. It wraps `flutter_secure_storage`, so each platform keeps the value in its own native secure store:
 - **iOS**: Keychain
-- **Android**: EncryptedSharedPreferences
 - **macOS**: Keychain, the data protection one wherever the build may use it and the legacy login keychain where it may not. The vault chooses on first use; see below.
-- **Windows**: Windows Credential Locker
+- **Other platforms**: the store `flutter_secure_storage` provides
 
 <a name="macos-which-keychain"></a>
 ## macOS: Which Keychain
@@ -198,4 +198,11 @@ Pass a custom error to `throwOnGet`/`throwOnPut` to assert on a specific message
 <a name="encrypting-values"></a>
 ## Encrypting Values
 
-AES-256-CBC encryption of strings, with a config-based key or a per-device key held in the vault, moved out of core into the `magic_encryption` plugin (the `Crypt` facade, `EncryptionServiceProvider` and `key:generate`). Install it with `flutter pub add magic_encryption`, then `dart run magic:dowel plugin:install magic_encryption`. Ciphertext written by earlier core versions stays readable.
+Encrypting strings (the `Crypt` facade) is provided by the `magic_encryption` plugin, not by core. Install it with `flutter pub add magic_encryption`, then `dart run magic:dowel plugin:install magic_encryption`. Its [installation page](https://anilcancakir.com/magic_encryption/docs/getting-started/installation) covers setup and its [device key page](https://anilcancakir.com/magic_encryption/docs/basics/device-key) covers keys held in the vault.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Authentication](./authentication.md)
+- [Configuration](../getting-started/configuration.md)
+- [Magic CLI](../packages/magic-cli.md)

@@ -1,6 +1,6 @@
 # Helpers
 
-`Str`, `Number`, and `Arr` are static namespace helpers modelled on Laravel's Support layer, and `Cast` is magic's own, together covering locale-aware casing, locale-aware number formatting, dot-path map access, and defensive type reading for loosely-typed wire data. `AppLifecycle` is a small, unrelated static namespace for reading the app lifecycle as a stream from code that runs before a `WidgetsBinding` necessarily exists.
+Static helpers for locale-aware strings and numbers, dot-path map access, defensive type reading, and small async utilities such as polling, debouncing and stale-read guards.
 
 - [Str](#str)
 - [Number](#number)
@@ -13,6 +13,7 @@
 - [Countdown](#countdown)
 - [Debouncer](#debouncer)
 - [UrlGenerator](#urlgenerator)
+- [Related Documentation](#related-documentation)
 
 <a name="str"></a>
 ## Str
@@ -251,3 +252,11 @@ UrlGenerator.localized('/pricing');         // '/tr/pricing' under an active non
 ```
 
 The origin is read from `Config.get(UrlGenerator.originKey, ...)` (`'app.url'` by default), falling back to `Env.filled('APP_URL', '')`. Override `UrlGenerator.originKey` once, before any call, for an app whose origin config lives under a different key (a marketing-site origin distinct from the API base URL). `localized()` prefixes the active language unless it is the configured default one, or degrades to the bare path when the active language is not in `localization.supported_locales`.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Localization](./localization.md)
+- [Carbon](./carbon.md)
+- [Validation](./validation.md)
+- [Controllers](../basics/controllers.md)

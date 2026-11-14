@@ -11,6 +11,8 @@
 - [Response Factory](#response-factory)
 - [Unfaking](#unfaking)
 - [Full Example](#full-example)
+- [Testing fetchList and fetchOne](#testing-fetchlist-and-fetchone)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -68,7 +70,7 @@ Pattern matching is done after stripping the leading `/` so both `/users/42` and
 <a name="callback-stubs"></a>
 ### Callback Stubs
 
-Pass a `FakeRequestHandler` — a function that receives a `MagicRequest` and returns a `MagicResponse`, or a `Future<MagicResponse>` — for dynamic stubbing logic.
+Pass a `FakeRequestHandler` (a function that receives a `MagicRequest` and returns a `MagicResponse`, or a `Future<MagicResponse>`) for dynamic stubbing logic.
 
 ```dart
 final fake = Http.fake((request) {
@@ -186,10 +188,10 @@ final fake = Http.fake({
   'users': Http.response([], 200),
 })..preventStrayRequests();
 
-// This is fine — matched by stub
+// This is fine: matched by stub
 await Http.get('/users');
 
-// This throws StrayRequestException — no matching stub
+// This throws StrayRequestException: no matching stub
 await Http.get('/notifications'); // throws!
 ```
 
@@ -263,7 +265,7 @@ test('second test', () async {
 A controller that fetches a user profile and the test verifying it:
 
 ```dart
-// lib/controllers/profile_controller.dart
+// lib/app/controllers/profile_controller.dart
 class ProfileController extends MagicController
     with MagicStateMixin<Map<String, dynamic>>, ValidatesRequests {
   Future<void> load(String userId) async {
@@ -279,7 +281,7 @@ class ProfileController extends MagicController
   }
 }
 
-// test/http/profile_controller_test.dart
+// test/app/controllers/profile_controller_test.dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:magic/magic.dart';
 
@@ -325,15 +327,11 @@ void main() {
 
       expect(controller.isError, isTrue);
     });
-
-    test('does not call network when userId is empty', () async {
-      // No real call should be made
-      fake.assertNothingSent();
-    });
   });
 }
 ```
 
+<a name="testing-fetchlist-and-fetchone"></a>
 ## Testing fetchList and fetchOne
 
 Controllers that use `fetchList()` or `fetchOne()` from `MagicStateMixin` can be tested with `Http.fake()` the same way as any other HTTP call. Stub the URL the helper will request, then assert on the resulting controller state.
@@ -341,14 +339,14 @@ Controllers that use `fetchList()` or `fetchOne()` from `MagicStateMixin` can be
 ### fetchList
 
 ```dart
-// lib/controllers/project_controller.dart
+// lib/app/controllers/project_controller.dart
 class ProjectController extends MagicController
     with MagicStateMixin<List<Project>> {
   Future<void> loadProjects(String teamId) =>
       fetchList('teams/$teamId/projects', Project.fromMap);
 }
 
-// test/http/project_controller_test.dart
+// test/app/controllers/project_controller_test.dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:magic/magic.dart';
 
@@ -410,14 +408,17 @@ void main() {
 ### fetchOne
 
 ```dart
-// lib/controllers/project_detail_controller.dart
+// lib/app/controllers/project_detail_controller.dart
 class ProjectDetailController extends MagicController
     with MagicStateMixin<Project> {
   Future<void> loadProject(String id) =>
       fetchOne('projects/$id', Project.fromMap);
 }
 
-// test/http/project_detail_controller_test.dart
+// test/app/controllers/project_detail_controller_test.dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:magic/magic.dart';
+
 void main() {
   group('ProjectDetailController.fetchOne', () {
     late ProjectDetailController controller;
@@ -461,6 +462,9 @@ void main() {
 > [!TIP]
 > Use `fake.stub()` inside individual tests to override the default stub registered in `setUp`. This keeps the happy path in `setUp` and edge cases inline.
 
-## See Also
+<a name="related-documentation"></a>
+## Related Documentation
 
-- [Facade Testing](facades.md) — `Auth.fake()`, `Cache.fake()`, `Vault.fake()`, `Log.fake()`
+- [Getting Started](./getting-started.md)
+- [Facade Testing](./facades.md): `Auth.fake()`, `Cache.fake()`, `Vault.fake()`, `Log.fake()`
+- [HTTP Client](../basics/http-client.md)
