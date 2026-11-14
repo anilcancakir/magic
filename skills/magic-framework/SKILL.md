@@ -1,7 +1,7 @@
 ---
 name: magic-framework
 description: "Write idiomatic code for a Flutter app built on the magic framework: IoC and facades, models, controllers, views, routing, forms, auth and tests."
-when_to_use: "Use when code imports package:magic/magic.dart or package:magic/testing.dart, or touches Magic.init, a facade, a Model, MagicController, MagicView, FormRequest, MagicAction, Repository, SessionScope, a ServiceProvider or a magic:dowel make:* command. A plugin's own skill covers the plugin."
+when_to_use: "Use when code imports package:magic or touches Magic.init, a facade, a Model, a controller, a view, a provider or a make:* command; a plugin's own skill covers the plugin."
 version: 0.2.0
 ---
 
@@ -58,7 +58,7 @@ Use `configFactories` (not `configs`) whenever a config value reads `Env.get()`:
 
 ## 3. Mental model: Laravel to magic, and where it diverges
 
-Magic mirrors Laravel's vocabulary and diverges wherever Dart lacks PHP's reflection or the target is a Flutter client, not an HTTP server. The divergences fail silently (null, not an exception).
+Magic mirrors Laravel's vocabulary and diverges wherever Dart lacks PHP's reflection or the target is a Flutter client, not an HTTP server. Most divergences fail silently (null, not an exception).
 
 | Laravel | magic | Note |
 |---|---|---|
@@ -70,7 +70,7 @@ Magic mirrors Laravel's vocabulary and diverges wherever Dart lacks PHP's reflec
 | `Gate` and `Policy` are server-authoritative | they run CLIENT-side and are advisory | always re-authorize on the backend |
 | server sessions | tokens in `Vault` (secure storage) with a cache-first restore | `Auth.restore()` on cold start |
 
-The assumptions a Laravel developer gets wrong most: the container autowires (it does not, register explicitly); `user.posts` lazy-loads (it does not, embed it in the payload); `Gate.allows()` is security (it is advisory); `with()` exists (it does not); `boot()` is sync (it is async). Full mapping with Laravel source citations: `${CLAUDE_SKILL_DIR}/references/bootstrap-lifecycle.md`.
+The assumptions a Laravel developer gets wrong most: the container autowires (it does not, register explicitly); `user.posts` lazy-loads (it does not, embed it in the payload); `Gate.allows()` is security (it is advisory); `with()` exists (it does not); `boot()` is sync (it is async). Bootstrap and container details: `${CLAUDE_SKILL_DIR}/references/bootstrap-lifecycle.md`.
 
 ## 4. Facades and the container
 
@@ -93,7 +93,7 @@ The assumptions a Laravel developer gets wrong most: the container autowires (it
 | `Config` | (manager) | `get<T>`, `getOrFail<T>`, `set`, `has`, `all`, `merge`, `prepend`, `push`, `forget`, `flush`, `repository` |
 | `Cache` | `cache` | `put(key, value, {ttl})`, `get`, `has`, `forget`, `flush`, `remember<T>(key, ttl, cb)`, `fake()` |
 | `Log` | `log` | `info/error/warning/debug/notice/critical/alert/emergency`, `log(level, msg)`, `channel(name)`, `fake()` |
-| `Event` | (dispatcher) | `dispatch(MagicEvent)`; `listen<T extends MagicEvent>(() => Listener())` (name `T`, register in `register()` not `boot()`); or `EventDispatcher.register(Type, [() => Listener()])` |
+| `Event` | (dispatcher) | `dispatch(MagicEvent)`; `listen<T extends MagicEvent>(() => Listener())` (name `T`, register in `register()` not `boot()`); or `EventDispatcher.instance.register(Type, [() => Listener()])`; an event that implements `ReportsBreadcrumb` is recorded as a breadcrumb by `magic_sentry` |
 | `MagicRoute` | (router) | `page`, `group`, `layout`, `resource(name, ctrl, {only, except})`, `to`, `toNamed`, `push`, `back({fallback})`, `replace`, `setTitle`, `currentTitle`, `config` |
 | `Gate` | (manager) | `define`, `before`, `allows`, `denies`, `allowsAny(list)`, `allowsAll(list)`, `has`, `abilities`, `flush` |
 | `Session` | (store) | `flash(map)`, `flashErrors(map)`, `old(field, [fallback])`, `oldRaw`, `error(field)`, `errors(field)`, `hasError`, `hasFlash`, `tick()` |
@@ -111,7 +111,7 @@ Annotated templates for each pattern: `${CLAUDE_SKILL_DIR}/references/templates.
 ### Model
 
 ```dart
-class User extends Model with HasTimestamps, InteractsWithPersistence {
+class User extends Model with HasTimestamps, InteractsWithPersistence, Authenticatable {   // Authenticatable: only the model you pass to Auth.login or Auth.fake
   @override String get table => 'users';
   @override String get resource => 'users';
   @override List<String> get fillable => ['name', 'email'];
@@ -233,7 +233,7 @@ await user.save();
 
 Override `attributes()` (`{'url': 'Server address'}`) to name a field for `:attribute` in this request's messages ahead of the global `attributes.<key>`.
 
-Rules: `Required`, `Email`, `Min(n)`, `Max(n)`, `Confirmed`, `Same(other)`, `Accepted`, `In<T>(values)` (primitives), `InList<T extends Enum>(values, {caseInsensitive, wire})` (enums), `Unique(endpoint, {field, debounce})`. Async rules implement `AsyncRule.passesAsync` and run through `Validator.make(data, rules).validateAsync()`. `Unique` debounces (400 ms by default), passes on a network error and discards stale calls; swap the backend with `.via(resolver)`.
+Rules: `Required`, `Email`, `Min(n)`, `Max(n)`, `Confirmed`, `Same(other)`, `Accepted`, `In<T>(values)` (primitives), `InList<T extends Enum>(values, {caseInsensitive, wire})` (enums), `Unique(endpoint, {field, debounce})`. Async rules implement `AsyncRule.passesAsync` and run through `Validator.make(data, rules).validateAsync()`. `Unique` debounces (400 ms by default), passes on a network error and discards stale calls; swap the backend with `.via(resolver)`. More rules (`Numeric`, `Between`, `Regex`, `Date`, `Nullable`, `RequiredIf`, `ArrayRule` and others) are in `doc/digging-deeper/validation.md`.
 
 A controller with `ValidatesRequests` calls `validateRequest` or `validateRequestAsync`, not `FormRequest.validate()` directly: the latter never touches `validationErrors`, so the controller's error bag, its repaint and the stale-error clear on resubmit are skipped. Both run the same authorize and prepare sequence and return the FULL prepared map, not the rule-filtered one; use `validateRequestAsync` when `rules()` contains an `AsyncRule`.
 
@@ -284,7 +284,7 @@ Str.upper('istanbul', locale: 'tr');                   // 'İSTANBUL', dotted-i 
 Cast.intOr(Arr.get(payload, 'meta.priority'), 0);      // Arr does no type check; compose with Cast
 ```
 
-`RefetchesOnMount<Controller, View>` (mix onto a `MagicStatefulViewState`, point `refetch` at a controller load that joins an in-flight request) and `SubmitsOnce<W>` (mix onto a form's `State`, route the handler through `submitOnce`, feed `isSubmitting` to the button's `isLoading`) close two gaps: singleton controllers fire `onInit` once per instance, not per mount, and nothing disables a button while an async submit is pending. `Env.filled(key, fallback)` treats an absent, blank or quote-only `.env` value alike and returns `fallback`; `Env.get` and `env()` fall back only on a fully absent key. `Carbon.shortDiffForHumans([other])` is the compact sibling of `diffForHumans()` (`'14m ago'`). More in `${CLAUDE_SKILL_DIR}/references/secondary-systems.md` and in `doc/digging-deeper/helpers.md` and `doc/digging-deeper/validation.md`.
+`RefetchesOnMount<Controller, View>` (mix onto a `MagicStatefulViewState`, point `refetch` at a controller load that joins an in-flight request) and `SubmitsOnce<W>` (mix onto a form's `State`, route the handler through `submitOnce`, feed `isSubmitting` to the button's `isLoading`) close two gaps: singleton controllers fire `onInit` once per instance, not per mount, and nothing disables a button while an async submit is pending. `Env.filled(key, fallback)` treats an absent, blank or quote-only `.env` value alike and returns `fallback`; `Env.get` and `env()` fall back only on a fully absent key, and `Env.getOrFail(key)` throws a `StateError` only when the key is absent entirely. `Carbon.shortDiffForHumans([other])` is the compact sibling of `diffForHumans()` (`'14m ago'`). More in `${CLAUDE_SKILL_DIR}/references/secondary-systems.md` and in `doc/digging-deeper/helpers.md` and `doc/digging-deeper/validation.md`.
 
 ### Routing and resources
 
@@ -309,6 +309,7 @@ void main() {
 
   test('store creates a user', () async {
     Http.fake({'users': Http.response({'data': {'id': 1}}, 201)});
+    Gate.define('create-user', (user, _) => true);   // an undefined ability is denied, and MagicTest.init flushes the Gate
     final auth = Auth.fake(user: User.fromMap({'id': 1}));
     await UserController.instance.store({'name': 'A', 'email': 'a@b.co'});
     auth.assertLoggedIn();
@@ -381,7 +382,7 @@ Every command and flag: `${CLAUDE_SKILL_DIR}/references/cli-commands.md`.
 
 ## 10. Plugins
 
-Each official plugin is its own package with its own service provider, config and agent skill. When a task needs one of these capabilities, check `pubspec.yaml`; if the package is absent, suggest `flutter pub add <package>` followed by `dart run magic:dowel plugin:install <package>`, then load the plugin's skill: it carries the rules, recipes and gotchas, which this skill deliberately does not repeat. A skill installs from the package's own repository (`npx skills add anilcancakir/<package>`) or from the registry (`npx skills add anilcancakir/ai --skill <name>`).
+Each official plugin is its own package with its own service provider, config and agent skill. When a task needs one of these capabilities, check `pubspec.yaml`; if the package is absent, suggest `flutter pub add <package>` followed by `dart run magic:dowel plugin:install <package>`, then load the plugin's skill: it carries the rules, recipes and gotchas, which this skill deliberately does not repeat. A skill installs from the package's own repository with `npx skills add anilcancakir/<package>`.
 
 | Need | Package | Entry points | Skill to load |
 |---|---|---|---|
@@ -409,7 +410,7 @@ Two opt-in prompts the agent may raise after a fully completed magic task. Neith
 
 ## 12. Reference index
 
-Every path is relative to this skill's directory, `${CLAUDE_SKILL_DIR}`.
+`references/` paths are relative to this skill's directory, `${CLAUDE_SKILL_DIR}`; a `doc/` path is a site page (see the top of this file).
 
 | File | Load when |
 |---|---|

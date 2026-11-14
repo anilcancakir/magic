@@ -141,7 +141,7 @@ Config.merge({'services': {'stripe': {'key': 'sk_live_...'}}});
 
 ## Event
 
-Dispatches via `EventDispatcher.instance`. The `Event` facade only exposes `dispatch()` - listener registration is done directly on the dispatcher.
+Dispatches via `EventDispatcher.instance`. The `Event` facade exposes `dispatch()`, `listen<T>()` and `listenAny()`; the dispatcher itself registers listener factories directly.
 
 | Signature | Return Type | Notes |
 |-----------|-------------|-------|
