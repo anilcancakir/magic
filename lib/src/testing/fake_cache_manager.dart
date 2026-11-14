@@ -1,8 +1,8 @@
 import '../cache/cache_manager.dart';
 import '../cache/cache_store.dart';
 
-/// A recorded cache operation entry.
-typedef CacheRecord = ({String operation, String key, dynamic value});
+/// A cache operation as [FakeCacheManager] recorded it.
+typedef FakeCacheCall = ({String operation, String key, dynamic value});
 
 /// A fake [CacheManager] for testing.
 ///
@@ -21,7 +21,7 @@ class FakeCacheManager extends CacheManager {
   final _InMemoryCacheStore _store = _InMemoryCacheStore();
 
   /// All recorded cache operations in chronological order.
-  final List<CacheRecord> recorded = [];
+  final List<FakeCacheCall> recorded = [];
 
   @override
   CacheStore driver([String? driver]) => _store;

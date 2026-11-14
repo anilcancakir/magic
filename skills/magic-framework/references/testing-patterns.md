@@ -724,7 +724,7 @@ fake.assertHas('users');           // Key exists in store
 fake.assertMissing('missing_key'); // Key not in store
 fake.assertPut('users');           // put() was called with this key
 
-// Recorded operations: List<CacheRecord> ({operation, key, value})
+// Recorded operations: List<FakeCacheCall> ({operation, key, value})
 expect(fake.recorded.first.operation, 'put');
 ```
 

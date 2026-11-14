@@ -27,6 +27,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - **First stable release:** version 1.0.0 replaces the planned 0.1.0 and follows 0.0.41, so the 0.x caret trap is gone: a package on `magic: ^1.0.0` takes every 1.x release. It requires `dowel ^1.0.0` and `wind_kit ^1.12.0`; no API change beyond what is listed here.
+- **The record type of `FakeCacheManager.recorded` is `FakeCacheCall`, not `CacheRecord`.** The generic name collided with the `CacheRecord` class of the `crumbs` dev tool for any app that imports both barrels, and a test fake's record shape does not belong under a generic name in `package:magic/magic.dart`. The shape is unchanged: `({String operation, String key, dynamic value})`. (`lib/src/testing/fake_cache_manager.dart`)
 - **The web local storage adapter reads and writes `localStorage` directly.** Keys (`flutter.` plus the path) and the json-encoded base64 value format are the same, so files stored by 0.0.41 stay readable.
 - **The installer's `lib/main.dart` preview draws an in-repo unified diff instead of using `more`.**
 - **The `sqlite3` floor is `^3.9.1` and the `sqlite3.wasm` pin moves to 3.9.1.** Both now belong to `magic_local_storage`, whose `local_storage:install` downloads the wasm.
