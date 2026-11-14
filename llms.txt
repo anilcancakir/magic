@@ -1,0 +1,129 @@
+# magic
+
+> Laravel-style structure for Flutter apps: an IoC container, facades, service providers, Eloquent-style models over a REST API, reactive controllers, go_router routing without `BuildContext`, auth, validation, and in-memory fakes for tests. Scaffold with `dart run magic:dowel make:*`. SQLite, broadcasting, encryption and the file picker are plugins.
+
+**Stack**: Flutter >=3.47.0 · Dart >=3.13.0 · Runtime deps: `wind_kit`, `material_ui`, `dowel`, `dio`, `go_router`, `flutter_secure_storage`, `flutter_dotenv`, `intl`, `jiffy`, `logger`, `url_launcher` and a few more. `package:magic/magic.dart` re-exports `wind_kit`, `dio`, `go_router`, `intl`, `jiffy`, `flutter_secure_storage`, `timezone` and `logger`. No mockito (mock by inheriting a contract), no code generation.
+
+**Setup**:
+
+```bash
+flutter pub add magic
+dart run magic:dowel magic:install
+dart run magic:dowel make:model User -mcf   # a generator; -m -f need magic_local_storage
+```
+
+`magic:install` adds `wind_kit`, `material_ui` and `dowel`, writes `lib/config/`, the service providers, `.env` and a `lib/main.dart` that calls `Magic.init()`. A plugin: `flutter pub add <package>`, then `dart run magic:dowel plugin:install <package>`.
+
+```dart
+class User extends Model with HasTimestamps, InteractsWithPersistence {
+  @override String get table => 'users';
+  @override String get resource => 'users';
+
+  String? get name => getAttribute('name') as String?;
+
+  static User fromMap(Map<String, dynamic> map) =>
+      User()..setRawAttributes(map, sync: true)..exists = map.containsKey('id');
+}
+
+class UserController extends MagicController with MagicStateMixin<List<User>> {
+  static UserController get instance => Magic.findOrPut(UserController.new);
+
+  Widget index() {
+    if (isEmpty) fetchList('users', User.fromMap);
+    return renderState((users) => WDiv(
+      className: 'flex flex-col gap-2 p-4',
+      children: [for (final user in users) WText(user.name ?? '')],
+    ));
+  }
+}
+
+// lib/routes/app.dart
+void registerAppRoutes() {
+  MagicRoute.page('/users', () => UserController.instance.index());
+}
+```
+
+## API
+
+- `Magic`: `init({envFileName, configs, configFactories, providers})` boots env, config, providers and the router; `make<T>(key)`, `bind`, `singleton`, `findOrPut(builder)` for the container; `flush()` for tests. `MagicApplication` is the root widget.
+- `ServiceProvider`: `register()` (sync, bind services) and `boot()` (async, after every provider registered). `BaseEventServiceProvider` maps event types to listener factories.
+- `Model` (with `HasTimestamps`, `InteractsWithPersistence`): `table`, `resource`, `fillable`, `casts`, `getAttribute`, `setAttribute`, `fill`, `setRawAttributes`, `save`, `delete`; `make:model` generates the static `find` and `all` wrappers over `InteractsWithPersistence.findById` and `allModels`. API-first; `useLocal` adds SQLite through `magic_local_storage`.
+- `MagicController` (a `ChangeNotifier`) with `MagicStateMixin<T>`: `setLoading`, `setSuccess`, `setError`, `setEmpty`, `fetchList`, `fetchOne`, `renderState`. `MagicView` and `MagicStatefulView` bind a view to its controller.
+- `MagicRoute`: `page(path, handler)` with `.name()`, `.title()`, `.middleware()`; `group`, `to`, `toNamed(name, params:, query:)`, `back`. `MagicMiddleware` runs on navigation.
+- `Auth`: `login`, `logout`, `check`, `guest`, `user<T>()`, `id`, `restore`, `refreshToken`, `manager.setUserFactory`; guards `BearerTokenGuard`, `BasicAuthGuard`, `ApiKeyGuard`. `Gate`: `define`, `allows`, `denies`, `before`; `Policy`; `MagicCan` and `MagicCannot` widgets.
+- `Http`: `get`, `post`, `put`, `delete`, `upload`, `index`, `show`, `store`, `update`, `destroy`; answers `MagicResponse` (`failed`, `data`, `errors`, `errorMessage`).
+- `Cache` (`put`, `get`, `has`, `forget`, `remember`), `Config` (`get`, `set`, `has`), `Event` (`dispatch`, `listen<T>`), `Lang` (`get`, `choice`, `setLocale`), `Log` (`info`, `error`, `channel`), `Session` (flash, `old`, `error`), `Storage` (`put`, `get`, `url`, `download`, `disk`), `Vault` (`put`, `get`, `delete`), `Launch` (`url`, `email`, `phone`, `sms`).
+- `Validator.make(data, rules).passes()` with rules `Required`, `Email`, `Min`, `Max`, `Confirmed`, `In`, `Unique` and more; `FormRequest`, `MagicFormData`, `ValidatesRequests`, `MagicFormObject` for forms.
+- `MagicAction<I, O>` is one write unit; `Repository<T>` and `RepositoryQuery<T>` cache remote rows by id; `SessionScope` and `SessionScoped` reset tenant state on identity change; `MagicPerfHooks.sink` is the diagnostics seam.
+- `MagicTest.init()` and `MagicTest.boot` (`package:magic/testing.dart`); fakes `Http.fake()`, `Auth.fake()`, `Cache.fake()`, `Vault.fake()`, `Log.fake()`.
+- CLI (`dart run magic:dowel`): `magic:install`, `make:model`, `make:controller`, `make:view`, `make:resource`, `make:action`, `make:request`, `make:form`, `make:policy`, `make:middleware`, `make:provider`, `make:event`, `make:listener`, `make:repository`, `make:enum`, `make:lang`, `make:test`, `make:component`, `design:sync`, `design:lint`, `previews:refresh`.
+
+## Platforms
+
+Wherever Flutter runs, web included. `Vault` uses the platform's secure storage. The web `Storage` adapter reads and writes `localStorage`; IO `Storage.download` needs `magic_picker`.
+
+## Rules for agents
+
+- Import `package:magic/magic.dart` (`package:magic/testing.dart` in tests); everything under `src/` is private.
+- `await Magic.init(...)` in `main()` before any facade call, and read the router config only after it completes.
+- Set the user model with `Auth.manager.setUserFactory((data) => User.fromMap(data))` in `AppServiceProvider.boot()`, and list `AppServiceProvider` before the auth provider; session restore fails without it.
+- `LaunchServiceProvider` is not registered automatically: `magic:install` adds it, and an app that skipped the installer adds it to the `providers` config. Plugin providers are added by `plugin:install`.
+- Pass configs that read `Env.get()` as `configFactories`, which run after `.env` loads; plain `configs` do not wait for it.
+- Register listeners from a provider's `register()`, not `boot()`, as factories (`MagicListener Function()`), and name the type: `Event.listen<AuthLogin>(() => TrackSignIn())`.
+- A model with `useLocal => true` and no `magic_local_storage` throws `StateError`; `Model.query()`, `DB`, `Schema`, migrations and seeders live in that plugin. `Crypt` is `magic_encryption`, `Pick` is `magic_picker`, `Echo` is `magic_socket`.
+- `MagicResponse.errors` parses Laravel's `{"errors": {"field": ["msg"]}}` from a 422 response.
+- In tests call `MagicTest.init()` (or `MagicApp.reset()` and `Magic.flush()` in `setUp`): the container and facade caches leak between tests otherwise. `Gate` is a process static that `Magic.flush()` does not clear; `MagicTest.init()` clears it.
+- Never run `dart run magic:dowel` inside the magic repository itself.
+- Use `fromMap` for model hydration: it bypasses `fillable`, while `fill` drops keys not listed (`fill(map, strict: true)` throws instead).
+
+## Docs
+
+- [Installation](https://anilcancakir.com/magic/docs/getting-started/installation.md): install, bootstrap, requirements, the `wind_kit` setup, upgrading.
+- [Configuration](https://anilcancakir.com/magic/docs/getting-started/configuration.md): the `Config` facade, config files, environment.
+- [Service Providers](https://anilcancakir.com/magic/docs/getting-started/service-providers.md): `register` and `boot`, provider order.
+- [Directory Structure](https://anilcancakir.com/magic/docs/getting-started/directory-structure.md): the default project layout.
+- [Service Container](https://anilcancakir.com/magic/docs/architecture/service-container.md): the string-keyed container, bind, singleton, make.
+- [Facades](https://anilcancakir.com/magic/docs/architecture/facades.md): static access to container services, testing through fakes.
+- [Request Lifecycle](https://anilcancakir.com/magic/docs/architecture/request-lifecycle.md): where providers, middleware and controllers run.
+- [Application Structure](https://anilcancakir.com/magic/docs/architecture/application-structure.md): the six primitives for write-heavy screens.
+- [Routing](https://anilcancakir.com/magic/docs/basics/routing.md): `MagicRoute.page`, groups, layouts, named routes, navigation without context.
+- [Controllers](https://anilcancakir.com/magic/docs/basics/controllers.md): `MagicController`, `MagicStateMixin`, fetch helpers, lifecycle.
+- [Views](https://anilcancakir.com/magic/docs/basics/views.md): `MagicView`, `MagicStatefulView`, state rendering.
+- [Middleware](https://anilcancakir.com/magic/docs/basics/middleware.md): filtering navigation, auth guards, permission checks.
+- [HTTP Client](https://anilcancakir.com/magic/docs/basics/http-client.md): the `Http` facade, `MagicResponse`, interceptors.
+- [Forms](https://anilcancakir.com/magic/docs/basics/forms.md): `MagicFormData`, `FormRequest`, `ValidatesRequests`.
+- [Actions](https://anilcancakir.com/magic/docs/basics/actions.md): `MagicAction`, single-purpose writes that throw on failure.
+- [UI Helpers](https://anilcancakir.com/magic/docs/basics/ui-helpers.md): feedback, reactive builders, page titles, responsive layouts.
+- [Cache](https://anilcancakir.com/magic/docs/digging-deeper/cache.md): drivers, TTL, `remember`, cache events.
+- [Events](https://anilcancakir.com/magic/docs/digging-deeper/events.md): `MagicEvent`, `MagicListener`, dispatching.
+- [File Storage](https://anilcancakir.com/magic/docs/digging-deeper/file-storage.md): the `Storage` facade, disks, downloads, URLs.
+- [Helpers](https://anilcancakir.com/magic/docs/digging-deeper/helpers.md): strings, numbers, maps, polling, debouncing, stale-read guards.
+- [Launch](https://anilcancakir.com/magic/docs/digging-deeper/launch.md): opening URLs, email, phone and SMS.
+- [Localization](https://anilcancakir.com/magic/docs/digging-deeper/localization.md): JSON translations, `Lang`, switching locale.
+- [Logging](https://anilcancakir.com/magic/docs/digging-deeper/logging.md): channels, levels, the stack channel.
+- [Session](https://anilcancakir.com/magic/docs/digging-deeper/session.md): flash data, old input and errors across one navigation.
+- [Session Scope](https://anilcancakir.com/magic/docs/digging-deeper/session-scope.md): resetting cached state when the identity changes.
+- [Validation](https://anilcancakir.com/magic/docs/digging-deeper/validation.md): rules, messages, async rules.
+- [Carbon](https://anilcancakir.com/magic/docs/digging-deeper/carbon.md): the date and time utility.
+- [Perf Hooks](https://anilcancakir.com/magic/docs/digging-deeper/perf-hooks.md): `MagicPerfHooks.sink`, the diagnostics seam.
+- [Eloquent: Getting Started](https://anilcancakir.com/magic/docs/eloquent/getting-started.md): defining, retrieving and saving models, hybrid persistence.
+- [Eloquent: Mutators](https://anilcancakir.com/magic/docs/eloquent/mutators.md): accessors, mutators, casts.
+- [Repositories](https://anilcancakir.com/magic/docs/eloquent/repositories.md): `Repository<T>` and `RepositoryQuery<T>`.
+- [Eloquent: Serialization](https://anilcancakir.com/magic/docs/eloquent/serialization.md): maps, JSON, hidden and appended attributes.
+- [Authentication](https://anilcancakir.com/magic/docs/security/authentication.md): guards, token storage, session restore, refresh.
+- [Authorization](https://anilcancakir.com/magic/docs/security/authorization.md): `Gate`, policies, `MagicCan` widgets.
+- [Vault](https://anilcancakir.com/magic/docs/security/vault.md): platform secure storage and its fake.
+- [Testing: Getting Started](https://anilcancakir.com/magic/docs/testing/getting-started.md): `MagicTest`, resetting the container, fakes.
+- [Facade Testing](https://anilcancakir.com/magic/docs/testing/facades.md): the in-memory fakes of `Auth`, `Cache`, `Vault`, `Log`, `Http`.
+- [HTTP Tests](https://anilcancakir.com/magic/docs/testing/http-tests.md): stubbing responses, asserting requests.
+- [Magic CLI](https://anilcancakir.com/magic/docs/packages/magic-cli.md): `magic:install`, the `make:*` generators, previews and design commands.
+- [Magic DevTools](https://anilcancakir.com/magic/docs/packages/magic-devtools.md): the dev-tool adapters, debug-only.
+- [Contribution Guide](https://anilcancakir.com/magic/docs/contributing/contribution-guide.md): local setup, style, tests, pull requests.
+- [Documentation Authoring Guide](https://anilcancakir.com/magic/docs/contributing/documentation.md): writing and maintaining doc pages.
+
+## Links
+
+- [README](https://github.com/anilcancakir/magic/blob/master/README.md): install, a first sample, the plugin family, the agent rules table.
+- [API reference](https://pub.dev/documentation/magic/latest/): generated from the doc comments.
+- [Changelog](https://github.com/anilcancakir/magic/blob/master/CHANGELOG.md): what changed in each version.
+- [Source](https://github.com/anilcancakir/magic): issues and pull requests.
