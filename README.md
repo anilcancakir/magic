@@ -1,158 +1,151 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/fluttersdk/magic/master/.github/magic-logo.svg" width="120" alt="Magic Logo" />
+  <img src="https://raw.githubusercontent.com/anilcancakir/magic/master/.github/magic-logo.svg" width="120" alt="Magic Logo" />
 </p>
 
 <h1 align="center">Magic</h1>
 
 <p align="center">
-  <strong>The Laravel Experience for Flutter.</strong><br/>
-  Build production-ready Flutter apps with Facades, Eloquent ORM, Service Providers, and an IoC Container. If you know Laravel, you already know Magic.
+  <strong>Build Flutter apps with the structure you know from Laravel.</strong><br/>
+  An IoC container, facades, service providers, Eloquent-style models over your REST API, routing without <code>BuildContext</code>, auth, validation and test fakes, with a generator for each piece.
 </p>
 
 <p align="center">
   <a href="https://pub.dev/packages/magic"><img src="https://img.shields.io/pub/v/magic.svg" alt="pub package"></a>
-  <a href="https://github.com/fluttersdk/magic/actions"><img src="https://img.shields.io/github/actions/workflow/status/fluttersdk/magic/ci.yml?branch=master&label=CI" alt="CI"></a>
+  <a href="https://github.com/anilcancakir/magic/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/anilcancakir/magic/ci.yml?branch=master&label=CI" alt="CI"></a>
+  <a href="https://codecov.io/gh/anilcancakir/magic"><img src="https://codecov.io/gh/anilcancakir/magic/graph/badge.svg" alt="codecov"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://pub.dev/packages/magic/score"><img src="https://img.shields.io/pub/points/magic" alt="pub points"></a>
-  <a href="https://github.com/fluttersdk/magic/stargazers"><img src="https://img.shields.io/github/stars/fluttersdk/magic?style=flat" alt="GitHub stars"></a>
 </p>
 
 <p align="center">
-  <a href="https://magic.fluttersdk.com">Documentation</a> ·
+  <a href="https://anilcancakir.com/magic">Documentation</a> ·
   <a href="https://pub.dev/packages/magic">pub.dev</a> ·
-  <a href="https://github.com/fluttersdk/magic/issues">Issues</a>
+  <a href="https://github.com/anilcancakir/magic/issues">Issues</a>
 </p>
 
----
+## At a glance
 
-> [!NOTE]
-> Requires Flutter >= 3.47.0 and Dart >= 3.13.0. **Alpha**: Magic is under active development and APIs may change before 1.0. [Star the repo](https://github.com/fluttersdk/magic) to follow progress.
+| Fact | Value |
+|---|---|
+| Package | [`magic`](https://pub.dev/packages/magic) |
+| Install | `flutter pub add magic`, then `dart run magic:dowel magic:install` |
+| Import | `package:magic/magic.dart` (`package:magic/testing.dart` in tests) |
+| Entry points | `Magic.init()`, the facades (`Auth`, `Cache`, `Config`, `Event`, `Gate`, `Http`, `Lang`, `Launch`, `Log`, `MagicRoute`, `Session`, `Storage`, `Vault`), `Model`, `MagicController`, `ServiceProvider`, `dart run magic:dowel make:*` |
+| Platforms | Wherever Flutter runs, web included. `Vault` keeps secrets in the platform's secure storage. |
+| Requires | Dart >=3.13, Flutter >=3.47 |
+| Dependencies | `wind_kit`, `material_ui`, `dowel`, `dio`, `go_router`, `flutter_secure_storage` and a few more, see [Dependencies](#dependencies) |
+| License | MIT |
 
-## Installation
+## Install
 
 ```bash
 flutter pub add magic
 dart run magic:dowel magic:install
 ```
 
-Magic ships its own `dowel` executable, so `dart run magic:dowel` works the moment `magic` is a dependency, with no global activation. The one-shot `magic:install` adds `wind_kit`, `material_ui` and `dowel` to your `pubspec.yaml`, scaffolds dowel's `bin/dispatcher.dart`, and writes every config file, your service providers, the `.env` files, and a ready-to-run `lib/main.dart` bootstrap. The full setup walkthrough, all 13 facades, the CLI generators, and every subsystem live at the [Getting Started guide](https://magic.fluttersdk.com/getting-started/installation).
+Magic ships its own `dowel` executable, so the command works as soon as `magic` is a dependency, with no global activation. `magic:install` adds `wind_kit`, `material_ui` and `dowel` to your `pubspec.yaml`, writes the config files, the service providers, the `.env` files and a `lib/main.dart` that calls `Magic.init()`. It also scaffolds `bin/dispatcher.dart`, so plugin commands resolve.
 
-## Why Magic?
-
-Flutter gives you widgets, but not architecture. Building a real app means wiring up HTTP clients, auth flows, caching, validation, routing, and state management, all from scratch, every time.
-
-**Magic fixes this.** If you know Laravel, you already know Magic:
-
-```dart
-// Before: the Flutter way
-final dio = Dio(BaseOptions(baseUrl: 'https://api.example.com'));
-final response = await dio.get('/users/1');
-final user = User.fromJson(response.data['data']);
-// ...manually handle tokens, errors, caching, state...
-
-// After: the Magic way
-final user = await User.find(1);
-```
-
-The same Facades, the same Eloquent syntax, the same Service Provider lifecycle you reach for in Laravel, mapped onto a reactive Flutter client. No `BuildContext` plumbing, no boilerplate.
-
-## Features
-
-| | Feature | Description |
-|:--|:--------|:------------|
-| 🏗️ | **IoC Container** | Service container with singleton, bind, and instance registration. |
-| 🎭 | **13 Facades** | `Auth`, `Cache`, `Config`, `Event`, `Gate`, `Http`, `Lang`, `Launch`, `Log`, `Route`, `Session`, `Storage`, `Vault`: static-style access to resolved singletons. |
-| 🗄️ | **Eloquent ORM** | API-first models with casts, relations, timestamps and dirty tracking. Local SQLite persistence is opt-in through `magic_local_storage`. |
-| 🛣️ | **Routing** | GoRouter integration with middleware, named routes, context-free navigation, and automatic page-title management. |
-| 🔐 | **Authentication** | Token-based auth with guards (Bearer, BasicAuth, ApiKey), cache-first session restore, and auto-refresh. |
-| 🛡️ | **Authorization** | Gates, policies, and `MagicCan` / `MagicCannot` widgets. |
-| ✅ | **Validation** | Laravel-style rules: `Required`, `Email`, `Min`, `Max`, `In`, `Confirmed`, and more. |
-| 📡 | **Events** | Pub/sub event system with `MagicEvent` and `MagicListener`. |
-| 💾 | **Caching** | Memory and file drivers with TTL and the `remember()` pattern. |
-| 🌍 | **Localization** | JSON-based i18n with `:attribute` placeholders. |
-| 🎨 | **Wind UI** | Built-in [Wind](https://wind.fluttersdk.com) Tailwind-syntax styling with `className` strings. |
-| 🔌 | **Optional plugins** | Four local plugin packages carry the layers core no longer ships: `magic_local_storage` (SQLite, query builder, migrations, seeders, factories, offline sync), `magic_socket` (broadcasting and `Echo`), `magic_encryption` (`Crypt`) and `magic_picker` (`Pick`, file sharing). Install one with `flutter pub add <package>` then `dart run magic:dowel plugin:install <package>`. |
-| 🧪 | **Testing** | First-class fakes: `Http.fake()`, `Auth.fake()`, `Cache.fake()`, `Vault.fake()`, `Log.fake()`. No mockito needed. |
-| 🧰 | **Magic CLI** | Laravel-style scaffolding on [dowel](https://pub.dev/packages/dowel) via `dart run magic:dowel make:model`, `make:controller`, 17 `make:*` generators (including `make:resource`, which composes a full CRUD vertical: model, repository, actions, requests, form, controller, views and tests), plus `make:component` for design-first component workflows and `design:sync` / `design:lint` to drive the Wind theme from a `DESIGN.md`. |
+SQLite, broadcasting, encryption and the file picker are plugins, not core. Add one with `flutter pub add <package>`, then `dart run magic:dowel plugin:install <package>`.
 
 ## A taste of Magic
 
-A controller fetches over HTTP, an Eloquent model maps the response, and Wind styles the screen, the way it feels in Laravel:
+A model maps a REST resource, a controller loads it and renders each state, a route serves the screen:
 
 ```dart
+class User extends Model with HasTimestamps, InteractsWithPersistence {
+  @override String get table => 'users';
+  @override String get resource => 'users';
+
+  String? get name => getAttribute('name') as String?;
+
+  static User fromMap(Map<String, dynamic> map) =>
+      User()..setRawAttributes(map, sync: true)..exists = map.containsKey('id');
+}
+
 class UserController extends MagicController with MagicStateMixin<List<User>> {
   static UserController get instance => Magic.findOrPut(UserController.new);
 
-  Future<void> fetchUsers() => fetchList('users', User.fromMap);
-
-  Widget index() => renderState(
-    (users) => WDiv(
-      className: 'flex flex-col gap-2 p-4 bg-white dark:bg-gray-900',
-      children: [
-        for (final user in users)
-          WText(user.name ?? '', className: 'text-base text-gray-900 dark:text-white'),
-      ],
-    ),
-    onLoading: const CircularProgressIndicator(),
-    onError: (msg) => WText('Error: $msg', className: 'text-red-500'),
-  );
+  Widget index() {
+    if (isEmpty) fetchList('users', User.fromMap);
+    return renderState((users) => WDiv(
+      className: 'flex flex-col gap-2 p-4',
+      children: [for (final user in users) WText(user.name ?? '')],
+    ));
+  }
 }
+
+// lib/routes/app.dart
+MagicRoute.page('/users', () => UserController.instance.index());
 ```
 
-```dart
-// Eloquent: API-first, local SQLite when magic_local_storage is installed
-final user = await User.find(1);
-await user.save();
+`fetchList` drives loading, success, error and empty for you, and navigation, auth and validation work from anywhere without a `BuildContext`: `MagicRoute.toNamed('user.show', params: {'id': '1'})`, `Auth.check()`, `Validator.make(data, rules).passes()`.
 
-// Context-free navigation, auth, and validation, from anywhere
-MagicRoute.toNamed('user.show', params: {'id': '1'});
-if (Auth.check()) { final me = Auth.user<User>(); }
-final ok = Validator.make(data, {'email': [Required(), Email()]}).passes();
-```
+## The plugin family
 
-See the [documentation](https://magic.fluttersdk.com) for the full Facade reference, the Eloquent guide, routing, forms, the plugins, and testing.
+Magic core stays small. Each plugin adds one layer and has its own page.
 
-## AI Coding Assistants
+| Plugin | Adds |
+|---|---|
+| [`magic_local_storage`](https://anilcancakir.com/magic_local_storage) | SQLite for models with `useLocal`: `DB` and `Schema` facades, migrations, seeders, factories, a query builder and sync. |
+| [`magic_socket`](https://anilcancakir.com/magic_socket) | Real-time broadcasting: the `Echo` facade, Reverb and null drivers, private and presence channels. |
+| [`magic_encryption`](https://anilcancakir.com/magic_encryption) | AES-256-CBC encryption: the `Crypt` facade and `key:generate`. |
+| [`magic_picker`](https://anilcancakir.com/magic_picker) | File and image picking through the `Pick` facade, plus the share-sheet download handler. |
+| [`magic_deeplink`](https://anilcancakir.com/magic_deeplink) | Universal Links and App Links, resolved to Magic routes. |
+| [`magic_notifications`](https://anilcancakir.com/magic_notifications) | Database (in-app), push (OneSignal) and mail channels behind one `Notify` facade. |
+| [`magic_social_auth`](https://anilcancakir.com/magic_social_auth) | Social sign-in with extensible drivers, in the style of Laravel Socialite. |
+| [`magic_payments`](https://anilcancakir.com/magic_payments) | One entitlement contract over Stripe on the web and store in-app purchase on mobile. |
+| [`magic_sentry`](https://anilcancakir.com/magic_sentry) | Sentry for Magic apps: a web-safe boot, HTTP failure reports and an auth-synced user scope. |
+| [`magic_starter`](https://anilcancakir.com/magic_starter) | A starter kit: auth, profile, teams and notifications as opt-in features with overridable views. |
+| [`magic_device`](https://anilcancakir.com/magic_device) | Gate background work on mains power, viewer idle and macOS window fullscreen. |
+| [`magic_devtools`](https://anilcancakir.com/magic_devtools) | Magic adapters for the `tapir` and `crumbs` dev tools. |
 
-Magic ships AI-first. The **magic-framework** skill teaches your agent the correct patterns, Facades, Eloquent ORM, Service Providers, controllers, routing, and the common anti-patterns, so it generates correct Magic code on the first try. The skill is distributed through [**fluttersdk/ai**](https://github.com/fluttersdk/ai) for Claude Code, Cursor, OpenCode, Gemini CLI, VS Code Copilot, Codex CLI, Cline, and Roo Code with one command:
+## For AI coding agents
 
-```bash
-npx skills add fluttersdk/ai --skill magic-framework
-```
+Rules for an agent writing code against Magic. Each one is a mistake that costs a debugging session.
+
+| Do | Because |
+|----|---------|
+| Import `package:magic/magic.dart`, and `package:magic/testing.dart` in tests | Everything under `src/` is private. The barrel also re-exports `wind_kit`, `dio` and `go_router`. |
+| `await Magic.init(...)` in `main()` before any facade call | Facades resolve from the container that `init` builds. |
+| Scaffold with `dart run magic:dowel make:*` | The generators place files where the rest of the framework looks for them. |
+| Call `Auth.manager.setUserFactory(...)` in `AppServiceProvider.boot()`, and list `AppServiceProvider` before the auth provider | Without a user factory, session restore fails. |
+| Register listeners from a provider's `register()`, as factories: `Event.listen<T>(() => Listener())` | The auth guard can dispatch during `AuthServiceProvider.boot`. `T` must be named, or Dart infers `MagicEvent` and no event matches. |
+| Pass configs that read `Env.get()` as `configFactories` | `Magic.init` loads `.env` first and evaluates the factories after it. |
+| Add the plugin when you use a layer that left core | A model with `useLocal` and no `magic_local_storage` throws `StateError`, and `Storage.download` on IO without `magic_picker` throws `UnsupportedError`. |
+| Add `LaunchServiceProvider` to the `providers` config if `magic:install` did not | It is not registered automatically, and `Launch` needs it. |
+| Open tests with `MagicTest.init()` and fake with `Http.fake()`, `Auth.fake()`, `Cache.fake()`, `Vault.fake()`, `Log.fake()` | Container and facade state leaks between tests otherwise. Mock by inheriting a contract, not with mockito. |
+
+[`llms.txt`](llms.txt) carries the same facts in one file, and `npx skills add anilcancakir/magic` installs the [agent skill](skills/magic-framework/SKILL.md).
 
 ## Documentation
 
-Full docs at **[magic.fluttersdk.com](https://magic.fluttersdk.com)**.
+Every page is at `https://anilcancakir.com/magic/docs/<section>/<page>`.
 
-| Topic | |
-|-------|--|
-| [Installation](https://magic.fluttersdk.com/getting-started/installation) | Setup and requirements |
-| [Configuration](https://magic.fluttersdk.com/getting-started/configuration) | Environment and config files |
-| [Service Providers](https://magic.fluttersdk.com/getting-started/service-providers) | Provider lifecycle |
-| [Routing](https://magic.fluttersdk.com/basics/routing) | Routes and navigation |
-| [Controllers](https://magic.fluttersdk.com/basics/controllers) | Request handlers |
-| [HTTP Client](https://magic.fluttersdk.com/basics/http-client) | Network requests |
-| [Eloquent ORM](https://magic.fluttersdk.com/eloquent/getting-started) | Models and persistence |
-| [Forms](https://magic.fluttersdk.com/basics/forms) | Form handling and validation |
-| [Magic CLI](https://magic.fluttersdk.com/packages/magic-cli) | Generators and scaffolding |
+| Section | Pages |
+|---|---|
+| Getting started | [Installation](https://anilcancakir.com/magic/docs/getting-started/installation) · [Configuration](https://anilcancakir.com/magic/docs/getting-started/configuration) · [Service Providers](https://anilcancakir.com/magic/docs/getting-started/service-providers) · [Directory Structure](https://anilcancakir.com/magic/docs/getting-started/directory-structure) |
+| Architecture | [Service Container](https://anilcancakir.com/magic/docs/architecture/service-container) · [Facades](https://anilcancakir.com/magic/docs/architecture/facades) · [Request Lifecycle](https://anilcancakir.com/magic/docs/architecture/request-lifecycle) · [Application Structure](https://anilcancakir.com/magic/docs/architecture/application-structure) |
+| Basics | [Routing](https://anilcancakir.com/magic/docs/basics/routing) · [Controllers](https://anilcancakir.com/magic/docs/basics/controllers) · [Views](https://anilcancakir.com/magic/docs/basics/views) · [Middleware](https://anilcancakir.com/magic/docs/basics/middleware) · [HTTP Client](https://anilcancakir.com/magic/docs/basics/http-client) · [Forms](https://anilcancakir.com/magic/docs/basics/forms) · [Actions](https://anilcancakir.com/magic/docs/basics/actions) · [UI Helpers](https://anilcancakir.com/magic/docs/basics/ui-helpers) |
+| Digging deeper | [Cache](https://anilcancakir.com/magic/docs/digging-deeper/cache) · [Events](https://anilcancakir.com/magic/docs/digging-deeper/events) · [File Storage](https://anilcancakir.com/magic/docs/digging-deeper/file-storage) · [Helpers](https://anilcancakir.com/magic/docs/digging-deeper/helpers) · [Launch](https://anilcancakir.com/magic/docs/digging-deeper/launch) · [Localization](https://anilcancakir.com/magic/docs/digging-deeper/localization) · [Logging](https://anilcancakir.com/magic/docs/digging-deeper/logging) · [Session](https://anilcancakir.com/magic/docs/digging-deeper/session) · [Session Scope](https://anilcancakir.com/magic/docs/digging-deeper/session-scope) · [Validation](https://anilcancakir.com/magic/docs/digging-deeper/validation) · [Carbon](https://anilcancakir.com/magic/docs/digging-deeper/carbon) · [Perf Hooks](https://anilcancakir.com/magic/docs/digging-deeper/perf-hooks) |
+| Eloquent | [Getting Started](https://anilcancakir.com/magic/docs/eloquent/getting-started) · [Mutators](https://anilcancakir.com/magic/docs/eloquent/mutators) · [Repositories](https://anilcancakir.com/magic/docs/eloquent/repositories) · [Serialization](https://anilcancakir.com/magic/docs/eloquent/serialization) |
+| Security | [Authentication](https://anilcancakir.com/magic/docs/security/authentication) · [Authorization](https://anilcancakir.com/magic/docs/security/authorization) · [Vault](https://anilcancakir.com/magic/docs/security/vault) |
+| Testing | [Getting Started](https://anilcancakir.com/magic/docs/testing/getting-started) · [Facades](https://anilcancakir.com/magic/docs/testing/facades) · [HTTP Tests](https://anilcancakir.com/magic/docs/testing/http-tests) |
+| Packages | [Magic CLI](https://anilcancakir.com/magic/docs/packages/magic-cli) · [Magic DevTools](https://anilcancakir.com/magic/docs/packages/magic-devtools) |
+| Contributing | [Contribution Guide](https://anilcancakir.com/magic/docs/contributing/contribution-guide) · [Documentation Authoring Guide](https://anilcancakir.com/magic/docs/contributing/documentation) |
 
-## Contributing
+## Dependencies
 
-```bash
-git clone https://github.com/fluttersdk/magic.git
-cd magic && flutter pub get
-flutter test && dart analyze
-```
+`wind_kit` for styling, re-exported so `WDiv` and `WText` come with the barrel; `material_ui` for the `MaterialApp` that `MagicApplication` builds; `dowel` for the CLI behind `dart run magic:dowel`; `dio` for the `Http` facade; `go_router` for routing; `flutter_secure_storage` for `Vault`; `flutter_dotenv` for `.env`; `intl` and `jiffy` for localisation and dates; `logger` for logging; `url_launcher` for `Launch`. Core has no code generation and no dependency on the dev tools: `magic_devtools` carries those adapters.
 
-[Report a bug](https://github.com/fluttersdk/magic/issues/new?template=bug_report.yml) · [Request a feature](https://github.com/fluttersdk/magic/issues/new?template=feature_request.yml)
+## Links
+
+- [Documentation](https://anilcancakir.com/magic/docs/getting-started/installation): installation, the container, facades, routing, Eloquent, security and testing
+- [API reference](https://pub.dev/documentation/magic/latest/)
+- [llms.txt](llms.txt) and the [agent skill](skills/magic-framework/SKILL.md) for AI coding agents: `npx skills add anilcancakir/magic`
+- [Changelog](CHANGELOG.md)
+- [Report an issue](https://github.com/anilcancakir/magic/issues)
+- [Security policy](SECURITY.md)
 
 ## License
 
-MIT, see [LICENSE](LICENSE) for details.
-
----
-
-<p align="center">
-  <sub>Built with care by <a href="https://github.com/fluttersdk">FlutterSDK</a></sub><br/>
-  <sub>If Magic saves you time, <a href="https://github.com/fluttersdk/magic">give it a star</a>, it helps others discover it.</sub>
-</p>
+MIT, see [LICENSE](LICENSE). Built by [Anılcan Çakır](https://anilcancakir.com).

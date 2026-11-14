@@ -83,7 +83,7 @@ Every `setUp()` calls `MagicApp.reset()` and `Magic.flush()`: they clear the IoC
 | Missing `Auth.manager.setUserFactory()` | Set it in `AppServiceProvider.boot()`; session restore fails without it. List AppServiceProvider BEFORE AuthServiceProvider |
 | `LaunchServiceProvider` | NOT auto-registered: add it to the `providers` config. Plugin providers are added by `plugin:install` |
 | `configFactories` vs `configs` | Use `configFactories` for configs that read `Env.get()` |
-| `Event.register()` | Takes `List<Listener Function()>` (factories), not instances |
+| Registering event listeners | `BaseEventServiceProvider.listen` and `Event.listen<T>()` take listener factories (`MagicListener Function()`), not instances |
 | `routerConfig` before init | Only accessible after `Magic.init()` completes |
 | `ValidatesRequests` import | From `lib/src/concerns/`, not `http/` |
 | `useLocal => true` model without `magic_local_storage` | Throws a `StateError` naming the plugin (nothing bound to `'local_model_store'`). SQLite, its web `sqlite3.wasm` and `Model.query()` live in the plugin |
