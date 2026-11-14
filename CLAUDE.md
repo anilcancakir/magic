@@ -2,7 +2,7 @@
 
 # Magic
 
-Laravel-inspired Flutter framework: IoC container, facades, Eloquent-style API-first ORM, service providers, routing, auth, validation. UI is `wind_kit` on `material_ui`; CLI and scaffolding run on `dowel`. SQLite, broadcasting, encryption and the file picker are plugins (`magic_local_storage`, `magic_socket`, `magic_encryption`, `magic_picker`): `flutter pub add <pkg>` then `dart run magic:dowel plugin:install <pkg>`.
+The full-stack framework for Flutter: Eloquent-style models, auth, routing, realtime and payments, wired and ready on every device. Core carries the IoC container, facades, service providers, the API-first ORM, routing, auth, validation, forms, events, cache, localisation and test fakes. Realtime, payments, SQLite, notifications, deep links, social sign-in, encryption, the file picker and the starter kit are official plugins (`magic_socket`, `magic_payments`, `magic_local_storage`, `magic_notifications`, `magic_deeplink`, `magic_social_auth`, `magic_encryption`, `magic_picker`, `magic_starter`): `flutter pub add <pkg>` then `dart run magic:dowel plugin:install <pkg>`. Structure and vocabulary follow Laravel. UI is `wind_kit` on `material_ui`; CLI and scaffolding run on `dowel`.
 
 **Stack:** Dart >=3.13.0, Flutter >=3.47.0. Runtime deps: `wind_kit`, `material_ui`, `dowel`, `dio`, `go_router`, `flutter_secure_storage`, `flutter_dotenv`, `intl`, `jiffy`. No `mockito` (mock via contract inheritance), no code generation.
 **Branch:** `master` is the development line; the next tag publishes it. Direct pushes are blocked, everything lands through a PR. Semver from 1.0.0: a breaking change needs a major version.

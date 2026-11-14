@@ -1,5 +1,5 @@
 name: magic
-description: "Laravel-style structure for Flutter apps: IoC container, facades, Eloquent-style models over REST, go_router routing, auth, validation and test fakes."
+description: "The full-stack framework for Flutter: Eloquent-style models, auth, routing, realtime and payments, ready on every device."
 version: 1.0.0
 homepage: https://anilcancakir.com/magic
 repository: https://github.com/anilcancakir/magic
@@ -7,10 +7,10 @@ issue_tracker: https://github.com/anilcancakir/magic/issues
 
 topics:
   - framework
-  - mvc
   - orm
+  - authentication
+  - routing
   - laravel
-  - architecture
 
 environment:
   sdk: ">=3.13.0 <4.0.0"

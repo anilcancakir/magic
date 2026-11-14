@@ -5,8 +5,8 @@
 <h1 align="center">Magic</h1>
 
 <p align="center">
-  <strong>Build Flutter apps with the structure you know from Laravel.</strong><br/>
-  An IoC container, facades, service providers, Eloquent-style models over your REST API, routing without <code>BuildContext</code>, auth, validation and test fakes, with a generator for each piece.
+  <strong>The full-stack framework for Flutter: Eloquent-style models, auth, routing, realtime and payments, wired and ready on every device.</strong><br/>
+  The core package carries the container, facades, models over your REST API, routing without <code>BuildContext</code>, auth, validation, forms, events, cache, localisation and test fakes. Realtime, payments, SQLite, notifications, deep links, social sign-in, encryption, file picking and the starter kit are <a href="#the-plugin-family">official plugins</a>. Familiar to Laravel developers: the vocabulary carries over.
 </p>
 
 <p align="center">
@@ -31,7 +31,7 @@
 | Install | `flutter pub add magic`, then `dart run magic:dowel magic:install` |
 | Import | `package:magic/magic.dart` (`package:magic/testing.dart` in tests) |
 | Entry points | `Magic.init()`, the facades (`Auth`, `Cache`, `Config`, `Event`, `Gate`, `Http`, `Lang`, `Launch`, `Log`, `MagicRoute`, `Session`, `Storage`, `Vault`), `Model`, `MagicController`, `ServiceProvider`, `dart run magic:dowel make:*` |
-| Platforms | Wherever Flutter runs, web included. `Vault` keeps secrets in the platform's secure storage. |
+| Platforms | Android, iOS, macOS, Windows, Linux and the web. `Vault` keeps secrets in the platform's secure storage. |
 | Requires | Dart >=3.13, Flutter >=3.47 |
 | Dependencies | `wind_kit`, `material_ui`, `dowel`, `dio`, `go_router`, `flutter_secure_storage` and a few more, see [Dependencies](#dependencies) |
 | License | MIT |
@@ -45,7 +45,7 @@ dart run magic:dowel magic:install
 
 Magic ships its own `dowel` executable, so the command works as soon as `magic` is a dependency, with no global activation. `magic:install` adds `wind_kit`, `material_ui` and `dowel` to your `pubspec.yaml`, writes the config files, the service providers, the `.env` files and a `lib/main.dart` that calls `Magic.init()`. It also scaffolds `bin/dispatcher.dart`, so plugin commands resolve.
 
-SQLite, broadcasting, encryption and the file picker are plugins, not core. Add one with `flutter pub add <package>`, then `dart run magic:dowel plugin:install <package>`.
+`flutter pub add magic` installs core only. Realtime, payments, SQLite, notifications, encryption, the file picker and the rest of [the plugin family](#the-plugin-family) are separate packages. Add one with `flutter pub add <package>`, then `dart run magic:dowel plugin:install <package>`.
 
 ## A taste of Magic
 
@@ -84,7 +84,7 @@ void registerAppRoutes() {
 
 ## The plugin family
 
-Magic core stays small. Each plugin adds one layer and has its own page.
+Magic core stays small, and realtime, payments and the other layers below are official plugins, not part of `flutter pub add magic`. Each plugin adds one layer and has its own page.
 
 | Plugin | Adds |
 |---|---|

@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- **The pub.dev listing and the README now lead with the product pitch and keep Laravel as a secondary note.** The description, topics, README, `llms.txt`, `CLAUDE.md` and the opening of the installation and directory-structure pages say what core carries and which layers (realtime, payments, SQLite, notifications and more) are official plugins, and the Platforms row names the platforms explicitly. (`pubspec.yaml`, `README.md`, `llms.txt`, `CLAUDE.md`, `doc/getting-started/`)
+
 ## [1.0.0] - 2026-11-14
 
 ### BREAKING
