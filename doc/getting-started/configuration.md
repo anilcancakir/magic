@@ -75,7 +75,7 @@ Map<String, dynamic> get appConfig => {
 > Any variable in your `.env` file can be overridden by external environment variables at runtime.
 
 > [!NOTE]
-> `APP_KEY` is not read by core. The `magic_encryption` plugin reads it as `app.key`, and `dart run magic:dowel key:generate` (from that plugin) writes it. See [magic_encryption](https://anilcancakir.com/magic_encryption/docs/getting-started/installation).
+> `APP_KEY` is not read by core. The `magic_encryption` plugin reads it as `app.key`, and `dart run magic:dowel key:generate` (from that plugin) writes it. See [magic_encryption](https://anilcancakir.com/magic/docs/encryption/getting-started/installation).
 
 <a name="environment-variable-types"></a>
 ### Environment Variable Types

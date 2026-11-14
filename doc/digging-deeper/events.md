@@ -302,7 +302,7 @@ Event.listen<GateAccessDenied>(() => LogDeniedAccess());
 
 ### Database Events
 
-Core defines `DatabaseConnected` and `QueryExecuted`, but fires neither itself: the `magic_local_storage` plugin, which owns the database layer, is the source of them. See [Installation](https://anilcancakir.com/magic_local_storage/docs/getting-started/installation).
+Core defines `DatabaseConnected` and `QueryExecuted`, but fires neither itself: the `magic_local_storage` plugin, which owns the database layer, is the source of them. See [Installation](https://anilcancakir.com/magic/docs/local_storage/getting-started/installation).
 
 | Event | Fired When |
 |-------|------------|

@@ -13,6 +13,11 @@ https://github.com/login*
 # pub.dev search and analytics pages (rate-limited for CI IPs)
 https://pub.dev/packages*
 
+# The ecosystem plugin pages are published with the docs site; until then they answer 404.
+# Added 2026-11-15: remove these lines once the docs site serves /magic/<slug> and /magic/docs/<slug>.
+^https://anilcancakir\.com/magic/(?:socket|picker|encryption|local_storage|payments|social_auth|deeplink|notifications|sentry|starter|devtools|device)(?:[/?#]|$)
+^https://anilcancakir\.com/magic/docs/(?:socket|picker|encryption|local_storage|payments|social_auth|deeplink|notifications|sentry|starter|devtools|device)(?:[/?#]|$)
+
 # Localhost and loopback references in code samples
 http://localhost*
 http://127.0.0.1*

@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- **Every link from the README and `doc/` to an ecosystem plugin names the new location under `https://anilcancakir.com/magic/<slug>`.** The package page and the docs of each plugin sit under `https://anilcancakir.com/magic/docs/<slug>`; the core URLs do not change. (`README.md`, `doc/`)
+
 ## [1.0.0] - 2026-11-14
 
 ### BREAKING

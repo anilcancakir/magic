@@ -284,7 +284,7 @@ class AuthController extends MagicController
 <a name="running-writes-timers-and-broadcasts"></a>
 ## Running Writes, Timers, and Broadcasts
 
-Two mixins close the gaps a controller doing more than read-and-render runs into: `RunsActions` for a write and `OwnsTimers` for anything on a `Timer`. A third, `ListensToBroadcasts` for a shared realtime channel, ships in the `magic_socket` plugin (`flutter pub add magic_socket`, then `dart run magic:dowel plugin:install magic_socket`); see its [listeners page](https://anilcancakir.com/magic_socket/docs/basics/listeners). The two mixins above are documented in full at their own pages; this is the controller-side shape.
+Two mixins close the gaps a controller doing more than read-and-render runs into: `RunsActions` for a write and `OwnsTimers` for anything on a `Timer`. A third, `ListensToBroadcasts` for a shared realtime channel, ships in the `magic_socket` plugin (`flutter pub add magic_socket`, then `dart run magic:dowel plugin:install magic_socket`); see its [listeners page](https://anilcancakir.com/magic/docs/socket/basics/listeners). The two mixins above are documented in full at their own pages; this is the controller-side shape.
 
 ```dart
 class MonitorController extends MagicController with RunsActions, OwnsTimers {
