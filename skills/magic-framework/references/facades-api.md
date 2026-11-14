@@ -21,7 +21,7 @@ All facades are available after `await Magic.init()` completes. Import: `package
 - [Vault](#vault)
 - [Gotchas](#gotchas)
 
-Core ships 13 facades. The facades of the four extracted layers live in plugin packages and are documented in their own pages: the encryption facade in `plugin-encryption.md`, the picker facade in `plugin-picker.md`, the broadcasting facade in `plugin-socket.md`, and the SQLite database and schema facades in `plugin-local-storage.md`.
+The facades of the extracted layers live in plugin packages and are documented by their own skills: the encryption facade in the `magic-encryption` skill, the picker facade in `magic-picker`, the broadcasting facade in `magic-socket`, and the SQLite database and schema facades in `magic-local-storage`.
 
 ## Auth
 
@@ -42,9 +42,9 @@ Proxies calls to the default guard via the `AuthManager` singleton.
 | `Auth.registerModel<T>(Authenticatable Function(Map<String, dynamic>) factory)` | `void` | Alias for `manager.setUserFactory()`. |
 | `Auth.guard([String? name])` | `Guard` | Access a named guard; defaults to default guard. |
 | `Auth.manager` | `AuthManager` | Underlying manager for advanced configuration. |
-| `Auth.manager.setUserFactory(Authenticatable Function(Map<String, dynamic>) f)` | `void` | **Required** in `ServiceProvider.boot()` — auth won't work without it. |
+| `Auth.manager.setUserFactory(Authenticatable Function(Map<String, dynamic>) f)` | `void` | **Required** in `ServiceProvider.boot()` - auth won't work without it. |
 | `Auth.manager.extend(String name, Guard Function(Map) f)` | `void` | Register a custom authentication guard. |
-| `Auth.stateNotifier` | `ValueNotifier<int>` | **Getter.** Bumps on every login/logout/restore — use in layout widgets to rebuild reactively. |
+| `Auth.stateNotifier` | `ValueNotifier<int>` | **Getter.** Bumps on every login/logout/restore - use in layout widgets to rebuild reactively. |
 | `Auth.fake({Authenticatable? user})` | `FakeAuthManager` | **Testing.** Swap real `AuthManager` with `FakeAuthManager`. Pass `user` to pre-authenticate. Returns fake for assertions (`assertLoggedIn`, `assertLoggedOut`, `assertLoginAttempted`, `assertLoginCount`). |
 | `Auth.unfake()` | `void` | **Testing.** Remove fake and restore real `AuthManager`. Call in `tearDown`. |
 
@@ -141,7 +141,7 @@ Config.merge({'services': {'stripe': {'key': 'sk_live_...'}}});
 
 ## Event
 
-Dispatches via `EventDispatcher.instance`. The `Event` facade only exposes `dispatch()` — listener registration is done directly on the dispatcher.
+Dispatches via `EventDispatcher.instance`. The `Event` facade exposes `dispatch()`, `listen<T>()` and `listenAny()`; the dispatcher itself registers listener factories directly.
 
 | Signature | Return Type | Notes |
 |-----------|-------------|-------|
@@ -279,7 +279,7 @@ Resolves `Translator.instance`.
 | `Lang.isLoaded` | `bool` | **Getter.** True if translations are loaded. |
 | `Lang.supportedLocales` | `List<Locale>` | **Getter.** Registered supported locales. |
 | `Lang.delegate` | `LocalizationsDelegate<Translator>` | Flutter localization delegate for `MaterialApp`. |
-| `trans(String key, [Map<String, dynamic>? replace])` | `String` | Global helper — alias for `Lang.get()`. |
+| `trans(String key, [Map<String, dynamic>? replace])` | `String` | Global helper - alias for `Lang.get()`. |
 
 ```dart
 import 'package:magic/magic.dart';
@@ -296,7 +296,7 @@ await Lang.detectAndSetLocale();
 
 ## Launch
 
-Resolves `Magic.make<LaunchService>('launch')`. Requires `LaunchServiceProvider` — NOT auto-registered. All methods return `false` on failure; they never throw.
+Resolves `Magic.make<LaunchService>('launch')`. Requires `LaunchServiceProvider` - NOT auto-registered. All methods return `false` on failure; they never throw.
 
 | Signature | Return Type | Notes |
 |-----------|-------------|-------|
@@ -324,7 +324,7 @@ if (await Launch.canLaunch('tel:+1234567890')) {
 
 ## Session
 
-Laravel-style flash store. Data written via `flash()` / `flashErrors()` lives in a **next** bucket and is promoted to **current** when the app calls `Session.tick()`. The router does NOT tick automatically — wire a routerDelegate listener gated on `MagicRouter.instance.currentLocation` changes during bootstrap (see example below). Each value survives exactly one hop.
+Laravel-style flash store. Data written via `flash()` / `flashErrors()` lives in a **next** bucket and is promoted to **current** when the app calls `Session.tick()`. The router does NOT tick automatically - wire a routerDelegate listener gated on `MagicRouter.instance.currentLocation` changes during bootstrap (see example below). Each value survives exactly one hop.
 
 | Signature | Return Type | Notes |
 |-----------|-------------|-------|
@@ -336,7 +336,7 @@ Laravel-style flash store. Data written via `flash()` / `flashErrors()` lives in
 | `Session.errors(String field)` | `List<String>` | All flashed errors for field. |
 | `Session.hasError(String field)` | `bool` | True if the field has at least one flashed error. |
 | `Session.hasFlash` | `bool` | **Getter.** Any flash data readable this frame. |
-| `Session.tick()` | `void` | Promote `_next` → `_current`. Not called automatically — wire it once at bootstrap via a routerDelegate listener gated on actual location changes; call manually in tests. |
+| `Session.tick()` | `void` | Promote `_next` → `_current`. Not called automatically - wire it once at bootstrap via a routerDelegate listener gated on actual location changes; call manually in tests. |
 | `Session.reset()` | `void` | Clear both buckets (testing). |
 | `Session.store` | `SessionStore` | Underlying store (for direct inspection). |
 | `Session.setStore(SessionStore store)` | `void` | Swap the backing store (testing). |
@@ -351,7 +351,7 @@ String? error(String field);
 ```dart
 import 'package:magic/magic.dart';
 
-// Bootstrap (call once — Magic does not tick Session automatically):
+// Bootstrap (call once: Magic does not tick Session automatically):
 var lastLocation = MagicRouter.instance.currentLocation;
 MagicRouter.instance.router.routerDelegate.addListener(() {
   final current = MagicRouter.instance.currentLocation;
@@ -372,7 +372,7 @@ Text(error('email') ?? '');
 if (Session.hasError('email')) showErrorIcon();
 ```
 
-`MagicFormData.validate()` auto-flashes `form.data` on failure (but not per-field errors — call `Session.flashErrors(...)` manually when you need `error('field')` to resolve after navigating back).
+`MagicFormData.validate()` auto-flashes `form.data` on failure (but not per-field errors - call `Session.flashErrors(...)` manually when you need `error('field')` to resolve after navigating back).
 
 ---
 
@@ -415,7 +415,7 @@ The facade class is `MagicRoute`. Resolves `MagicRouter.instance`.
 | `MagicRoute.group({String? prefix, List middleware, String? as, Widget Function(Widget)? layout, String? layoutId, required void Function() routes})` | `void` | Group routes with shared prefix/middleware. |
 | `MagicRoute.layout({String? id, required Widget Function(Widget child) builder, required List<RouteDefinition> routes})` | `void` | Persistent shell layout for nested routes. |
 | `MagicRoute.resource(String name, ResourceController controller, {List<String>? only, List<String>? except})` | `List<RouteDefinition>` | Auto-wire canonical GET routes (index/create/show/edit) to a `ResourceController` mixin. Each definition gets a `{slug}.{method}` name + title. Throws `ArgumentError` for unknown method names in `only`/`except`. |
-| `MagicRoute.to(String path, {Map<String, String>? query})` | `void` | Navigate to path — no BuildContext needed. |
+| `MagicRoute.to(String path, {Map<String, String>? query})` | `void` | Navigate to path - no BuildContext needed. |
 | `MagicRoute.toNamed(String name, {Map<String, String> params, Map<String, String> query})` | `void` | Navigate by named route. |
 | `MagicRoute.push(String path)` | `void` | Push path onto the navigation stack. Before the `Router` widget has parsed a location (a cold-start deeplink) it replaces instead: there is no stack to push onto yet, and pushing leaves an empty location behind that `currentLocation`, `pathParameter` and `queryParameter` all read. `to()` on a `.stacked()` route answers the same way. Throws `StateError` when the router is not initialised. |
 | `MagicRoute.back({String? fallback})` | `void` | Pop the current route. Works across shell routes via history tracking. Uses `fallback` path when history is empty. |
@@ -540,11 +540,11 @@ There is **no migration between the two keychains in either direction**, and a m
 ## Gotchas
 
 - **Init required**: Facades that resolve from the container (`Cache`, `Http`, `Log`, `Launch`, `Vault`) will throw if called before `Magic.init()` completes.
-- **Auth.guest is a getter**: `Auth.guest` — no parentheses. `Auth.check()` requires parentheses.
-- **Event listeners use factories**: `EventDispatcher.instance.register(Type, [() => MyListener()])` — pass factory closures, not instances.
-- **Extracted facades**: encryption, picker, broadcasting and the SQLite layer are not in core 1.0.0. Install the matching plugin (`magic_encryption`, `magic_picker`, `magic_socket`, `magic_local_storage`) and read its page; see the list at the top of this file.
+- **Auth.guest is a getter**: `Auth.guest` - no parentheses. `Auth.check()` requires parentheses.
+- **Event listeners use factories**: `EventDispatcher.instance.register(Type, [() => MyListener()])` - pass factory closures, not instances.
+- **Extracted facades**: encryption, picker, broadcasting and the SQLite layer are not in core 1.0.0. Install the matching plugin (`magic_encryption`, `magic_picker`, `magic_socket`, `magic_local_storage`) and load its skill (`magic-encryption`, `magic-picker`, `magic-socket`, `magic-local-storage`); see the note at the top of this file.
 - **LaunchServiceProvider**: Not auto-registered. Add `(app) => LaunchServiceProvider(app)` to providers config. Declare URL schemes in the native manifest for `canLaunch()` to work on iOS 9+ and Android 11+.
 - **Route facade name**: The class is `MagicRoute`, not `Route`. Alias it if you prefer: `import 'package:magic/magic.dart' show MagicRoute as Route;`.
 - **Storage on Web**: `put()` stores Base64 in the browser's `localStorage` under `flutter.` + path (the keys 0.0.41 wrote); `url()` returns a `blob:` URL, not a file path.
 - **Storage.download on IO**: needs `magic_picker`, whose provider sets `LocalAdapterContract.downloadHandler`; without it `download` throws `UnsupportedError`. Web `download` needs nothing.
-- **Config dot notation**: `Config.get('auth.defaults.guard')` — nested keys separated by `.`.
+- **Config dot notation**: `Config.get('auth.defaults.guard')` - nested keys separated by `.`.

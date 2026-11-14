@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - **The pub.dev listing and the README now lead with the product pitch and keep Laravel as a secondary note.** The description, topics, README, `llms.txt` and `CLAUDE.md` say what core carries and which layers (realtime, payments, SQLite, notifications and more) are official plugins, and the Platforms row names the platforms explicitly. The installation page's introduction leads with the same pitch and moves Laravel to a "Familiar to Laravel Developers" note, and the directory-structure page's opening line names the folders first and mentions Laravel's conventions last. (`pubspec.yaml`, `README.md`, `llms.txt`, `CLAUDE.md`, `doc/getting-started/`)
+- **The `magic-framework` agent skill covers the core package only.** Every official plugin ships its own skill now, so the twelve `references/plugin-*.md` pages are gone and the skill keeps a short table of what each plugin is and which skill to load (`npx skills add anilcancakir/<package>`). The description and body follow the skill conventions (no counts, one-line triggers), the repository links name `anilcancakir/magic`, and `references/plugins.md` carries the install steps and provider-order rules that are common to every plugin. (`skills/magic-framework/`)
 
 ## [1.0.0] - 2026-11-14
 
