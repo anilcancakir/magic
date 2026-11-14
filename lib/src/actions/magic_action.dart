@@ -45,8 +45,8 @@ abstract class MagicAction<I, O> {
   /// A test binds a fake in `setUp` and calls [flush] in `tearDown`; nothing
   /// else needs to know the swap happened.
   ///
-  /// [A] must be given explicitly: `MagicAction.bind<PauseMonitor>(() =>
-  /// FakePauseMonitor())`. Left off, Dart infers [A] from the closure's
+  /// [A] must be given explicitly, as in
+  /// `MagicAction.bind<PauseMonitor>(() => FakePauseMonitor())`. Left off, Dart infers [A] from the closure's
   /// RETURN type (`FakePauseMonitor`, not `PauseMonitor`), so the binding is
   /// keyed under the fake's own type. [resolve] then never finds it, since it
   /// looks the binding up under the type the CALL SITE names, and the

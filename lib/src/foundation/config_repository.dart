@@ -191,7 +191,7 @@ class ConfigRepository {
     });
   }
 
-  /// Convert a Map to Map<String, dynamic>.
+  /// Convert a Map to `Map<String, dynamic>`.
   Map<String, dynamic> _convertToStringDynamic(Map source) {
     final result = <String, dynamic>{};
     source.forEach((key, value) {

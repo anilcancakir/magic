@@ -33,7 +33,7 @@ import 'exceptions/mass_assignment_exception.dart';
 ///
 /// The model automatically casts attributes based on the [casts] map:
 /// - `datetime` → Carbon
-/// - `json` → Map<String, dynamic>
+/// - `json` → `Map<String, dynamic>`
 /// - `bool` → bool
 /// - `int` → int
 /// - `double` → double
