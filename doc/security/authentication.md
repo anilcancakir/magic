@@ -223,7 +223,7 @@ class MyGuard extends BaseGuard {
 Auth.manager.extend('myguard', (config) => MyGuard());
 ```
 
-`startSession` marks the session as opened and moves the in-memory token before its first await, then persists the tokens, sets the user and caches it. Prefer it to `storeToken` followed by `setUser`: both mark a new session, so a boot-time user sync or a refresh still in the air ignores its answer, but only `startSession` also deletes a stored token the new session does not carry and leaves the user alone when a newer sign-in began during its writes.
+`startSession` marks the session as opened and moves the in-memory token before its first await, then persists the tokens, sets the user and caches it. Prefer it to `storeToken` followed by `setUser`: both mark a new session, so a boot-time user sync or a refresh still in the air ignores its answer, and both delete a stored refresh token the new session does not carry, but only `startSession` also deletes the stored access token when the login carries none and leaves the user alone when a newer sign-in began during its writes.
 
 ### Firebase Guard Example
 
@@ -315,17 +315,17 @@ MagicBuilder(
 
 **A request that raced a token change is handed back refused, not replayed.** When the refused request carried an older token and the guard already holds a newer one, the interceptor cannot tell a refresh from a different account signing in, and a replay with the newer token could answer one account's screen with another account's data. The caller receives the 401 and decides whether its request still stands.
 
-**A refresh belongs to the session it started in.** When a sign-in, a sign-out or a restore of another account's token lands while a refresh is in the air, the refreshed token is discarded and the refused request is handed back with no retry and no logout, so the new session keeps its own token and stays signed in. A retry already on its way is sent with the refreshed token, never the new session's, and its answer is handed back as the 401. A sign-in without a `token` or a `refresh_token` deletes the stored one, so it never inherits the previous account's. `storeToken` counts as a sign-in too; a custom guard that rotates its own token through it gets no retry and loses an in-flight boot sync, so rotate through `refreshToken()` with a `refreshEndpoint` instead.
+**A refresh belongs to the session it started in.** When a sign-in, a sign-out or a restore of another account's token lands while a refresh is in the air, the refreshed token is discarded and the refused request is handed back with no retry and no logout, so the new session keeps its own token and stays signed in. A retry already on its way is sent with the refreshed token, never the new session's, and its answer is handed back as the 401. A sign-in without a `token` or a `refresh_token` deletes the stored one, so it never inherits the previous account's. `storeToken` counts as a sign-in too, and drops a stored refresh token it is not given; a custom guard that rotates its own token through it gets no retry and loses an in-flight boot sync, so rotate through `refreshToken()` with a `refreshEndpoint` instead.
 
 **A guard that does not extend `BaseGuard`** keeps no token the interceptor can compare against, so it is judged on presence alone: a 401 ends its session only when the request carried the header `auth.token.header` names. A cookie-based guard, or one that sends its credential under another header, stays signed in while calls return 401; such a guard has to end its own session.
 
-`Auth.refreshToken()` also returns `false` when the session changed while the refresh was in the air, so a manual refresh signs out only when the same user is still signed in:
+`Auth.refreshToken()` also returns `false` when the session changed while the refresh was in the air, so a manual refresh signs out only when the stored token is still the one it refreshed (a sign-out, or the same account signing in again, replaces it):
 
 ```dart
 // Manual token refresh
-final signedIn = Auth.id();
+final refreshed = await Auth.getToken();
 final success = await Auth.refreshToken();
-if (!success && Auth.id() == signedIn) {
+if (!success && await Auth.getToken() == refreshed) {
   await Auth.logout();
   MagicRoute.to('/login');
 }

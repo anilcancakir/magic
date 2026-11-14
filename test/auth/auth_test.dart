@@ -1298,14 +1298,18 @@ void main() {
         // The access token is on disk by then and the server has rotated the
         // old one away, so going back to the old token would sign requests
         // with a token nobody accepts while the Vault holds the working one.
+        // A refresh goes through `refreshToken()`: `storeToken` is a sign-in.
         Magic.app.setInstance('vault', _RefusingVault('new-refresh'));
-        final guard = BearerTokenGuard(refreshTokenKey: 'refresh_token');
-        await guard.storeToken('old-token');
-
-        await expectLater(
-          guard.storeToken('new-token', 'new-refresh'),
-          throwsA(isA<StateError>()),
+        Http.fake(
+          (MagicRequest _) => MagicResponse(
+            data: {'token': 'new-token', 'refresh_token': 'new-refresh'},
+            statusCode: 200,
+          ),
         );
+        final guard = _RefreshingCacheFirstGuard();
+        await guard.storeToken('old-token', 'old-refresh');
+
+        expect(await guard.refreshToken(), isFalse);
 
         expect(guard.cachedToken, 'new-token');
         expect(await Vault.get('auth_token'), 'new-token');

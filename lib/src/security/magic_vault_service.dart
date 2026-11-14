@@ -136,7 +136,8 @@ class MagicVaultService {
   /// `subtle.encrypt`, so a token written before a sign-out's delete landed
   /// after it and was back on disk. A failure reaches its own caller through
   /// the returned future; the chain only waits for it to settle, so the next
-  /// operation still runs.
+  /// operation still runs. The order needs every operation to finish, so a
+  /// platform call that never answers stalls every later Vault call.
   Future<T> _run<T>(
     String failure,
     Future<T> Function(FlutterSecureStorage storage) operation,

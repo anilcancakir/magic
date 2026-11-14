@@ -90,18 +90,32 @@ class _SerialHoldingVault extends FakeVaultService {
 
   Future<void> _tail = Future<void>.value();
 
+  /// The value whose write fails as a locked keychain's does, or null.
+  String? refuseValue;
+
+  /// The key whose delete waits for [removeRelease], or null.
+  String? holdRemoveKey;
+
+  /// Lets the held delete run.
+  final Completer<void> removeRelease = Completer<void>();
+
   @override
   Future<void> put(String key, String value) => _inOrder(() async {
     if (value == holdValue) {
       holdStarted.complete();
       await release.future;
     }
+    if (value == refuseValue) throw MagicVaultException('keychain locked');
 
     await super.put(key, value);
   });
 
   @override
-  Future<void> remove(String key) => _inOrder(() => super.remove(key));
+  Future<void> remove(String key) => _inOrder(() async {
+    if (key == holdRemoveKey) await removeRelease.future;
+
+    await super.remove(key);
+  });
 
   /// Runs [operation] after every one issued before it. A failure reaches
   /// the caller and does not stop the ones issued after it.
@@ -814,6 +828,92 @@ void main() {
         expect(guard.cachedToken, 'b-token');
         expect(await Vault.get('auth_token'), 'b-token');
         expect(await Vault.get('refresh_token'), isNull);
+      },
+    );
+
+    test(
+      'a sign-in deletes the old refresh token first and writes its own last',
+      () async {
+        // Written token first, refresh token second, a kill or a failure
+        // between the two left B's access token beside A's refresh token.
+        vault.reset();
+
+        await guard.login(<String, dynamic>{
+          'token': 'b-token',
+          'refresh_token': 'b-refresh',
+        }, _User()..setRawAttributes({'id': 2}, sync: true));
+
+        expect(
+          vault.recorded
+              .where((op) => op.key != 'auth_user')
+              .map((op) => '${op.operation} ${op.key}')
+              .toList(),
+          <String>[
+            'remove refresh_token',
+            'put auth_token',
+            'put refresh_token',
+          ],
+        );
+      },
+    );
+
+    test(
+      'a sign-in whose refresh-token write fails keeps the old token in memory',
+      () async {
+        vault.refuseValue = 'b-refresh';
+
+        await expectLater(
+          guard.login(<String, dynamic>{
+            'token': 'b-token',
+            'refresh_token': 'b-refresh',
+          }, _User()..setRawAttributes({'id': 2}, sync: true)),
+          throwsA(isA<MagicVaultException>()),
+        );
+
+        expect(guard.cachedToken, 'a-token');
+        expect(guard.id(), 1);
+        expect(await Vault.get('refresh_token'), isNull);
+      },
+    );
+
+    test(
+      'a sign-in through storeToken drops a refresh token it lacks',
+      () async {
+        await guard.storeToken('b-token');
+
+        expect(await Vault.get('refresh_token'), isNull);
+      },
+    );
+
+    test(
+      'a restore stops when a sign-out begins during its token read',
+      () async {
+        // The read answers before the sign-out's delete lands, memory has not
+        // moved yet, and the restore used to apply the cached user anyway.
+        final restoring = _RefreshingGuard(
+          userFactory: (data) => _User()..setRawAttributes(data, sync: true),
+        );
+        await restoring.login(<String, dynamic>{
+          'token': 'a-token',
+          'refresh_token': 'a-refresh',
+        }, _User()..setRawAttributes({'id': 1}, sync: true));
+        vault
+          ..holdReadKey = 'auth_token'
+          ..holdRemoveKey = 'auth_token';
+        final applied = <Object?>[];
+        restoring.stateNotifier.addListener(() => applied.add(restoring.id()));
+
+        final restored = restoring.restore();
+        await vault.readTaken.future;
+        final signingOut = restoring.logout();
+        vault.readRelease.complete();
+        await restored;
+        vault.removeRelease.complete();
+        await signingOut;
+
+        expect(applied, isNot(contains(1)));
+        expect(restoring.check(), isFalse);
+        expect(restoring.cachedToken, isNull);
       },
     );
   });

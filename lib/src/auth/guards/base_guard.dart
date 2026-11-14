@@ -140,13 +140,19 @@ abstract class BaseGuard implements Guard {
   ///
   /// Marks a new session, as [startSession] does: a token stored from outside
   /// is taken to be a sign-in, so a refresh or a boot sync in the air is
-  /// discarded rather than written over it. A guard that rotates its own
+  /// discarded rather than written over it, and a stored refresh token is
+  /// deleted unless [refreshToken] replaces it. A guard that rotates its own
   /// token through this pays that: its in-flight boot sync is discarded and
   /// the interceptor hands the refused request back instead of retrying it.
   /// [refreshToken]'s rotation path, which keeps the session, is the one that
   /// keeps both.
   Future<void> storeToken(String token, [String? refreshToken]) =>
-      _holdThenPersist(token, refreshToken, epoch: ++_sessionEpoch);
+      _holdThenPersist(
+        token,
+        refreshToken,
+        epoch: ++_sessionEpoch,
+        newSession: true,
+      );
 
   /// Open a session: mark it opened and move the in-memory token, persist
   /// [token] and its [refreshToken] (deleting the stored one of each that is
@@ -207,27 +213,28 @@ abstract class BaseGuard implements Guard {
     await Event.dispatch(AuthLogin(user));
   }
 
-  /// Move the in-memory token to [token], then persist it and [refreshToken].
+  /// Move the in-memory token to [token], then persist it and [refreshToken]
+  /// for the session [epoch] names.
   ///
-  /// When the access-token write throws ([MagicVaultException] on a locked
-  /// keychain or a missing entitlement), the in-memory token goes back to what
-  /// it was, as long as nothing moved it since, and the failure propagates. A
-  /// token that was never stored must not ride on later requests: a guest
-  /// would carry a failed sign-in's bearer, and on an account switch the
-  /// screen would show one account while the requests carried the other.
+  /// A sign-in ([newSession]) keeps nothing of the previous session: the
+  /// stored refresh token is deleted first, then [token] is written (or the
+  /// stored access token deleted when it is null), and [refreshToken] goes
+  /// last, so no step can leave the new access token beside the previous
+  /// account's refresh token. A refresh that answers no new refresh token
+  /// keeps the stored one.
   ///
-  /// A failed refresh-token write does NOT move it back. By then the new
-  /// access token is on disk, and after a refresh the server has already
-  /// rotated the old one away, so reverting would sign requests with a token
-  /// nobody accepts while the Vault holds the one that works.
+  /// When a step throws ([MagicVaultException] on a locked keychain or a
+  /// missing entitlement), the in-memory token goes back to what it was, as
+  /// long as the session has not changed since, and the failure propagates:
+  /// a token whose session could not be stored must not ride on later
+  /// requests. The Vault keeps whatever steps did land, so after a failure
+  /// past the first one the previous token stays in memory while its stored
+  /// refresh token is already gone, and the new access token may be on disk.
   ///
-  /// The tokens belong to the session [epoch] names. A sign-in ([newSession])
-  /// keeps nothing of the previous session it has no replacement for: a null
-  /// [token] deletes the stored access token and a null [refreshToken] the
-  /// stored refresh token, both before the access-token write, so a failed
-  /// delete (a locked keychain) moves the in-memory token back with the Vault
-  /// still as the previous session left it. A refresh that answers no new
-  /// refresh token keeps the stored one.
+  /// A refresh's failed refresh-token write does NOT move it back. By then
+  /// the new access token is on disk, and the server has already rotated the
+  /// old one away, so reverting would sign requests with a token nobody
+  /// accepts while the Vault holds the one that works.
   ///
   /// The refresh token is written only while the session is still [epoch]: a
   /// session opened during the access-token write may have no refresh token
@@ -240,9 +247,10 @@ abstract class BaseGuard implements Guard {
   }) async {
     final previous = _cachedToken;
     _cachedToken = token;
+    var revertible = true;
 
     try {
-      if (newSession && refreshToken == null && refreshTokenKey != null) {
+      if (newSession && refreshTokenKey != null) {
         await Vault.delete(refreshTokenKey!);
       }
 
@@ -251,18 +259,19 @@ abstract class BaseGuard implements Guard {
       } else {
         await Vault.put(tokenKey, token);
       }
+
+      revertible = newSession;
+      if (_sessionEpoch != epoch) return;
+
+      if (refreshToken != null && refreshTokenKey != null) {
+        await Vault.put(refreshTokenKey!, refreshToken);
+      }
     } catch (_) {
-      if (_sessionEpoch == epoch && _cachedToken == token) {
+      if (revertible && _sessionEpoch == epoch && _cachedToken == token) {
         _cachedToken = previous;
       }
 
       rethrow;
-    }
-
-    if (_sessionEpoch != epoch) return;
-
-    if (refreshToken != null && refreshTokenKey != null) {
-      await Vault.put(refreshTokenKey!, refreshToken);
     }
   }
 
@@ -279,15 +288,24 @@ abstract class BaseGuard implements Guard {
   /// session: `Auth.restore()` after a profile save must not discard a
   /// refresh in the air that the server has already rotated to.
   ///
-  /// When the in-memory token moved while the read was in the air (a refresh,
-  /// a sign-in), memory is newer than what the read saw, so nothing changes:
-  /// putting the read back would undo a refresh the server already rotated.
-  ///
-  /// Returns false when it yielded that way, true when it loaded the read.
-  Future<bool> loadTokenToCache() async {
+  /// When the session changed (a sign-in, a sign-out) or the in-memory token
+  /// moved (a refresh) while the read was in the air, memory is newer than
+  /// what the read saw, so nothing changes: putting the read back would undo
+  /// a refresh the server already rotated.
+  Future<void> loadTokenToCache() async {
+    await _loadTokenToCache();
+  }
+
+  /// [loadTokenToCache], answering false when the session changed while the
+  /// read was in the air, so [restore] stops rather than apply what it reads
+  /// next to a session that is no longer the one it began under.
+  Future<bool> _loadTokenToCache() async {
     final held = _cachedToken;
+    final epoch = _sessionEpoch;
     final token = await Vault.get(tokenKey);
-    if (_cachedToken != held) return false;
+
+    if (_sessionEpoch != epoch) return false;
+    if (_cachedToken != held) return true;
 
     if (token != held) _sessionEpoch++;
     _cachedToken = token;
@@ -500,13 +518,13 @@ abstract class BaseGuard implements Guard {
     Log.debug(
       'Auth: Restoring session (tokenKey=$tokenKey, hasFactory=${userFactory != null})',
     );
-    // A sign-in or a sign-out landing during either read owns the session
-    // from then on, and what the reads saw belongs to the one before it. A
-    // refresh moves the token without changing the session, so a token read
-    // that yielded to one still restores.
-    final before = _sessionEpoch;
-    final loaded = await loadTokenToCache();
-    if (!loaded && _sessionEpoch != before) return;
+    // A sign-in or a sign-out that begins during either read owns the
+    // session from then on, and what the reads saw belongs to the one before
+    // it, so the restore stops there. The token read's own move of the epoch
+    // (it loaded another token) is the session this restore continues under.
+    // A refresh moves the token without changing the session, so a token
+    // read that yielded to one still restores.
+    if (!await _loadTokenToCache()) return;
 
     if (cachedToken == null) {
       Log.debug('Auth: No token found in storage');
