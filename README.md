@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>The full-stack framework for Flutter: Eloquent-style models, auth, routing, realtime and payments, wired and ready on every device.</strong><br/>
-  The core package carries the container, facades, models over your REST API, routing without <code>BuildContext</code>, auth, validation, forms, events, cache, localisation and test fakes. Realtime, payments, SQLite, notifications, deep links, social sign-in, encryption, file picking and the starter kit are <a href="#the-plugin-family">official plugins</a>. Familiar to Laravel developers: the vocabulary carries over.
+  The core package carries the container, facades, models over your REST API, routing without <code>BuildContext</code>, auth, validation, forms, events, cache, localisation and test fakes. Realtime, payments, SQLite, notifications, deep links, social sign-in, encryption, file picking and the starter kit are <a href="#the-plugin-family">official plugins</a>, and payments run through Stripe on the web and store purchase on iOS and Android, with no rail on desktop. Familiar to Laravel developers: the vocabulary carries over.
 </p>
 
 <p align="center">

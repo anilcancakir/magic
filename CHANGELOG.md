@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- **The pub.dev listing and the README now lead with the product pitch and keep Laravel as a secondary note.** The description, topics, README, `llms.txt`, `CLAUDE.md` and the opening of the installation and directory-structure pages say what core carries and which layers (realtime, payments, SQLite, notifications and more) are official plugins, and the Platforms row names the platforms explicitly. (`pubspec.yaml`, `README.md`, `llms.txt`, `CLAUDE.md`, `doc/getting-started/`)
+- **The pub.dev listing and the README now lead with the product pitch and keep Laravel as a secondary note.** The description, topics, README, `llms.txt` and `CLAUDE.md` say what core carries and which layers (realtime, payments, SQLite, notifications and more) are official plugins, and the Platforms row names the platforms explicitly. The installation page's introduction leads with the same pitch and moves Laravel to a "Familiar to Laravel Developers" note, and the directory-structure page's opening line names the folders first and mentions Laravel's conventions last. (`pubspec.yaml`, `README.md`, `llms.txt`, `CLAUDE.md`, `doc/getting-started/`)
 
 ## [1.0.0] - 2026-11-14
 
