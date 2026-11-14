@@ -18,9 +18,9 @@ enum MagicOverlayPresentation {
 /// the call a panel component makes when it opens itself imperatively, so a
 /// panel that draws its own surface, handle and safe-area padding gets the
 /// same frame whichever way it was opened. No `constraints` are set, so the
-/// Material 3 default width cap applies. The dialog is a bare `DialogRoute`
-/// with no safe-area padding and the sheet's scrim, so the panel draws its
-/// own dialog surface. A page has no caller context, so no themes are
+/// Material 3 default width cap applies. The dialog is a `DialogRoute` with
+/// no safe-area padding, the sheet's scrim and a transparent Material above
+/// the panel, so the panel draws its own dialog surface and size. A page has no caller context, so no themes are
 /// captured: either frame inherits the app-level ones, not a layout's own
 /// `Theme` or `DefaultTextStyle`.
 @immutable
@@ -137,7 +137,21 @@ class _MagicOverlayDialogRoute<T> extends DialogRoute<T>
     required MagicOverlayPage<T> page,
     super.barrierColor,
     super.barrierLabel,
-  }) : super(settings: page, builder: _overlayChild<T>, useSafeArea: false);
+  }) : super(
+         settings: page,
+         builder: _transparentMaterial<T>,
+         useSafeArea: false,
+       );
+
+  /// Puts the panel under a Material, as `BottomSheet` does for the sheet, so
+  /// its text gets the theme style rather than the debug fallback.
+  ///
+  /// A transparent Material paints nothing and does not absorb a hit, so the
+  /// scrim still takes a tap anywhere the panel itself does not.
+  static Widget _transparentMaterial<T>(BuildContext context) => Material(
+    type: MaterialType.transparency,
+    child: _overlayChild<T>(context),
+  );
 
   // Read again every time the route rebuilds its barrier, so a guard that
   // says no turns the scrim and Escape off rather than letting them start a

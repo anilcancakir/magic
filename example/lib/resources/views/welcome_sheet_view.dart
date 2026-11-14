@@ -52,13 +52,8 @@ class WelcomeSheetView extends StatelessWidget {
     // purpose: it takes all the room on both axes.
     if (inDialog) {
       // A dialog route gives the panel the whole screen, so it centres on both
-      // axes. Unlike a sheet, the route has no Material above it, and text
-      // without one is drawn with the debug fallback style (yellow underline),
-      // so the panel brings a transparent one, around the card only so the
-      // scrim around it still takes a tap.
-      return Center(
-        child: Material(type: MaterialType.transparency, child: panel),
-      );
+      // axes.
+      return Center(child: panel);
     }
 
     // A sheet sits on the bottom edge by itself, so it only centres across and

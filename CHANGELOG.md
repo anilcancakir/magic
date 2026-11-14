@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- **An overlay route opened as a dialog puts a transparent Material above its panel, as the sheet does.** The dialog route had no Material above the panel, so a bare `Text` or `WText` in it was drawn with the debug fallback style (a yellow double underline) where the same panel looked right as a sheet, and every panel had to bring its own. The Material paints nothing and does not absorb a tap, so the scrim around the panel still closes the dialog when `canDismiss` allows it; the panel still draws its own surface and size. (#285, `lib/src/routing/magic_overlay_page.dart`)
+
 ## [0.1.0] - 2026-11-14
 
 ### BREAKING
