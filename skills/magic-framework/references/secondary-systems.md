@@ -4,7 +4,7 @@ Complete reference for Magic framework utility systems: Cache, Events, Logging, 
 
 ## Contents
 
-- [Support Helpers (Number, Str, Arr, Cast)](#support-helpers)
+- [Support Helpers (Number, Str, Arr, Cast)](#support-helpers-number-str-arr-cast)
 - [Environment Variables (Env)](#environment-variables-env)
 - [Cache System](#cache-system)
 - [Event Dispatcher](#event-dispatcher)
@@ -21,7 +21,7 @@ Complete reference for Magic framework utility systems: Cache, Events, Logging, 
 
 ## Support Helpers (Number, Str, Arr, Cast)
 
-Four `abstract final class` static namespaces under `lib/src/support/`, no facade, no IoC binding, no shared base class between them. Full doc page with tr/en examples: `doc/digging-deeper/helpers.md`.
+`Number`, `Str`, `Arr` and `Cast` are `abstract final class` static namespaces under `lib/src/support/`, with no facade, no IoC binding, no shared base class between them. Full doc page with tr/en examples: `doc/digging-deeper/helpers.md`.
 
 ### Number
 
@@ -103,7 +103,7 @@ The Cache system provides a unified key-value caching API with TTL (time-to-live
 | `get(key, {defaultValue})` | `String key`, `dynamic defaultValue` | `dynamic` | Retrieve an item from the cache or return the default value. |
 | `has(key)` | `String key` | `bool` | Check if an item exists and is not expired. |
 | `forget(key)` | `String key` | `Future<void>` | Remove a specific item from the cache. |
-| `flush()` | — | `Future<void>` | Clear all items from the cache. |
+| `flush()` | - | `Future<void>` | Clear all items from the cache. |
 | `remember<T>(key, ttl, callback)` | `String key`, `Duration ttl`, `Future<T> Function() callback` | `Future<T>` | Get from cache or execute callback and cache result. |
 
 ### Usage
@@ -163,7 +163,7 @@ A pub/sub system for decoupling business logic from side-effects. Dispatchers pu
 | Method | Parameters | Return Type | Description |
 |:-------|:-----------|:------------|:------------|
 | `EventDispatcher.instance.register(eventType, listeners)` | `Type eventType`, `List<MagicListener Function()> listeners` | `void` | Register listener factories for an event type. |
-| `EventDispatcher.instance.clear()` | — | `void` | Clear all registered listeners (testing only). |
+| `EventDispatcher.instance.clear()` | - | `void` | Clear all registered listeners (testing only). |
 
 ### Framework Auth Events
 
@@ -265,7 +265,7 @@ Log.channel('slack').error('Critical server issue');
 
 ### Custom Drivers
 
-Register custom log drivers via `LogManager.extend()` — follows the same pattern as `Auth.manager.extend(...)`:
+Register custom log drivers via `LogManager.extend()` - follows the same pattern as `Auth.manager.extend(...)`:
 
 ```dart
 // In a ServiceProvider boot():
@@ -310,12 +310,12 @@ Multi-language translation system with JSON-based message files and runtime loca
 | `Lang.get(key, [replace])` | `String key`, `Map<String, dynamic>? replace` | `String` | Get a translated string with optional `:placeholder` replacements. Falls back PER KEY to `fallback_locale`, so a key missing from the current catalogue is served from the fallback's rather than rendering as its own dotted path. Answers the key itself only when neither defines it. |
 | `Lang.has(key)` | `String key` | `bool` | Check if a translation key exists in the current catalogue OR the fallback's, since both are merged at load. |
 | `Lang.setLocale(locale, {reload})` | `Locale locale`, `bool reload` | `Future<void>` | Switch app locale at runtime (reload rebuilds widgets). |
-| `Lang.detectLocale()` | — | `Locale` | Detect best-matching locale from device/browser settings. |
-| `Lang.detectAndSetLocale()` | — | `Future<Locale>` | Detect and apply the best-matching locale. |
+| `Lang.detectLocale()` | - | `Locale` | Detect best-matching locale from device/browser settings. |
+| `Lang.detectAndSetLocale()` | - | `Future<Locale>` | Detect and apply the best-matching locale. |
 | `Lang.setSupportedLocales(locales)` | `List<Locale> locales` | `void` | Set list of supported locales. |
-| `Lang.current` | — | `Locale` | Get the current active locale. |
-| `Lang.isLoaded` | — | `bool` | Check if translations are loaded. |
-| `Lang.supportedLocales` | — | `List<Locale>` | Get list of supported locales. |
+| `Lang.current` | - | `Locale` | Get the current active locale. |
+| `Lang.isLoaded` | - | `bool` | Check if translations are loaded. |
+| `Lang.supportedLocales` | - | `List<Locale>` | Get list of supported locales. |
 | `Lang.addListener(callback)` | `VoidCallback callback` | `void` | Subscribe to locale changes. |
 | `Lang.removeListener(callback)` | `VoidCallback callback` | `void` | Unsubscribe from locale changes. |
 
@@ -341,7 +341,7 @@ transChoice('apples', 4);  // "There are 4 apples"
 
 Inline conditions are supported and win over the positional segments: `"{0} Nothing here|[1,19] :count messages|[20,*] Lots"`. Write a line that is all conditions or none, because a stripped condition shifts the positional segments behind it.
 
-**The index is the current locale's, not English's.** Turkish, Japanese, Korean, Chinese and eleven more have one form, so their second segment is unreachable. French counts zero as singular. Russian has three forms and Arabic six. A two-segment line looks correct for as long as only a one-form language is rendered, which is why this defect survives review in an app whose first locale is Turkish.
+**The index is the current locale's, not English's.** Turkish, Japanese, Korean, Chinese and others have one form, so their second segment is unreachable. French counts zero as singular. Russian has three forms and Arabic six. A two-segment line looks correct for as long as only a one-form language is rendered, which is why this defect survives review in an app whose first locale is Turkish.
 
 ### Usage
 
@@ -408,10 +408,10 @@ Translation files use `:attribute` placeholders:
 
 Laravel-style flash data for form repopulation and transient messages. Two internal buckets:
 
-- `_next` — receives `flash()` / `flashErrors()` writes during the current frame.
-- `_current` — read by `old()`, `error()`, `hasError()`, `hasFlash`.
+- `_next`: receives `flash()` / `flashErrors()` writes during the current frame.
+- `_current`: read by `old()`, `error()`, `hasError()`, `hasFlash`.
 
-`Session.tick()` promotes `_next` → `_current`. The framework does **not** tick automatically — wire a routerDelegate listener gated on real `MagicRouter.instance.currentLocation` changes during bootstrap (GoRouter fires `routerDelegate` notifications for non-navigation rebuilds too, which would prematurely burn the flash). Each value then survives exactly one navigation hop.
+`Session.tick()` promotes `_next` → `_current`. The framework does **not** tick automatically - wire a routerDelegate listener gated on real `MagicRouter.instance.currentLocation` changes during bootstrap (GoRouter fires `routerDelegate` notifications for non-navigation rebuilds too, which would prematurely burn the flash). Each value then survives exactly one navigation hop.
 
 ```dart
 // Call once during app bootstrap (e.g. in a ServiceProvider.boot()):
@@ -437,7 +437,7 @@ MagicRouter.instance.router.routerDelegate.addListener(() {
 | `Session.errors(String field)` | `List<String>` | All current-bucket errors for field |
 | `Session.hasError(String field)` | `bool` | True if field has at least one current-bucket error |
 | `Session.hasFlash` | `bool` | **Getter.** Any readable flash data this frame |
-| `Session.tick()` | `void` | Promote next → current. Not auto-wired — attach at bootstrap (snippet above) |
+| `Session.tick()` | `void` | Promote next → current. Not auto-wired - attach at bootstrap (snippet above) |
 | `Session.reset()` | `void` | Clear both buckets (testing) |
 | `Session.setStore(SessionStore store)` | `void` | Swap backing store (testing) |
 
@@ -450,7 +450,7 @@ String? error(String field);
 
 ### Auto-flash on validation failure
 
-`MagicFormData.validate()` calls `Session.flash(form.data)` automatically when client-side validation fails. Per-field validation errors are **not** auto-flashed — call `Session.flashErrors(...)` manually (e.g. from a server response) if you need `error('field')` to resolve after navigation. Typical flow:
+`MagicFormData.validate()` calls `Session.flash(form.data)` automatically when client-side validation fails. Per-field validation errors are **not** auto-flashed - call `Session.flashErrors(...)` manually (e.g. from a server response) if you need `error('field')` to resolve after navigation. Typical flow:
 
 ```dart
 // Submit view:
@@ -504,7 +504,7 @@ test('flash survives one tick', () {
   Session.flash({'email': 'foo@bar.com'});
   Session.tick();
   expect(Session.old('email'), 'foo@bar.com');
-  Session.tick();                // second tick — current bucket now empty
+  Session.tick();                // second tick - current bucket now empty
   expect(Session.old('email'), isNull);
 });
 ```
@@ -614,7 +614,7 @@ Hardware-backed secure storage for sensitive tokens, passwords, and keys. Uses `
 | `Vault.put(key, value)` | `String key`, `String value` | `Future<void>` | Store a string securely. |
 | `Vault.get(key)` | `String key` | `Future<String?>` | Retrieve a string or null if not found. |
 | `Vault.delete(key)` | `String key` | `Future<void>` | Delete a key. |
-| `Vault.flush()` | — | `Future<void>` | Clear all stored data (WARNING: irreversible). |
+| `Vault.flush()` | - | `Future<void>` | Clear all stored data (WARNING: irreversible). |
 
 ### Usage
 
@@ -725,10 +725,10 @@ Laravel-style fluent date wrapper around Jiffy for parsing, formatting, and mani
 | Method | Parameters | Return Type | Description |
 |:-------|:-----------|:------------|:------------|
 | `format(pattern)` | `String pattern` | `String` | Format using intl patterns (e.g., 'yyyy-MM-dd HH:mm:ss'). |
-| `toIso8601String()` | — | `String` | ISO 8601 format. |
-| `toDateString()` | — | `String` | yyyy-MM-dd. |
-| `toTimeString()` | — | `String` | HH:mm:ss. |
-| `toDateTimeString()` | — | `String` | yyyy-MM-dd HH:mm:ss. |
+| `toIso8601String()` | - | `String` | ISO 8601 format. |
+| `toDateString()` | - | `String` | yyyy-MM-dd. |
+| `toTimeString()` | - | `String` | HH:mm:ss. |
+| `toDateTimeString()` | - | `String` | yyyy-MM-dd HH:mm:ss. |
 | `diffForHumans([other])` | `Carbon? other` | `String` | Human-readable diff (e.g., "2 hours ago"). |
 | `shortDiffForHumans([other])` | `Carbon? other` | `String` | Compact ladder for dense tables/list rows: seconds through years (`'14m ago'`, `'1mo ago'` for a truncated 30-day month, `'5m from now'`, `'Just now'` under 1s). Each unit and wrapper resolves through `Lang` (`time.units_short.*`, `time.ago`, `time.from_now`, `time.just_now`) with an English literal fallback. |
 
@@ -740,14 +740,14 @@ Laravel-style fluent date wrapper around Jiffy for parsing, formatting, and mani
 | `isBefore(other)` | `Carbon other` | `bool` | Check if before another date. |
 | `isSame(other, [unit])` | `Carbon other`, `Unit unit` | `bool` | Check if same day/month/year. |
 | `isBetween(start, end, [unit])` | `Carbon start`, `Carbon end`, `Unit unit` | `bool` | Check if between two dates. |
-| `isToday()` | — | `bool` | Check if this is today. |
-| `isYesterday()` | — | `bool` | Check if this is yesterday. |
-| `isTomorrow()` | — | `bool` | Check if this is tomorrow. |
-| `isFuture()` | — | `bool` | Check if in the future. |
-| `isPast()` | — | `bool` | Check if in the past. |
-| `isWeekend()` | — | `bool` | Saturday or Sunday. |
-| `isWeekday()` | — | `bool` | Monday through Friday. |
-| `isLeapYear()` | — | `bool` | Check if leap year. |
+| `isToday()` | - | `bool` | Check if this is today. |
+| `isYesterday()` | - | `bool` | Check if this is yesterday. |
+| `isTomorrow()` | - | `bool` | Check if this is tomorrow. |
+| `isFuture()` | - | `bool` | Check if in the future. |
+| `isPast()` | - | `bool` | Check if in the past. |
+| `isWeekend()` | - | `bool` | Saturday or Sunday. |
+| `isWeekday()` | - | `bool` | Monday through Friday. |
+| `isLeapYear()` | - | `bool` | Check if leap year. |
 
 #### Diff
 
@@ -883,7 +883,7 @@ For `canLaunch()` to work on iOS 9+ and Android 11+, declare schemes in native m
 
 ## MagicFile
 
-`MagicFile` stays in core (`package:magic/magic.dart`); the picker that produces one moved to `magic_picker` (see `plugin-picker.md`).
+`MagicFile` stays in core (`package:magic/magic.dart`); the picker that produces one moved to `magic_picker` (see the `magic-picker` skill).
 
 ```dart
 // Properties
@@ -901,25 +901,25 @@ await file.store('avatars/user.jpg');        // Store at an exact path, optional
 await file.storeAs('avatars');               // Store as {directory}/{timestamp}_{name}, optional {disk}
 ```
 
-`toXFile` / `fromXFile` and the `image_picker`, `file_picker` and `share_plus` re-exports are gone from core; `magic_picker` exports `XFile` and converts with `XFile.toMagicFile()` and `MagicFile.toXFile()`.
+`toXFile` / `fromXFile` and the `image_picker`, `file_picker` and `share_plus` re-exports are gone from core; converting to and from `XFile` belongs to the `magic-picker` skill.
 
 ## Extracted layers
 
-Core 1.0.0 no longer carries the encryption, picker, broadcasting and SQLite layers. Each is a plugin package with its own page:
+Core 1.0.0 no longer carries the encryption, picker, broadcasting and SQLite layers. Each is a plugin package with its own agent skill:
 
-| Layer | Package | Page |
-|:------|:--------|:-----|
-| Encryption (`Crypt`, `key:generate`) | `magic_encryption` | `plugin-encryption.md` |
-| Picker (`Pick`, `Storage.download` share handler) | `magic_picker` | `plugin-picker.md` |
-| Broadcasting (`Echo`, `ListensToBroadcasts`, `BroadcastListeners`, `AuthChannelSubscription`) | `magic_socket` | `plugin-socket.md` |
-| SQLite (`DB`, `Schema`, migrations, factories, seeders, `SyncFeed`, `SyncLedger`) | `magic_local_storage` | `plugin-local-storage.md` |
+| Layer | Package | Skill |
+|:------|:--------|:------|
+| Encryption (`Crypt`, `key:generate`) | `magic_encryption` | `magic-encryption` |
+| Picker (`Pick`, `Storage.download` share handler) | `magic_picker` | `magic-picker` |
+| Broadcasting (`Echo`, `ListensToBroadcasts`, `BroadcastListeners`, `AuthChannelSubscription`) | `magic_socket` | `magic-socket` |
+| SQLite (`DB`, `Schema`, migrations, factories, seeders, `SyncFeed`, `SyncLedger`) | `magic_local_storage` | `magic-local-storage` |
 
 ## Key Gotchas
 
 - **Cache**: `remember<T>()` returns cached value directly (not awaited) if it exists; only awaits callback on miss.
 - **Events**: Listeners run sequentially. If one throws, others still execute. Errors are logged, not re-thrown.
 - **Logging**: `Log.channel(name)` returns a `LoggerDriver` resolved via `LogManager.driver(name)`, enabling per-channel logging.
-- **Lang**: `trans()` is a shorthand for `Lang.get()` and `transChoice()` for `Lang.choice()`. Translations must be loaded before first use. A sentence with a number needs `transChoice`; the plural index is the current locale's, and fifteen languages have only one form.
+- **Lang**: `trans()` is a shorthand for `Lang.get()` and `transChoice()` for `Lang.choice()`. Translations must be loaded before first use. A sentence with a number needs `transChoice`; the plural index is the current locale's, and many languages have only one form.
 - **Storage**: `put()` returns the path, `get()` returns raw bytes. Use `getFile()` for metadata.
 - **Vault**: Async operations. May fail if hardware keystore is locked (e.g., on first boot before PIN unlock).
 - **Carbon**: All manipulation methods return NEW instances; original is immutable.

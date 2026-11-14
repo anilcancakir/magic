@@ -190,9 +190,9 @@ All `Http` methods return a `MagicResponse`, which wraps the HTTP response and p
 
 | Property | Type | Description |
 |:---------|:-----|:------------|
-| `successful` | `bool` | Status code 200–299 |
+| `successful` | `bool` | Status code 200-299 |
 | `failed` | `bool` | Status code >= 400 |
-| `clientError` | `bool` | Status code 400–499 |
+| `clientError` | `bool` | Status code 400-499 |
 | `serverError` | `bool` | Status code >= 500 |
 | `unauthorized` | `bool` | Status code 401 |
 | `forbidden` | `bool` | Status code 403 |
@@ -497,7 +497,8 @@ It is a `ChangeNotifier`; listen to it directly.
 ```dart
 MagicPaginator<Invoice>.fetcher(
   fetch: (MagicPageRequest request) async {
-    final page = await Payments.getInvoices(cursor: request.cursor);
+    // `billingService` is any service of your own that pages by cursor.
+    final page = await billingService.getInvoices(cursor: request.cursor);
 
     return MagicPage<Invoice>(items: page.invoices, nextCursor: page.nextCursor);
   },
@@ -608,9 +609,9 @@ Magic provides a built-in `Http.fake()` API that swaps the real `NetworkDriver` 
 
 Registers a fake driver in the IoC container and returns it for assertion.
 
-- No args — all requests return 200 with `null` data.
-- `Map<String, MagicResponse>` — URL pattern to response mapping (`*` wildcard supported).
-- `FakeRequestHandler` — callback receiving `MagicRequest`, returning `MagicResponse` or `Future<MagicResponse>`. An `async` handler lets a test hold a request open while the caller acts, which is the only way to script a concurrency case.
+- No args: all requests return 200 with `null` data.
+- `Map<String, MagicResponse>` - URL pattern to response mapping (`*` wildcard supported).
+- `FakeRequestHandler`: callback receiving `MagicRequest`, returning `MagicResponse` or `Future<MagicResponse>`. An `async` handler lets a test hold a request open while the caller acts, which is the only way to script a concurrency case.
 
 ```dart
 setUp(() {
