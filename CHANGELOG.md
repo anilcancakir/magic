@@ -10,6 +10,12 @@ All notable changes to this project will be documented in this file.
 - **The `magic-framework` agent skill covers the core package only.** Every official plugin ships its own skill now, so the twelve `references/plugin-*.md` pages are gone and the skill keeps a short table of what each plugin is and which skill to load (`npx skills add anilcancakir/<package>`). The description and body follow the skill conventions (no counts, one-line triggers), the repository links name `anilcancakir/magic`, and `references/plugins.md` carries the install steps and provider-order rules that are common to every plugin. (`skills/magic-framework/`)
 - **Every link from the README and `doc/` to an ecosystem plugin names the new location.** A plugin's package page is `https://anilcancakir.com/magic/<slug>` and its documentation sits under `https://anilcancakir.com/magic/docs/<slug>`; the core URLs do not change. (`README.md`, `doc/`)
 
+### Fixed
+
+- **`MagicForm.onWillPop` no longer sits on Flutter's deprecated `Form.onWillPop`.** The form now blocks the pop with `canPop: false` and asks your callback from `onPopInvokedWithResult`, popping the route itself when it answers `true`, so the contract is unchanged: a `false` keeps the route, a `true` pops it, and the route cannot be swiped away while the callback is set. The parameter type is `Future<bool> Function()?`, the same shape as `WillPopCallback`, so existing callers compile as before. The package now lints with no analyzer suppression at all. (`lib/src/ui/magic_form.dart`, `analysis_options.yaml`)
+- **A new app's welcome view and routing config link to the live site.** `magic:install` wrote links to the retired `magic.fluttersdk.com`; they now point at `https://anilcancakir.com/magic`, its CLI page and the routing page's URL strategy section, and the CLI card says `dart run magic:dowel list` instead of a `magic --help` that does not exist. The example app, the example `CLAUDE.md` (which now installs the skills with `npx skills add`) and the issue forms follow. (`assets/stubs/install/`, `example/`, `.github/ISSUE_TEMPLATE/`)
+- **API doc comments show calls that exist.** The routing doc comments use `MagicRoute.page` instead of the deprecated `MagicRoute.get` and a `Route` facade that does not exist, `Env.get` describes its real conversion rules, and the `FormRequest` example authorises through `Gate.allows`. (`lib/src/`)
+
 ## [1.0.0] - 2026-11-14
 
 ### BREAKING

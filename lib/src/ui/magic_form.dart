@@ -82,8 +82,12 @@ class MagicForm extends StatelessWidget {
 
   /// Enables the form to veto attempts by the user to dismiss the
   /// [ModalRoute] that contains the form.
-  // ignore: deprecated_member_use
-  final WillPopCallback? onWillPop;
+  ///
+  /// Asked on every back attempt (system back, `Navigator.maybePop`); the
+  /// route pops only when the future answers `true`. While it is set the
+  /// route cannot be swiped away, the same as Flutter's `PopScope` with
+  /// `canPop: false`, which is what the form builds on.
+  final Future<bool> Function()? onWillPop;
 
   /// Restoration ID to save and restore the state of the [Form].
   final String? restorationId;
@@ -131,13 +135,33 @@ class MagicForm extends StatelessWidget {
       }
     }
 
+    final Future<bool> Function()? willPop = onWillPop;
+
     return Form(
       key: effectiveFormKey,
       autovalidateMode: effectiveMode,
       onChanged: onChanged,
-      // ignore: deprecated_member_use
-      onWillPop: onWillPop,
+      canPop: willPop == null ? null : false,
+      onPopInvokedWithResult: willPop == null
+          ? null
+          : (bool didPop, Object? result) =>
+                _popIfAllowed(context, willPop, didPop, result),
       child: child,
     );
+  }
+
+  /// Asks [willPop] about a blocked back attempt and pops the route itself
+  /// when it answers `true`, so the veto keeps its `onWillPop` contract on
+  /// top of `canPop: false`.
+  Future<void> _popIfAllowed(
+    BuildContext context,
+    Future<bool> Function() willPop,
+    bool didPop,
+    Object? result,
+  ) async {
+    if (didPop) return;
+
+    final NavigatorState navigator = Navigator.of(context);
+    if (await willPop()) navigator.pop(result);
   }
 }
