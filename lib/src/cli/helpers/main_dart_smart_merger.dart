@@ -5,8 +5,8 @@ import 'package:dowel/dowel.dart' show MainDartEditor;
 /// Takes an existing user-authored `main.dart` source string and surgically
 /// injects Magic without overwriting the user's code: adds Magic + Wind
 /// imports, injects `await Magic.init(...)` at the top of `main()`, and
-/// wraps the existing `runApp(X)` call with `MagicApplication(child: X,
-/// appName: '<name>')`.
+/// wraps the existing `runApp(X)` call with a `MagicApplication` that takes
+/// X as its `child` and the app name as `appName`.
 ///
 /// All three mutations are idempotent: re-running on already-merged source
 /// returns equivalent output (no duplicate imports, no double Magic.init,

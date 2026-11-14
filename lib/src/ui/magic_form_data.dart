@@ -76,7 +76,7 @@ class MagicFormData {
   ///
   /// Field types are automatically inferred from initial values:
   /// - `String` → TextEditingController
-  /// - `bool`, `MagicFile`, etc. → ValueNotifier<T>
+  /// - `bool`, `MagicFile`, etc. → `ValueNotifier<T>`
   ///
   /// ```dart
   /// final form = MagicFormData({
