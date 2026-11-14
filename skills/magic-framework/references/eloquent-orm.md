@@ -2,7 +2,7 @@
 
 Laravel-inspired ORM for Flutter. API-first by default; a model opts into hybrid persistence (Remote API + Local SQLite) with `useLocal`, which needs the `magic_local_storage` plugin.
 
-Core keeps the base `Model`, casts, `HasTimestamps`, `InteractsWithPersistence`, model events and the `LocalModelStore` contract. The query builder, `DB`, `Schema`, migrations, factories, seeders and sync live in `magic_local_storage`: see `plugin-local-storage.md`.
+Core keeps the base `Model`, casts, `HasTimestamps`, `InteractsWithPersistence`, model events and the `LocalModelStore` contract. The query builder, `DB`, `Schema`, migrations, factories, seeders and sync live in `magic_local_storage`: see the `magic-local-storage` skill.
 
 ## Contents
 
@@ -49,7 +49,7 @@ class Monitor extends Model with HasTimestamps, InteractsWithPersistence {
         'updated_at': 'datetime',
       };
 
-  // Typed getters — ALWAYS use get<T>(), never getAttribute() directly
+  // Typed getters: ALWAYS use get<T>(), never getAttribute() directly
   int? get id => get<int>('id');
   String? get name => get<String>('name');
   MonitorType? get type => MonitorType.fromValue(get<String>('type'));
@@ -58,7 +58,7 @@ class Monitor extends Model with HasTimestamps, InteractsWithPersistence {
   set name(String? v) => set('name', v);
   set type(MonitorType? v) => set('type', v?.value);
 
-  // fromMap factory — bypasses fillable guard
+  // fromMap factory: bypasses fillable guard
   static Monitor fromMap(Map<String, dynamic> map) =>
       Monitor()
         ..setRawAttributes(map, sync: true)
@@ -148,7 +148,7 @@ abstract class CastsAttributes<T> {
 ```
 
 ```dart
-// EnumCast — map a name-based string column to an enum.
+// EnumCast: map a name-based string column to an enum.
 enum MonitorStatus { up, down, paused }
 
 @override Map<String, dynamic> get casts => const {
@@ -156,7 +156,7 @@ enum MonitorStatus { up, down, paused }
   'strict_status': EnumCast(MonitorStatus.values, strict: true), // throws ArgumentError on unknown value
 };
 
-// ListCast — apply an inner cast element-by-element. Stored as JSON string.
+// ListCast: apply an inner cast element-by-element. Stored as JSON string.
 @override Map<String, dynamic> get casts => const {
   'tags': ListCast(EnumCast(MonitorTag.values)),
 };
@@ -164,7 +164,7 @@ enum MonitorStatus { up, down, paused }
 
 `ListCast.get()` accepts either a `List`, a JSON string, or a single value (coerced into `[value]`). `ListCast.set()` emits JSON when given a `List`; otherwise passes raw storage forms through unchanged.
 
-Mix string-token and class-based entries in the same `casts` map — resolution happens per key.
+Mix string-token and class-based entries in the same `casts` map - resolution happens per key.
 
 ## Mass Assignment & MassAssignmentException
 
@@ -281,7 +281,7 @@ class Post extends Model with HasTimestamps, InteractsWithPersistence { ... }
 
 A `useLocal => true` model persists through the `LocalModelStore` contract that core resolves from the container key `'local_model_store'` before every local leg (`save`, `find`, `allModels`, `delete`, `refresh`, and the remote-to-local sync). With nothing bound it throws a `StateError` naming `magic_local_storage`, on every leg; set `useLocal` back to `false` or install the plugin.
 
-`LocalModelStore` has six members: `find(table, primaryKey, id)`, `all(table)`, `insert(table, data)`, `update(table, primaryKey, id, data)`, `delete(table, primaryKey, id)` and `upsert(table, primaryKey, id, data)`. `magic_local_storage` supplies the SQLite implementation (`QueryModelStore`, bound by `DatabaseServiceProvider`), plus the query builder, the `DB` and `Schema` facades, migrations, factories, seeders and sync. Everything that touches SQL is in `plugin-local-storage.md`: the query builder (`DB.table(...)` and the `model.query()` extension), `Migration`, `Factory<T>` and `Seeder`, none of which exist in core.
+The `LocalModelStore` contract is `find(table, primaryKey, id)`, `all(table)`, `insert(table, data)`, `update(table, primaryKey, id, data)`, `delete(table, primaryKey, id)` and `upsert(table, primaryKey, id, data)`. `magic_local_storage` supplies the SQLite implementation, the query builder, the `DB` and `Schema` facades, migrations, factories, seeders and sync; none of that exists in core. Everything that touches SQL is in the `magic-local-storage` skill.
 
 ## Model Events
 
@@ -299,7 +299,7 @@ Dispatched via `Event.dispatch()` during the `save()` / `delete()` lifecycle.
 
 ## Gotchas
 
-- **Null Safety**: `get<T>()` returns `null` for missing or wrongly-typed values — it never throws.
+- **Null Safety**: `get<T>()` returns `null` for missing or wrongly-typed values - it never throws.
 - **Column filtering**: the SQLite store behind `useLocal` drops attributes the table has no column for on insert and update.
 - **Manual Hydration**: Call `syncOriginal()` after manually hydrating a model to reset dirty state.
 - **Timestamps**: `HasTimestamps` stores timestamps as ISO 8601 strings; reads them back as `Carbon`.

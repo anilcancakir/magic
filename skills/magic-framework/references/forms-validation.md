@@ -56,7 +56,7 @@ The optional `controller` param enables two side-effects:
 | `form.get('field')` | `String` | Get trimmed text from a text controller |
 | `form.set('field', 'text')` | `void` | Set text value in a text controller |
 | `form.data` | `Map<String, dynamic>` | Export all values (text fields are auto-trimmed) |
-| `form.validate()` | `bool` | Run client-side validation (clears server errors first). **Auto-flashes `form.data` to `Session` on failure** so downstream views can repopulate via `old('field')`. Per-field validation errors are not auto-flashed — call `Session.flashErrors(...)` manually if you need `error('field')` after navigation |
+| `form.validate()` | `bool` | Run client-side validation (clears server errors first). **Auto-flashes `form.data` to `Session` on failure** so downstream views can repopulate via `old('field')`. Per-field validation errors are not auto-flashed - call `Session.flashErrors(...)` manually if you need `error('field')` after navigation |
 | `form.validated()` | `Map<String, dynamic>` | Returns `data` if valid, otherwise empty `{}` |
 | `form.process<T>(action)` | `Future<T>` | Execute async action with automatic processing state management |
 | `form.isProcessing` | `bool` | Whether `process()` is currently executing |
@@ -150,7 +150,7 @@ Use this for the `validator:` property of `WFormInput`, `WFormSelect`, etc.
 
 ## FormValidator.rules() (standalone)
 
-Use outside `MagicStatefulViewState` — in standard `State` classes or anywhere a controller reference must be passed explicitly.
+Use outside `MagicStatefulViewState` - in standard `State` classes or anywhere a controller reference must be passed explicitly.
 
 ```dart
 static String? Function(T?) rules<T>(
@@ -310,7 +310,7 @@ WFormInput(
 )
 ```
 
-**Nullable fields:** Rules skip null/empty values unless `Required` is also in the list — `Email`, `Min`, `Max` all return `true` for null or empty inputs, deferring to `Required`.
+**Nullable fields:** Rules skip null/empty values unless `Required` is also in the list - `Email`, `Min`, `Max` all return `true` for null or empty inputs, deferring to `Required`.
 
 
 ## Custom Rules
@@ -436,7 +436,7 @@ class _RegisterViewState
 
   @override
   Widget build(BuildContext context) {
-    // 2. Bind: wrap with MagicForm — handles formKey + autovalidation
+    // 2. Bind: wrap with MagicForm - handles formKey + autovalidation
     return MagicForm(
       formData: form,
       child: WDiv(
@@ -512,11 +512,11 @@ class _RegisterViewState
 
 - `form['field']` **only** returns `TextEditingController`. For bools and other types, use `form.value<T>('field')`.
 - `form.validate()` clears existing server-side errors on the controller before running client-side checks.
-- `form.process()` throws `StateError` if called while already processing — guard concurrent submissions.
+- `form.process()` throws `StateError` if called while already processing: guard concurrent submissions.
 - `hasRelevantErrors` prevents cross-form error leakage when multiple forms share one controller.
 - `rules()` is bound to `MagicStatefulViewState`. Use `FormValidator.rules()` in standard `State` classes.
 - `Confirmed` looks for `{field}_confirmation` in form data. `Same` requires an explicit field name and supports `valueGetter` for live values.
-- `Accepted` accepts `true`, `1`, `'1'`, `'yes'`, `'on'`, `'true'` — use it for terms checkboxes, not `Required`.
+- `Accepted` accepts `true`, `1`, `'1'`, `'yes'`, `'on'`, `'true'` - use it for terms checkboxes, not `Required`.
 - `In<T>` / `InList<T extends Enum>` short-circuit on `null` (pair with `Required()` for presence). `InList` accepts the enum itself or a string compared against `.name`; pass `wire:` to map enums onto snake_case or bespoke wire codes, `caseInsensitive: true` for loose matching. Both emit `validation.in` with a comma-joined `:values`.
 - Always call `form.dispose()` in `onClose()` to prevent memory leaks.
 
@@ -575,7 +575,7 @@ try {
 
 `attributes()` maps a field key to the display name used for `:attribute` in this request's messages (`{'url': 'Server address'}` gives `The Server address field is required.`); an entry beats the global `attributes.<key>` lookup, a missing field keeps it, and the value is literal text, not a translation key. `Validator.make(data, rules, attributes: {...})` takes the same map. `ValidatesRequests.validate(data, rules, attributes: {...})` takes it too, and `validateRequest`/`validateRequestAsync` pass the request's `attributes()` on, so the mixin and `MagicFormObject.submit` honour it.
 
-Pair with `Model.fill(validated, strict: true)` to catch schema drift at the boundary — any unexpected key in `validated` becomes `MassAssignmentException` instead of silently corrupting state.
+Pair with `Model.fill(validated, strict: true)` to catch schema drift at the boundary - any unexpected key in `validated` becomes `MassAssignmentException` instead of silently corrupting state.
 
 ### Exceptions
 
@@ -617,10 +617,10 @@ typedef UniqueResolver = Future<bool> Function(String endpoint, String field, dy
 ```
 
 Behavior:
-- **Debounced** per-instance (default 400ms) — rapid typing coalesces into one network call. Pass `Duration.zero` to disable.
-- **Stale-in-flight discard** — if a new request starts while one is pending, the stale result is ignored.
-- **Network-error tolerant** — errors log and pass (`true`) so the server stays authoritative on submit. The `Log.error()` call records context.
-- **Null/empty short-circuit** — null and whitespace-only strings pass; that's `Required`'s job.
+- **Debounced** per-instance (default 400ms): rapid typing coalesces into one network call. Pass `Duration.zero` to disable.
+- **Stale-in-flight discard**: if a new request starts while one is pending, the stale result is ignored.
+- **Network-error tolerant**: errors log and pass (`true`) so the server stays authoritative on submit. The `Log.error()` call records context.
+- **Null/empty short-circuit**: null and whitespace-only strings pass; that's `Required`'s job.
 
 ### Usage
 

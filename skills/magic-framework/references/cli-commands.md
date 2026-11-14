@@ -41,7 +41,7 @@ All commands are invoked via `dart run magic:dowel <command>` from the Flutter p
 | **Design** | `dart run magic:dowel design:sync` | Generate the wind theme (aliases + brand seed) from `DESIGN.md` |
 | **Design** | `dart run magic:dowel design:lint` | Validate `DESIGN.md` against the design rules |
 
-Core ships 17 `make:*` generators. `make:migration`, `make:seeder` and `make:factory` belong to `magic_local_storage`, and `key:generate` to `magic_encryption`; each is registered by that plugin's dowel provider, so it exists only after `plugin:install` for it (see `plugin-local-storage.md` and `plugin-encryption.md`).
+`make:migration`, `make:seeder` and `make:factory` belong to `magic_local_storage`, and `key:generate` to `magic_encryption`; each is registered by that plugin's dowel provider, so it exists only after `plugin:install` for it (see the `magic-local-storage` and `magic-encryption` skills).
 
 
 ## Project Setup
@@ -66,7 +66,7 @@ The installer carries no flags for the extracted layers (SQLite, encryption, pic
 | `--without-network` | Skip HTTP/Dio network layer and `config/network.dart` |
 | `--with-devtools` | Add the debug trio (`magic_devtools ^1.0.0` + `tapir ^1.0.0` + `crumbs ^1.0.0`) to `dependencies` and wire it (plus `MagicPerfIntegration`) into `lib/main.dart` under `!kReleaseMode`, in one step |
 
-`--with-devtools` is a one-step replacement for the manual debug-tooling bootstrap. After the core install it adds the three packages as regular `dependencies` (the `!kReleaseMode` gate tree-shakes them from release builds while debug and profile builds keep them, so `dev_dependencies` would trip `depend_on_referenced_packages`), imports `package:flutter/foundation.dart` (`show kReleaseMode`), `package:crumbs/crumbs.dart`, `package:magic_devtools/crumbs.dart`, `package:magic_devtools/magic_devtools.dart`, `package:magic_devtools/tapir.dart` and `package:tapir/tapir.dart`, and injects `TapirPlugin.install()`, `CrumbsPlugin.install()`, `CrumbsPlugin.registerWatcher(ExceptionWatcher())`, `CrumbsPlugin.registerWatcher(DumpWatcher())` and `MagicPerfIntegration.install()` before `Magic.init(` plus `MagicCrumbsIntegration.install()` and `MagicTapirIntegration.install()` after it. Call presence decides what is written: an app already calling `MagicDevtools.installPre(` is left untouched, and a block whose call is already in `lib/main.dart` is not written again, so re-running or hand wiring never duplicates the wiring or the deps (the umbrella `MagicDevtools.installPre()` / `installPost()` is the alternative, never mixed with it). Manual steps afterwards: `flutter pub get`, `dart run magic:dowel plugin:install tapir`, `plugin:install crumbs`, `tapir:install`, `crumbs:install` and `mcp:install` (which surfaces the `tapir_*` / `crumbs_*` MCP tools). `tapir:install` and `crumbs:install` write single-tool blocks only, never `MagicDevtools` or `MagicPerfIntegration`, and each skips a block whose `TapirPlugin.install(` / `CrumbsPlugin.install(` call already exists, so running them after `--with-devtools` writes nothing twice.
+`--with-devtools` is a one-step replacement for the manual debug-tooling bootstrap. After the core install it adds those packages as regular `dependencies` (the `!kReleaseMode` gate tree-shakes them from release builds while debug and profile builds keep them, so `dev_dependencies` would trip `depend_on_referenced_packages`), imports `package:flutter/foundation.dart` (`show kReleaseMode`), `package:crumbs/crumbs.dart`, `package:magic_devtools/crumbs.dart`, `package:magic_devtools/magic_devtools.dart`, `package:magic_devtools/tapir.dart` and `package:tapir/tapir.dart`, and injects `TapirPlugin.install()`, `CrumbsPlugin.install()`, `CrumbsPlugin.registerWatcher(ExceptionWatcher())`, `CrumbsPlugin.registerWatcher(DumpWatcher())` and `MagicPerfIntegration.install()` before `Magic.init(` plus `MagicCrumbsIntegration.install()` and `MagicTapirIntegration.install()` after it. Call presence decides what is written: an app already calling `MagicDevtools.installPre(` is left untouched, and a block whose call is already in `lib/main.dart` is not written again, so re-running or hand wiring never duplicates the wiring or the deps (the umbrella `MagicDevtools.installPre()` / `installPost()` is the alternative, never mixed with it). Manual steps afterwards: `flutter pub get`, `dart run magic:dowel plugin:install tapir`, `plugin:install crumbs`, `tapir:install`, `crumbs:install` and `mcp:install` (which surfaces the `tapir_*` / `crumbs_*` MCP tools). `tapir:install` and `crumbs:install` write single-tool blocks only, never `MagicDevtools` or `MagicPerfIntegration`, and each skips a block whose `TapirPlugin.install(` / `CrumbsPlugin.install(` call already exists, so running them after `--with-devtools` writes nothing twice. `magic_devtools` has no agent skill yet; its page is `https://anilcancakir.com/magic/docs/packages/magic-devtools`.
 
 ```bash
 dart run magic:dowel magic:install --with-devtools
@@ -101,7 +101,7 @@ lib/
 └── main.dart                 # Bootstrap with Magic.init()
 ```
 
-`key:generate` is no longer a core command: it ships with `magic_encryption` (see `plugin-encryption.md`).
+`key:generate` is no longer a core command: it ships with `magic_encryption` (see the `magic-encryption` skill).
 
 
 ## Code Generators
@@ -153,7 +153,7 @@ class Monitor extends Model with HasTimestamps, InteractsWithPersistence {
     @override List<String> get fillable => [];
     @override Map<String, String> get casts => const {};
 
-    // Typed Accessors — add manually:
+    // Typed Accessors: add manually:
     //   String? get name => get<String>('name');
     //   set name(String? value) => set('name', value);
 
@@ -190,7 +190,7 @@ dart run magic:dowel make:controller Admin/Dashboard --test          # + matchin
 | `--validates` | | Mix in `ValidatesRequests` and `CollapsesIndexedErrorKeys` |
 | `--test` | | Also scaffold `test/app/controllers/<name>_controller_test.dart` |
 
-Mixins are always assembled in the same fixed order regardless of the order the flags were passed: `OwnsTimers`, `RunsActions`, then `ValidatesRequests, CollapsesIndexedErrorKeys` (the latter must follow the former, since it is constrained `on ValidatesRequests`). `--broadcasts` is gone: add `ListensToBroadcasts` from `magic_socket` by hand (`plugin-socket.md`).
+Mixins are always assembled in the same fixed order regardless of the order the flags were passed: `OwnsTimers`, `RunsActions`, then `ValidatesRequests, CollapsesIndexedErrorKeys` (the latter must follow the former, since it is constrained `on ValidatesRequests`). `--broadcasts` is gone: add `ListensToBroadcasts` from `magic_socket` by hand (see the `magic-socket` skill).
 
 **Output**: `lib/app/controllers/monitor_controller.dart`
 
@@ -396,7 +396,7 @@ class PaymentServiceProvider extends ServiceProvider {
 
     @override
     Future<void> boot() async {
-        // Called after all providers registered — safe to resolve dependencies.
+        // Called after all providers registered: safe to resolve dependencies.
     }
 }
 ```
@@ -520,7 +520,7 @@ dart run magic:dowel make:repository Monitor --test     # + matching test
 
 ### `dart run magic:dowel make:action`
 
-Creates a `MagicAction` subclass in `lib/app/actions/`. Plain (no `--kind`) scaffolds the default stateless skeleton (`MagicAction<Object?, void>`); `--kind` with `--model` scaffolds one of the three write variants against that model.
+Creates a `MagicAction` subclass in `lib/app/actions/`. Plain (no `--kind`) scaffolds the default stateless skeleton (`MagicAction<Object?, void>`); `--kind` with `--model` scaffolds one of the write variants against that model.
 
 ```bash
 dart run magic:dowel make:action PauseMonitor
@@ -622,7 +622,7 @@ dart run magic:dowel design:sync
 dart run magic:dowel design:sync --input=DESIGN.md --output=lib/config/wind_theme.g.dart
 ```
 
-**Output**: a Dart source file exposing `Map<String, String> designAliases` (17 property-prefixed semantic keys with arbitrary-hex light + `dark:` pairs, drop-in for `WindThemeData(aliases: ...)`) and `Map<String, MaterialColor> designColors` (the brand `primary` with a generated 50-900 ramp seeded from the DESIGN.md `primary` light hex). Idempotent (byte-identical on re-run) and written atomically. Do not hand-edit the generated file; re-run `design:sync`.
+**Output**: a Dart source file exposing `Map<String, String> designAliases` (property-prefixed semantic keys with arbitrary-hex light + `dark:` pairs, drop-in for `WindThemeData(aliases: ...)`) and `Map<String, MaterialColor> designColors` (the brand `primary` with a generated 50-900 ramp seeded from the DESIGN.md `primary` light hex). Idempotent (byte-identical on re-run) and written atomically. Do not hand-edit the generated file; re-run `design:sync`.
 
 | Flag | Effect |
 |:-----|:-------|
@@ -632,7 +632,7 @@ dart run magic:dowel design:sync --input=DESIGN.md --output=lib/config/wind_them
 
 ### `dart run magic:dowel design:lint`
 
-Validates a `DESIGN.md` against six rules: broken-ref (error), missing-primary, unknown-key (the `dark:` overlay is never flagged), section-order, missing-sections, orphaned-tokens, and contrast-ratio (WCAG AA 4.5:1 on component bg/text pairs). Exits nonzero only on an error-severity finding.
+Validates a `DESIGN.md` against these rules: broken-ref (error), missing-primary, unknown-key (the `dark:` overlay is never flagged), section-order, missing-sections, orphaned-tokens, and contrast-ratio (WCAG AA 4.5:1 on component bg/text pairs). Exits nonzero only on an error-severity finding.
 
 ```bash
 dart run magic:dowel design:lint --input=DESIGN.md
@@ -714,6 +714,6 @@ The run is all-or-nothing: it preflights every target path first, so a clash any
 3. **No rollback**: `make:model -mcf` generates multiple files independently. If one generator fails, others still create files. `make:resource` is the exception: it preflights every target path before writing anything, so a clash fails the whole run with nothing written.
 4. **Nested paths**: Use forward slashes to create subdirectories: `Admin/Dashboard` → `admin/dashboard_controller.dart`.
 5. **Lang codes**: `make:lang` codes must match `assets/lang/{code}.json` convention. Declare the directory in `pubspec.yaml` assets.
-6. **Plugin generators**: `make:migration`, `make:seeder` and `make:factory` exist only with `magic_local_storage` registered (`plugin:install`); `make:migration` prepends an `m_YYYYMMDDHHMMSS_` prefix, so run it from the project root.
+6. **Plugin generators**: `make:migration`, `make:seeder` and `make:factory` exist only with `magic_local_storage` registered (`plugin:install`); how each behaves is in the `magic-local-storage` skill.
 7. **`--test` needs a package name**: the chained `make:test` (and `make:component`'s own matching test) resolve the target project's package name from `pubspec.yaml`'s `name:` key; a project without one skips the test with a printed note rather than failing the whole command.
 8. **`make:action --kind`**: always requires `--model` (the model the write acts on); the command refuses to write with `--kind` and no `--model`.

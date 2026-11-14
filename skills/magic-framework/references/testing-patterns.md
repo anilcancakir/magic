@@ -158,7 +158,7 @@ test('MyWidget displays data from controller', () async {
 
 ## Model Testing
 
-A `useLocal` model persists through the `LocalModelStore` bound to `'local_model_store'`. Core ships only the contract, so a core-level model test binds an in-memory implementation by contract inheritance (no mock library, no SQLite). A test that needs the real SQLite store depends on `magic_local_storage` and follows `plugin-local-storage.md`.
+A `useLocal` model persists through the `LocalModelStore` bound to `'local_model_store'`. Core ships only the contract, so a core-level model test binds an in-memory implementation by contract inheritance (no mock library, no SQLite). A test that needs the real SQLite store depends on `magic_local_storage` and follows the `magic-local-storage` skill.
 
 ### Setup a Store for Model Tests
 
@@ -497,7 +497,7 @@ setUp(() {
 
 Magic ships a `MagicTest` helper in `package:magic/testing.dart` that replaces boilerplate `setUp`/`tearDown` wiring.
 
-### Unit / Widget Tests — `MagicTest.init()`
+### Unit / Widget Tests: `MagicTest.init()`
 
 Call once at the top of `main()`. Registers all hooks automatically:
 
@@ -519,7 +519,7 @@ Hooks registered by `MagicTest.init()`:
 - `setUp` → `MagicApp.reset()` + `Magic.flush()`
 - `tearDown` → `Magic.flush()`
 
-### Integration Tests — `MagicTest.boot()`
+### Integration Tests: `MagicTest.boot()`
 
 Use when providers must boot (full `Magic.init()` lifecycle):
 
@@ -542,7 +542,7 @@ void main() {
 }
 ```
 
-### A Few Real Providers — `MagicTest.bootProviders()`
+### A Few Real Providers: `MagicTest.bootProviders()`
 
 Registers every provider, then boots every provider, in list order (the `Magic.init` order), with no env file or config. `MagicTest.disposeBooted()` is its teardown: it disposes registered controllers newest first, detaches `SessionScope`, resets `MagicRouter`, then flushes the container.
 
@@ -557,13 +557,13 @@ tearDown(MagicTest.disposeBooted);
 App statics a provider's `boot()` touches (timers, singletons) stay the app's to reset.
 
 **When to use which:**
-- `MagicTest.init()` — unit tests, controller tests, validation tests, facade faking
-- `MagicTest.boot()` — integration tests that exercise the full provider lifecycle
-- `MagicTest.bootProviders()` — widget tests that need a handful of real providers booted without config
+- `MagicTest.init()`: unit tests, controller tests, validation tests, facade faking
+- `MagicTest.boot()`: integration tests that exercise the full provider lifecycle
+- `MagicTest.bootProviders()`: widget tests that need a handful of real providers booted without config
 
 ## Http Faking
 
-Magic provides a built-in `Http.fake()` API — no third-party mock libraries needed. It swaps the IoC-bound `NetworkDriver` with a `FakeNetworkDriver` that records requests and returns stubbed responses.
+Magic provides a built-in `Http.fake()` API - no third-party mock libraries needed. It swaps the IoC-bound `NetworkDriver` with a `FakeNetworkDriver` that records requests and returns stubbed responses.
 
 ### setUp / tearDown Pattern
 
@@ -663,7 +663,7 @@ fake.reset(); // Clears recorded + stubs
 
 ## Facade Faking
 
-Magic core provides built-in fakes for Auth, Cache, Vault, and Log — no third-party mock libraries needed. Each facade exposes `fake()` / `unfake()` methods that swap the IoC-bound service with an in-memory implementation.
+Magic core provides built-in fakes for Auth, Cache, Vault, and Log - no third-party mock libraries needed. Each facade exposes `fake()` / `unfake()` methods that swap the IoC-bound service with an in-memory implementation.
 
 ### setUp / tearDown Pattern
 
@@ -786,7 +786,7 @@ final logFake = Log.fake();
 test('first test', () {
   Log.error('a');
   logFake.assertLoggedCount(1);
-  logFake.reset(); // Clear entries — fake remains installed
+  logFake.reset(); // Clear entries - fake remains installed
 });
 
 test('second test', () {
@@ -797,7 +797,7 @@ test('second test', () {
 
 ### Plugin fakes
 
-The broadcasting fake (`FakeBroadcastManager`, behind the `Echo` facade's `fake()`) moved to `package:magic_socket/testing.dart`; see `plugin-socket.md`. The encryption and picker plugins need no fake: bind a cipher or a recording share callback by hand (`plugin-encryption.md`, `plugin-picker.md`). SQLite-backed model tests use `magic_local_storage` (`plugin-local-storage.md`).
+Core fakes cover only core facades. Each plugin documents how to test against it in its own skill: `magic-socket` for the broadcasting fake, `magic-encryption` and `magic-picker` for those two, `magic-local-storage` for SQLite-backed model tests.
 
 ## Middleware Testing
 

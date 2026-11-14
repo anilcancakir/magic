@@ -16,14 +16,14 @@ How a Magic app comes up: the ordered stages of `Magic.init()`, the IoC containe
 
 The bootstrap process follows a strict sequence executed via `Magic.init()`:
 
-1. **Load Environment** — `Env.load(fileName)`
-2. **Evaluate Config Factories** — Execute `configFactories` closures (after Env is loaded)
-3. **Initialize MagicApp** — Merge default framework configs with user-provided configs
-4. **Bind Core Services** — Register internal services (e.g., `LogManager`)
-5. **Register Configured Providers** — Load providers from `Config.get('app.providers')`
-6. **Register Runtime Providers** — Add providers passed to `Magic.init()`
-7. **Boot All Providers** — Async call `boot()` on all registered `ServiceProvider`s
-8. **Pre-build Router** — Finalize `MagicRouter.instance.routerConfig` before app runs
+1. **Load Environment**: `Env.load(fileName)`
+2. **Evaluate Config Factories**: Execute `configFactories` closures (after Env is loaded)
+3. **Initialize MagicApp**: Merge default framework configs with user-provided configs
+4. **Bind Core Services**: Register internal services (e.g., `LogManager`)
+5. **Register Configured Providers**: Load providers from `Config.get('app.providers')`
+6. **Register Runtime Providers**: Add providers passed to `Magic.init()`
+7. **Boot All Providers**: Async call `boot()` on all registered `ServiceProvider`s
+8. **Pre-build Router**: Finalize `MagicRouter.instance.routerConfig` before app runs
 
 **CRITICAL**: `Magic.init()` MUST be awaited in `main()` before any facade or container access.
 
@@ -60,17 +60,17 @@ static Future<void> init({
 })
 ```
 
-- **`envFileName`** — Path to `.env` file (default: `.env`)
-- **`configs`** — Static config maps evaluated immediately (before `Env` is loaded, so `Env.get()` won't work here)
-- **`configFactories`** — Config closures evaluated after `Env.load()` completes (use this for values that depend on `Env.get()`)
-- **`providers`** — Runtime service providers added in addition to those in `Config.get('app.providers')`
+- **`envFileName`**: Path to `.env` file (default: `.env`)
+- **`configs`**: Static config maps evaluated immediately (before `Env` is loaded, so `Env.get()` won't work here)
+- **`configFactories`**: Config closures evaluated after `Env.load()` completes (use this for values that depend on `Env.get()`)
+- **`providers`**: Runtime service providers added in addition to those in `Config.get('app.providers')`
 
 ### configFactories vs configs
 
 Use **`configFactories`** when your config values depend on environment variables. The distinction is critical:
 
 ```dart
-// ❌ Wrong — Env not loaded yet, DB_HOST will be null
+// ❌ Wrong: Env not loaded yet, DB_HOST will be null
 await Magic.init(
   configs: [
     {
@@ -81,7 +81,7 @@ await Magic.init(
   ],
 );
 
-// ✅ Correct — Env is loaded, DB_HOST is available
+// ✅ Correct: Env is loaded, DB_HOST is available
 await Magic.init(
   configFactories: [
     () => {
@@ -100,10 +100,10 @@ The `MagicApp` container manages service resolution. Access via `Magic.*` static
 ### Service Binding
 
 ```dart
-// Bind a factory — new instance each call
+// Bind a factory: new instance each call
 Magic.bind('logger', () => Logger());
 
-// Bind a singleton — same instance every call
+// Bind a singleton: same instance every call
 Magic.singleton('database', () => DatabaseConnection());
 
 // Store an existing instance
@@ -128,7 +128,7 @@ if (Magic.bound('cache')) {
 | Method | Signature | Purpose |
 |--------|-----------|---------|
 | `Magic.bind()` | `void bind(String key, Function closure, {bool shared = false})` | Register a factory. If `shared: true`, acts as singleton. |
-| `Magic.singleton()` | `void singleton(String key, Function closure)` | Lazy singleton — instantiated once, cached thereafter. |
+| `Magic.singleton()` | `void singleton(String key, Function closure)` | Lazy singleton - instantiated once, cached thereafter. |
 | `Magic.make()` | `T make<T>(String key)` | Resolve service from container. Throws if not registered. |
 | `Magic.app.setInstance()` | `void setInstance(String key, dynamic value)` | Bind an already-instantiated object to a key. |
 | `Magic.bound()` | `bool bound(String key)` | Check if a service is registered. |
@@ -185,7 +185,7 @@ Magic.delete<UserController>();
 
 ```dart
 class UserController extends MagicController {
-  // Lazy singleton accessor — create on first access
+  // Lazy singleton accessor: create on first access
   static UserController get instance => Magic.findOrPut(UserController.new);
 }
 
@@ -209,9 +209,9 @@ Abstract class for organizing service bindings and initialization logic into mod
 
 ### Two-Phase Lifecycle
 
-**Phase 1: `register()`** — Synchronous, called immediately when provider is registered. Only bind services here; do not access other services.
+**Phase 1: `register()`** - Synchronous, called immediately when provider is registered. Only bind services here; do not access other services.
 
-**Phase 2: `boot()`** — Asynchronous, called after ALL providers are registered. Safe to resolve other services and perform initialization.
+**Phase 2: `boot()`** - Asynchronous, called after ALL providers are registered. Safe to resolve other services and perform initialization.
 
 ### Example
 
@@ -272,7 +272,7 @@ await Magic.init(
 
 ## Environment & Configuration
 
-### Env.get() — Environment Variables
+### Env.get(): Environment Variables
 
 ```dart
 import 'package:magic/magic.dart';
@@ -300,7 +300,7 @@ if (Env.has('STRIPE_KEY')) {
 final all = Env.all();
 ```
 
-### Config.get() — Configuration Values
+### Config.get(): Configuration Values
 
 ```dart
 import 'package:magic/magic.dart';
@@ -412,9 +412,9 @@ void main() {
 
 ## Key Gotchas
 
-- **Async Init**: Always `await Magic.init()`. Never use `.then()` — providers won't boot reliably.
+- **Async Init**: Always `await Magic.init()`. Never use `.then()` - providers won't boot reliably.
 - **Config Factories**: `configs` parameter won't have access to `Env.get()`. Use `configFactories` when you need environment variables.
 - **Router Access**: `MagicRouter.instance.routerConfig` is `null` until `Magic.init()` completes.
 - **Unregistered Services**: `Magic.make()` throws if service not bound. Use `Magic.bound()` to check first.
-- **Plugin providers**: the encryption, picker, broadcasting and SQLite providers live in plugin packages (`magic_encryption`, `magic_picker`, `magic_socket`, `magic_local_storage`) and are never auto-registered; `<plugin>:install` (or `plugin:install`) adds each to `app.providers`.
+- **Plugin providers**: the encryption, picker, broadcasting and SQLite providers live in plugin packages (`magic_encryption`, `magic_picker`, `magic_socket`, `magic_local_storage`) and are never auto-registered; `<plugin>:install` (or `plugin:install`) adds each to `app.providers`. Each plugin's skill (`magic-encryption`, `magic-picker`, `magic-socket`, `magic-local-storage`) says what its provider binds.
 - **Test Cleanup**: Always call `MagicApp.reset()` + `Magic.flush()` in `setUp()` and `tearDown()`.

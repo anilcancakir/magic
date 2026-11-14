@@ -11,6 +11,7 @@ Comprehensive guide to route registration, context-free navigation, middleware, 
 - [Persistent Layouts (Shell Routes)](#persistent-layouts-shell-routes)
 - [Route Transitions](#route-transitions)
 - [Stacking and the Back Button](#stacking-and-the-back-button)
+- [Bottom Sheet Routes](#bottom-sheet-routes)
 - [Context-Free Navigation](#context-free-navigation)
 - [Path & Query Parameters](#path--query-parameters)
 - [Named Routes](#named-routes)
@@ -168,7 +169,7 @@ MagicRoute.resource('teams', TeamRoutes(), except: ['edit']);       // all excep
 ```
 
 Resolution rules:
-- `name` is normalized — collapses repeated slashes, strips leading/trailing slashes.
+- `name` is normalized: collapses repeated slashes, strips leading/trailing slashes.
 - `only` / `except` narrow the set further, but only **within** `resourceMethods` (so a controller that lists `['index', 'show']` cannot expose `edit` even via `only`).
 - Unknown method names in `only` or `except` throw `ArgumentError` at registration time, not at navigation.
 
@@ -265,7 +266,7 @@ MagicApplication(
 )
 ```
 
-Applied with `copyWith`, so the Wind theme is otherwise untouched, and null changes nothing. A per-route value cannot express the case this exists for: the transition is chosen once at registration, and what an app usually wants is the native animation on mobile and none on desktop or web.
+Applied with `copyWith`, so the `wind_kit` theme is otherwise untouched, and null changes nothing. A per-route value cannot express the case this exists for: the transition is chosen once at registration, and what an app usually wants is the native animation on mobile and none on desktop or web.
 
 A partial map is a partial override. A platform left out of `builders` keeps its own default, so omitting `TargetPlatform.iOS` leaves the Cupertino slide and its swipe in place; what removes the gesture is naming iOS and giving it a different builder.
 
@@ -346,7 +347,7 @@ MagicRoute.toNamed('users.show', params: {'id': '42'});
 // `to()` on a `.stacked()` route behaves the same way.
 MagicRoute.push('/details');
 
-// Go back (works across shell routes — history-based fallback automatic)
+// Go back (works across shell routes: history-based fallback automatic)
 MagicRoute.back();
 
 // Go back with explicit fallback when history stack is empty
@@ -619,7 +620,7 @@ Flutter web defaults to hash-based URLs (`/#/path`). Set `url_strategy` in routi
 
 ```dart
 'routing': {
-  'url_strategy': 'path', // 'path' | 'hash' | null (default: null — hash strategy)
+  'url_strategy': 'path', // 'path' | 'hash' | null (default: null - hash strategy)
 },
 ```
 
@@ -690,17 +691,17 @@ final title = MagicRoute.currentTitle; // without suffix
 
 ### Resolution Priority
 
-1. `MagicTitle` / `MagicRoute.setTitle()` — override
-2. `RouteDefinition.title()` — route-level
-3. `MagicApplication.title` — fallback
+1. `MagicTitle` / `MagicRoute.setTitle()`: override
+2. `RouteDefinition.title()`: route-level
+3. `MagicApplication.title`: fallback
 
 ### TitleManager (Internal)
 
-- `TitleManager.instance` — singleton, lazy-initialized
+- `TitleManager.instance`: singleton, lazy-initialized
 - `TitleManager.configure(onTitleChanged: callback)`: injectable callback for testing; it receives the title and the ARGB switcher color
 - `TitleManager.instance.setPrimaryColor(color)`: the task-switcher color; `MagicApplication` sets it from `theme.primaryColor`, and `0` (system default) is sent until it is set, because Android rejects a null color
-- `TitleManager.reset()` — clears state, called by `MagicRouter.reset()`
-- Route listener: `GoRouter.routerDelegate.addListener` — fires on all navigation types
+- `TitleManager.reset()`: clears state, called by `MagicRouter.reset()`
+- Route listener: `GoRouter.routerDelegate.addListener` - fires on all navigation types
 
 ## Gotchas
 
@@ -709,6 +710,6 @@ final title = MagicRoute.currentTitle; // without suffix
 - **Middleware Next Required:** Middleware must call `next()` to allow the request to proceed. Failing to call it halts the pipeline.
 - **Path Parameters:** Parameters are injected by position into the handler function. Ensure the function signature matches the number of parameters in the route.
 - **Named Routes:** Only use named navigation if the route was explicitly named with `.name()`.
-- **Replace vs. To:** `replace()` leaves history untouched — `back()` still returns to the route before the replaced one. Use for login redirects and splash screens where the replaced route should not appear in back navigation.
+- **Replace vs. To:** `replace()` leaves history untouched - `back()` still returns to the route before the replaced one. Use for login redirects and splash screens where the replaced route should not appear in back navigation.
 - **back() across shells:** `MagicRoute.back()` works across shell (layout) routes. Magic tracks navigation history automatically via `to()` and `toNamed()` on an unstacked route; a stacked one records nothing, because the pushed page IS the record and `back()` prefers the native pop. Use `fallback:` for guaranteed behavior when history is empty: `MagicRoute.back(fallback: '/home')`.
 - **Intended URL Cleanup:** `pullIntendedUrl()` is a one-time read that clears the stored URL. Call it only once per login flow.
