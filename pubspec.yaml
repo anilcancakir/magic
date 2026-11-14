@@ -1,5 +1,5 @@
 name: magic
-description: "A Laravel-inspired Flutter framework with Eloquent ORM, routing, and MVC architecture."
+description: "Laravel-style structure for Flutter apps: IoC container, facades, Eloquent-style models over REST, go_router routing, auth, validation and test fakes."
 version: 1.0.0
 homepage: https://anilcancakir.com/magic
 repository: https://github.com/anilcancakir/magic
