@@ -1,6 +1,6 @@
 # magic
 
-> Laravel-style structure for Flutter apps: an IoC container, facades, service providers, Eloquent-style models over a REST API, reactive controllers, go_router routing without `BuildContext`, auth, validation, and in-memory fakes for tests. Scaffold with `dart run magic:dowel make:*`. SQLite, broadcasting, encryption and the file picker are plugins.
+> The full-stack framework for Flutter: Eloquent-style models, auth, routing, realtime and payments, wired and ready on every device. The core package carries an IoC container, facades, service providers, Eloquent-style models over a REST API, reactive controllers, go_router routing without `BuildContext`, auth, validation, forms, events, cache, localisation and in-memory fakes for tests; scaffold with `dart run magic:dowel make:*`. Official plugins add realtime (`magic_socket`), payments (`magic_payments`), SQLite (`magic_local_storage`), notifications (`magic_notifications`), deep links (`magic_deeplink`), social sign-in (`magic_social_auth`), encryption (`magic_encryption`), file picking (`magic_picker`) and a starter kit (`magic_starter`); `flutter pub add magic` alone installs core only. Familiar to Laravel developers: the vocabulary carries over.
 
 **Stack**: Flutter >=3.47.0 · Dart >=3.13.0 · Runtime deps: `wind_kit`, `material_ui`, `dowel`, `dio`, `go_router`, `flutter_secure_storage`, `flutter_dotenv`, `intl`, `jiffy`, `logger`, `url_launcher` and a few more. `package:magic/magic.dart` re-exports `wind_kit`, `dio`, `go_router`, `intl`, `jiffy`, `flutter_secure_storage`, `timezone` and `logger`. No mockito (mock by inheriting a contract), no code generation.
 
@@ -60,7 +60,7 @@ void registerAppRoutes() {
 
 ## Platforms
 
-Wherever Flutter runs, web included. `Vault` uses the platform's secure storage. The web `Storage` adapter reads and writes `localStorage`; IO `Storage.download` needs `magic_picker`.
+Android, iOS, macOS, Windows, Linux and the web. `Vault` uses the platform's secure storage. The web `Storage` adapter reads and writes `localStorage`; IO `Storage.download` needs `magic_picker`.
 
 ## Rules for agents
 

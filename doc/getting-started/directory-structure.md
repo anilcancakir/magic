@@ -1,6 +1,6 @@
 # Directory Structure
 
-The default Magic project layout organizes your app into folders that mirror Laravel's conventions, making it easy to locate controllers, models, routes, config, and resources at a glance.
+The default Magic project layout organizes your app into folders for controllers, models, routes, config, and resources, so each is easy to locate at a glance, and it mirrors Laravel's conventions.
 
 - [Introduction](#introduction)
 - [The Root Directory](#the-root-directory)
