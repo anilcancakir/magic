@@ -106,10 +106,11 @@ class Env {
   /// - [key]: The environment variable name
   /// - [defaultValue]: Value to return if key doesn't exist
   ///
-  /// **Type Casting:**
-  /// - Strings are returned as-is
-  /// - 'true'/'false' strings are converted to bool if T is bool
-  /// - Numeric strings are converted to int/double if T is num
+  /// **Type Casting** (by `T`, which `env()` infers from the default):
+  /// - `bool`: `true` for 'true', '1' or 'yes' (any case), `false` otherwise
+  /// - `int` or `double`: the parsed number, or [defaultValue] when it does
+  ///   not parse
+  /// - any other `T`: the raw string, so 'null' stays the string 'null'
   static T get<T>(String key, [T? defaultValue]) {
     // If not loaded, return default value
     if (!_isLoaded) {
@@ -267,7 +268,8 @@ class Env {
 /// final port = env('PORT', 3000);
 /// ```
 ///
-/// The function automatically casts values based on the default value type.
+/// The default's type picks the cast: a `bool`, `int` or `double` default
+/// converts the value, any other default (or none) returns the raw string.
 T env<T>(String key, [T? defaultValue]) {
   return Env.get<T>(key, defaultValue);
 }

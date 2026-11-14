@@ -16,13 +16,13 @@ import '../routing/title_manager.dart';
 ///
 /// ```dart
 /// // Simple route
-/// MagicRoute.get('/', () => HomePage());
+/// MagicRoute.page('/', () => HomePage());
 ///
 /// // With path parameters (Laravel's {id} → Magic's :id)
-/// MagicRoute.get('/users/:id', (id) => UserPage(id: id));
+/// MagicRoute.page('/users/:id', (id) => UserPage(id: id));
 ///
 /// // Fluent API
-/// MagicRoute.get('/dashboard', DashboardController.index)
+/// MagicRoute.page('/dashboard', DashboardController.index)
 ///     .name('dashboard')
 ///     .middleware([AuthMiddleware()])
 ///     .transition(RouteTransition.fade);
@@ -35,8 +35,8 @@ import '../routing/title_manager.dart';
 ///   prefix: '/admin',
 ///   middleware: [AdminMiddleware()],
 ///   routes: () {
-///     MagicRoute.get('/users', AdminUsersPage.new);
-///     MagicRoute.get('/settings', AdminSettingsPage.new);
+///     MagicRoute.page('/users', AdminUsersPage.new);
+///     MagicRoute.page('/settings', AdminSettingsPage.new);
 ///   },
 /// );
 /// ```
@@ -107,8 +107,8 @@ class MagicRoute {
   ///   prefix: '/api/v1',
   ///   middleware: [ApiAuthMiddleware()],
   ///   routes: () {
-  ///     Route.get('/users', ApiUsersController.index);
-  ///     Route.get('/posts', ApiPostsController.index);
+  ///     MagicRoute.page('/users', ApiUsersController.index);
+  ///     MagicRoute.page('/posts', ApiPostsController.index);
   ///   },
   /// );
   /// ```
@@ -118,8 +118,8 @@ class MagicRoute {
   /// ```dart
   /// Route.group(prefix: '/admin', routes: () {
   ///   Route.group(prefix: '/users', routes: () {
-  ///     Route.get('/', AdminUsersController.index);     // /admin/users
-  ///     Route.get('/:id', AdminUsersController.show);   // /admin/users/:id
+  ///     MagicRoute.page('/', AdminUsersController.index);     // /admin/users
+  ///     MagicRoute.page('/:id', AdminUsersController.show);   // /admin/users/:id
   ///   });
   /// });
   /// ```
@@ -179,8 +179,8 @@ class MagicRoute {
   /// Route.layout(
   ///   builder: (child) => DashboardLayout(child: child),
   ///   routes: [
-  ///     Route.get('/dashboard', DashboardHome.new),
-  ///     Route.get('/settings', SettingsPage.new),
+  ///     MagicRoute.page('/dashboard', DashboardHome.new),
+  ///     MagicRoute.page('/settings', SettingsPage.new),
   ///   ],
   /// );
   /// ```

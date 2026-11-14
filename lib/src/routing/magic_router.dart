@@ -25,11 +25,11 @@ import 'title_manager.dart';
 ///
 /// ## Registration
 ///
-/// Routes are registered using the `Route` facade:
+/// Routes are registered using the `MagicRoute` facade:
 ///
 /// ```dart
-/// Route.get('/', () => HomePage());
-/// Route.get('/users/:id', (id) => UserPage(id: id));
+/// MagicRoute.page('/', () => HomePage());
+/// MagicRoute.page('/users/:id', (id) => UserPage(id: id));
 /// ```
 ///
 /// ## Navigation (Context-Free!)
@@ -226,7 +226,7 @@ class MagicRouter {
 
   /// Add a route definition.
   ///
-  /// Usually called via `Route.get()` or `Route.post()`.
+  /// Usually called via `MagicRoute.page()`.
   void addRoute(RouteDefinition route) {
     if (_isBuilt) {
       throw StateError(

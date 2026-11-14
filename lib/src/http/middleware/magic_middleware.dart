@@ -40,7 +40,7 @@
 ///
 /// Use in routes:
 /// ```dart
-/// MagicRoute.get('/dashboard', () => controller.index())
+/// MagicRoute.page('/dashboard', () => controller.index())
 ///     .middleware(['auth']);
 /// ```
 abstract class MagicMiddleware {
