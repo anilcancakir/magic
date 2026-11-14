@@ -2,7 +2,7 @@
 
 # Magic
 
-Laravel-inspired Flutter framework: IoC container, facades, Eloquent-style API-first ORM, service providers, routing, auth, validation. UI is `wind_kit` on `material_ui`; CLI and scaffolding run on `dowel`. SQLite, broadcasting, encryption and the file picker are plugins (`magic_local_storage`, `magic_socket`, `magic_encryption`, `magic_picker`): `flutter pub add <pkg>` then `dart run magic:dowel plugin:install <pkg>`.
+The full-stack framework for Flutter: Eloquent-style models, auth, routing, realtime and payments, wired and ready on every device. Core carries the IoC container, facades, service providers, the API-first ORM, routing, auth, validation, forms, events, cache, localisation and test fakes. Realtime, payments, SQLite, notifications, deep links, social sign-in, encryption, the file picker and the starter kit are official plugins (`magic_socket`, `magic_payments`, `magic_local_storage`, `magic_notifications`, `magic_deeplink`, `magic_social_auth`, `magic_encryption`, `magic_picker`, `magic_starter`): `flutter pub add <pkg>` then `dart run magic:dowel plugin:install <pkg>`. Structure and vocabulary follow Laravel. UI is `wind_kit` on `material_ui`; CLI and scaffolding run on `dowel`.
 
 **Stack:** Dart >=3.13.0, Flutter >=3.47.0. Runtime deps: `wind_kit`, `material_ui`, `dowel`, `dio`, `go_router`, `flutter_secure_storage`, `flutter_dotenv`, `intl`, `jiffy`. No `mockito` (mock via contract inheritance), no code generation.
 **Branch:** `master` is the development line; the next tag publishes it. Direct pushes are blocked, everything lands through a PR. Semver from 1.0.0: a breaking change needs a major version.
@@ -62,7 +62,7 @@ lib/
     ├── data/                # Repository and RepositoryQuery (row caches)
     ├── actions/  forms/     # MagicAction, RunsActions; MagicFormObject
     ├── http/                # MagicController, middleware pipeline, Kernel
-    ├── concerns/            # ValidatesRequests mixin (import from here, NOT http/)
+    ├── concerns/            # ValidatesRequests mixin (import from here, not http/)
     ├── routing/  launch/    # go_router wrapper, middleware on navigation; Launch adapter
     ├── session/  storage/  cache/  security/  network/  events/
     ├── localization/  logging/  validation/  support/  helpers/  providers/
@@ -80,8 +80,8 @@ Every `setUp()` calls `MagicApp.reset()` and `Magic.flush()`: they clear the IoC
 | Mistake | Fix |
 |---------|-----|
 | Facade call before `Magic.init()` | `await Magic.init()` in `main()` first |
-| Missing `Auth.manager.setUserFactory()` | Set it in `AppServiceProvider.boot()`; session restore fails without it. List AppServiceProvider BEFORE AuthServiceProvider |
-| `LaunchServiceProvider` | NOT auto-registered: add it to the `providers` config. Plugin providers are added by `plugin:install` |
+| Missing `Auth.manager.setUserFactory()` | Set it in `AppServiceProvider.boot()`; session restore fails without it. List AppServiceProvider before AuthServiceProvider |
+| `LaunchServiceProvider` | Not auto-registered: add it to the `providers` config. Plugin providers are added by `plugin:install` |
 | `configFactories` vs `configs` | Use `configFactories` for configs that read `Env.get()` |
 | Registering event listeners | `BaseEventServiceProvider.listen` and `Event.listen<T>()` take listener factories (`MagicListener Function()`), not instances |
 | `routerConfig` before init | Only accessible after `Magic.init()` completes |
@@ -89,7 +89,7 @@ Every `setUp()` calls `MagicApp.reset()` and `Magic.flush()`: they clear the IoC
 | `useLocal => true` model without `magic_local_storage` | Throws a `StateError` naming the plugin (nothing bound to `'local_model_store'`). SQLite, its web `sqlite3.wasm` and `Model.query()` live in the plugin |
 | IO `Storage.download` without `magic_picker` | Throws `UnsupportedError`: the plugin sets `LocalAdapterContract.downloadHandler`. Web is unchanged |
 | `MagicResponse.errors` format | Parses Laravel's `{"errors": {"field": ["msg"]}}` |
-| Relative paths in `pubspec_overrides.yaml` | Use ABSOLUTE ones. `.worktreeinclude` copies that file into worktrees under `.claude/worktrees/<slug>`, where `../magic_starter` resolves to `.claude/worktrees/magic_starter` and version solving fails on the first path dependency |
+| Relative paths in `pubspec_overrides.yaml` | Use absolute ones. `.worktreeinclude` copies that file into worktrees under `.claude/worktrees/<slug>`, where `../magic_starter` resolves to `.claude/worktrees/magic_starter` and version solving fails on the first path dependency |
 
 ## Release
 

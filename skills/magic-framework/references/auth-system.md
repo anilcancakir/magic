@@ -618,5 +618,5 @@ void register() {
 | Token not injected into API requests | Ensure `AuthInterceptor` is registered (automatic via `AuthServiceProvider`) |
 | 401 retry loop never ends | Interceptor retries once only. If second attempt is also 401, error propagates |
 | `Api_keyGuard` header always uses `X-API-KEY` | Customize via `token.header` in config |
-| `Gate.allows()` called before user factory is set | Gate checks `Auth.user()` internally — ensure factory is registered first |
+| `Gate.allows()` called before user factory is set | Gate checks `Auth.user()` internally - ensure factory is registered first |
 | Policy ability not defined | Call `PolicyClass().register()` in a service provider `boot()` method |

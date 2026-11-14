@@ -263,7 +263,7 @@ class DashboardView extends MagicResponsiveView<DashboardController> {
 
 Breakpoints: watch < 320px, phone < sm (640px), tablet < lg (1024px), desktop >= lg.
 
-`MagicResponsiveViewExtended<T>` provides all Wind breakpoints: `xs()`, `sm()`, `md()`, `lg()`, `xl()`, `xxl()`.
+`MagicResponsiveViewExtended<T>` provides all `wind_kit` breakpoints: `xs()`, `sm()`, `md()`, `lg()`, `xl()`, `xxl()`.
 
 ---
 

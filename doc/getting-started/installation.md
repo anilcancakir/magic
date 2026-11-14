@@ -14,13 +14,13 @@ Add the `magic` package, scaffold the app with `dart run magic:dowel magic:insta
 <a name="meet-magic"></a>
 ## Meet Magic
 
-Magic is a Laravel-inspired framework for Flutter. If you have used Laravel, the vocabulary carries over. Magic provides:
+Magic is the full-stack framework for Flutter: Eloquent-style models, auth, routing, realtime and payments, wired and ready on every device. The core package provides the container, facades, models, auth, routing, validation, forms, events, cache, localisation and test fakes. Realtime, payments, SQLite, notifications, deep links, social sign-in, encryption, file picking and the starter kit are official plugin packages, so `flutter pub add magic` alone does not include them: see [Installing Magic](#installing-magic) for how to add one. Core provides:
 
 - **Eloquent-style models**: active-record models over your REST API (and over local storage with a plugin).
 - **Expressive routing**: the app's navigation defined with fluent route definitions.
 - **Service container**: dependency injection and service management.
 - **Facades**: static-style access to core services.
-- **CLI**: Laravel-style scaffolding, a `dowel` plugin, for controllers, models, views, actions and more.
+- **CLI**: scaffolding, a `dowel` plugin, for controllers, models, views, actions and more.
 - **Wind UI**: Tailwind-style utility classes for Flutter widgets.
 
 <a name="why-magic"></a>
@@ -28,7 +28,9 @@ Magic is a Laravel-inspired framework for Flutter. If you have used Laravel, the
 
 Magic is progressive: start with the container, routing and a controller, and adopt the rest as the app grows.
 
-### The Laravel Developer Experience
+### Familiar to Laravel Developers
+
+Magic's structure and vocabulary follow Laravel, so the names carry over:
 
 ```dart
 // Routing

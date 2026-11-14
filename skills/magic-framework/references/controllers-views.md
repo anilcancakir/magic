@@ -28,7 +28,7 @@ abstract class MagicController extends ChangeNotifier
 
 | Member | Type | Purpose |
 | :--- | :--- | :--- |
-| `onInit()` | `void` | Called on first creation. Override to fetch data or init resources. `@mustCallSuper`. |
+| `onInit()` | `void` | Called by the first `MagicStatefulView` that mounts the controller, or from the constructor of a `SimpleMagicController`; not by `Magic.put` or `findOrPut` and never by a `MagicView`. A controller initialised earlier is not initialised again. Override to fetch data or init resources. `@mustCallSuper`. |
 | `onClose()` | `void` | Called before dispose. Override to clean up timers, streams, etc. `@mustCallSuper`. |
 | `refreshUI()` | `void` | Calls `notifyListeners()` safely (no-op if disposed). Every controller notification goes through it, including `ValidatesRequests`. |
 | `MagicPerfHooks.sink` | `void Function(MagicPerfEvent)?` | Static, null by default. Tooling sets it to observe every notification as a `ControllerNotified(controller, cause)`, plus repository, query, action, event, cast, timer and broadcast activity; a sink that throws is contained and cannot stop the repaint. See `doc/digging-deeper/perf-hooks.md`. |
@@ -83,7 +83,7 @@ Widget renderState(
 })
 ```
 
-`onSuccess` is required. All other callbacks have sensible Wind-themed defaults (spinner, error icon, inbox icon).
+`onSuccess` is required. All other callbacks have sensible `wind_kit`-themed defaults (spinner, error icon, inbox icon).
 
 ```dart
 controller.renderState(
@@ -130,7 +130,7 @@ mixin ValidatesRequests on MagicController implements HasValidationErrors
 | `validationErrors` | `Map<String, String>` | Field → first error message. Mutable. |
 | `validate` | `Map<String, dynamic> validate(Map<String, dynamic> data, Map<String, List<Rule>> rules)` | Runs rules, populates `validationErrors`, throws `ValidationException` on failure. |
 | `setErrorsFromResponse` | `void setErrorsFromResponse(MagicResponse response)` | Maps 422 response errors to `validationErrors` and notifies listeners. |
-| `handleApiError` | `void handleApiError(MagicResponse response, {String? fallback})` | Auto-dispatch: 422 → `setErrorsFromResponse`; other errors → `setError(msg)`. Returns nothing — use an early return after calling it. |
+| `handleApiError` | `void handleApiError(MagicResponse response, {String? fallback})` | Auto-dispatch: 422 → `setErrorsFromResponse`; other errors → `setError(msg)`. Returns nothing - use an early return after calling it. |
 | `hasError` | `bool hasError(String field)` | True if `field` has an error. |
 | `getError` | `String? getError(String field)` | First error for field, or `null`. |
 | `firstError` | `String?` | First error across all fields. |
@@ -236,7 +236,7 @@ class MonitorListView extends MagicView<MonitorController> {
 }
 ```
 
-`MagicView` does not auto-listen to controller changes — `renderState` handles its own `AnimatedBuilder` internally. For arbitrary controller-driven rebuilds outside `renderState`, use `MagicStatefulView`.
+`MagicView` runs no `onInit()`, so a controller that loads in `onInit()` stays in its initial state under it unless a `MagicStatefulView` mounted it first (or it initialised itself, as a `SimpleMagicController` does in its constructor). It does not auto-listen to controller changes either: `renderState` handles its own `AnimatedBuilder` internally. For a controller field read outside `renderState`, wrap that section in a listener-backed widget (`MagicBuilder` over a `ValueListenable`, `MagicSelector` over a plain field), or use `MagicStatefulView`, which listens to the whole controller.
 
 
 ## MagicStatefulView\<T\>
@@ -320,7 +320,7 @@ class _LoginViewState
 
 ## MagicResponsiveView\<T\>
 
-Stateless responsive view. Extends `MagicView<T>` — `controller` getter is available.
+Stateless responsive view. Extends `MagicView<T>` - `controller` getter is available.
 
 ```dart
 abstract class MagicResponsiveView<T extends MagicController>
@@ -353,7 +353,7 @@ class DashboardView extends MagicResponsiveView<DashboardController> {
 
 ### MagicResponsiveViewExtended\<T\>
 
-Six-breakpoint variant with `xs`, `sm`, `md`, `lg`, `xl`, `xxl` methods, each defaulting to the smaller one. Use when you need distinct layouts at every Wind breakpoint.
+Full-breakpoint variant with `xs`, `sm`, `md`, `lg`, `xl`, `xxl` methods, each defaulting to the smaller one. Use when you need distinct layouts at every `wind_kit` breakpoint.
 
 ### MagicResponsiveContext extension
 
@@ -366,13 +366,13 @@ Available on `BuildContext` after importing `package:magic/magic.dart`:
 | `isPhone` | `bool` | Width `< sm`. |
 | `isTablet` | `bool` | Width `>= sm and < lg`. |
 | `isDesktop` | `bool` | Width `>= lg`. |
-| `activeBreakpoint` | `String` | Current Wind breakpoint name. |
+| `activeBreakpoint` | `String` | Current `wind_kit` breakpoint name. |
 | `isAtLeast(String bp)` | `bool` | True if screen is at or above the given breakpoint. |
 
 
 ## MagicBuilder\<T\>
 
-Thin, generic wrapper around `ValueListenableBuilder`. Builder receives only the value — no context, no child.
+Thin, generic wrapper around `ValueListenableBuilder`. Builder receives only the value - no context, no child.
 
 ```dart
 class MagicBuilder<T> extends StatelessWidget {
@@ -427,7 +427,7 @@ MagicSelector<GuideController, String>(
 
 It caches the widget the builder returned and, while the selected value compares equal, returns that same INSTANCE. `Element.updateChild` short circuits on `child.widget == newWidget`, so the subtree is never visited. That is what makes it survive a parent that rebuilds anyway, which is every `MagicStatefulView` under `refreshUI()`.
 
-Two rules follow from the caching:
+These rules follow from the caching:
 
 - `builder` must be a pure function of the selected value. A captured variable that changes without the value changing goes stale. Select a record to watch several fields: `selector: (c) => (c.count, c.total)`.
 - Equality is plain `==`. A selector returning a freshly built `List` or `Map` never matches its own cache (Dart gives collections identity equality) and rebuilds every notification. Deep comparison is deliberately not used: walking a ten thousand element list per keystroke costs more than the rebuild it prevents.
@@ -440,7 +440,7 @@ Reading an `InheritedWidget` inside the cached subtree is fine and needs no sele
 End-to-end: controller registration, data loading, view rendering, form submission.
 
 ```dart
-// 1. Controller — registered in a ServiceProvider boot()
+// 1. Controller - registered in a ServiceProvider boot()
 class PostController extends MagicController
     with MagicStateMixin<List<Post>>, ValidatesRequests {
   static PostController get instance =>
@@ -474,7 +474,7 @@ class PostController extends MagicController
   }
 }
 
-// 2. List view — stateless, no local state needed
+// 2. List view - stateless, no local state needed
 class PostIndexView extends MagicView<PostController> {
   const PostIndexView({super.key});
 
@@ -491,7 +491,7 @@ class PostIndexView extends MagicView<PostController> {
   }
 }
 
-// 3. Create view — stateful for TextEditingControllers
+// 3. Create view - stateful for TextEditingControllers
 class PostCreateView extends MagicStatefulView<PostController> {
   const PostCreateView({super.key});
 
@@ -548,9 +548,9 @@ class _PostCreateViewState
 ## Gotchas
 
 - **Registration required**: The controller MUST be in the IoC container before `MagicView` builds. Register via `Magic.put(MyController())` or the singleton accessor (`Magic.findOrPut`).
-- **onInit is synchronous at the call site**: `MagicStatefulView` calls `onInit()` synchronously. Async work inside it fires off but the first build runs before it completes — always handle the initial empty/loading state.
+- **onInit is synchronous at the call site**: `MagicStatefulView` calls `onInit()` synchronously. Async work inside it fires off but the first build runs before it completes - always handle the initial empty/loading state.
 - **No notifyListeners in build**: `setSuccess`, `setError`, etc. call `notifyListeners`. Never call them inside `build()` or a constructor.
 - **Dispose ValueNotifiers**: If you declare `ValueNotifier` fields, override `dispose()` and call `.dispose()` on each before `super.dispose()`.
 - **rules() lives on the state, not the controller**: The `rules()` helper is a method on `MagicStatefulViewState`. It auto-injects the controller so server-side field errors surface through the form validator.
 - **MagicView vs MagicStatefulView**: Use `MagicView` when `renderState` covers all rebuild needs. Use `MagicStatefulView` when you need `TextEditingController`, local state, or full Flutter lifecycle hooks.
-- **ValidatesRequests import**: Import `package:magic/magic.dart` — the mixin is re-exported from the barrel, not from `concerns/`.
+- **ValidatesRequests import**: Import `package:magic/magic.dart` - the mixin is re-exported from the barrel, not from `concerns/`.
