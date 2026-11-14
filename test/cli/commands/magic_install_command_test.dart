@@ -2499,12 +2499,13 @@ class _MyHomePageState extends State<MyHomePage> {
   // ---------------------------------------------------------------------------
   // Group 17: --with-devtools (one-step debug-trio install, #10)
   //
-  // The flag wires the debug trio (magic_devtools + fluttersdk_dusk +
-  // fluttersdk_telescope) into lib/main.dart under kDebugMode and adds the
-  // three packages as regular pubspec dependencies (the wiring is tree-shaken
-  // from release via kDebugMode). Wiring shape mirrors dusk_install_command +
-  // telescope_install_command. Idempotent on re-run; absent flag changes
-  // nothing.
+  // The flag wires the debug trio (magic_devtools + tapir + crumbs) into
+  // lib/main.dart under kDebugMode and adds the three packages as regular
+  // pubspec dependencies (the wiring is tree-shaken from release via
+  // kDebugMode). Wiring shape mirrors tapir_install_command +
+  // crumbs_install_command, so the later `tapir:install` / `crumbs:install`
+  // find their own call and write nothing twice. Idempotent on re-run; absent
+  // flag changes nothing.
   // ---------------------------------------------------------------------------
 
   group('MagicInstallCommand.buildDevtoolsWiring (pure transform)', () {
@@ -2532,86 +2533,151 @@ void main() async {
 }
 ''';
 
-    test('injects kDebugMode import + dusk/telescope barrels', () {
+    test('injects kReleaseMode import + tapir/crumbs/devtools barrels', () {
       final cmd = MagicInstallCommand();
       final wired = cmd.buildDevtoolsWiring(baseMain);
 
       expect(
         wired,
-        contains("import 'package:flutter/foundation.dart' show kDebugMode;"),
+        contains("import 'package:flutter/foundation.dart' show kReleaseMode;"),
       );
-      expect(wired, contains("import 'package:fluttersdk_dusk/dusk.dart';"));
+      expect(wired, contains("import 'package:tapir/tapir.dart';"));
+      expect(wired, contains("import 'package:crumbs/crumbs.dart';"));
+      expect(wired, contains("import 'package:magic_devtools/tapir.dart';"));
+      expect(wired, contains("import 'package:magic_devtools/crumbs.dart';"));
       expect(
         wired,
-        contains("import 'package:fluttersdk_telescope/telescope.dart';"),
-      );
-      expect(wired, contains("import 'package:magic_devtools/dusk.dart';"));
-      expect(
-        wired,
-        contains("import 'package:magic_devtools/telescope.dart';"),
+        contains("import 'package:magic_devtools/magic_devtools.dart';"),
       );
     });
 
-    test('injects the kDebugMode plugin-install block BEFORE Magic.init', () {
+    test('injects the !kReleaseMode plugin-install blocks BEFORE Magic.init', () {
       final cmd = MagicInstallCommand();
       final wired = cmd.buildDevtoolsWiring(baseMain);
 
-      expect(wired, contains('DuskPlugin.install();'));
-      expect(wired, contains('TelescopePlugin.install();'));
+      expect(wired, contains('TapirPlugin.install();'));
+      expect(wired, contains('CrumbsPlugin.install();'));
       expect(
         wired,
-        contains('TelescopePlugin.registerWatcher(ExceptionWatcher());'),
+        contains('CrumbsPlugin.registerWatcher(ExceptionWatcher());'),
       );
-      expect(
-        wired,
-        contains('TelescopePlugin.registerWatcher(DumpWatcher());'),
-      );
+      expect(wired, contains('CrumbsPlugin.registerWatcher(DumpWatcher());'));
+      // The perf path registers a navigator observer, which the router refuses
+      // once it is built, so it belongs to this half like MagicDevtools.installPre.
+      expect(wired, contains('MagicPerfIntegration.install();'));
 
       // The plugin-install blocks must precede the Magic.init call.
-      final duskIdx = wired.indexOf('DuskPlugin.install();');
       final initIdx = wired.indexOf('await Magic.init(');
-      expect(duskIdx, lessThan(initIdx));
-      final telescopeIdx = wired.indexOf('TelescopePlugin.install();');
-      expect(telescopeIdx, lessThan(initIdx));
+      expect(wired.indexOf('TapirPlugin.install();'), lessThan(initIdx));
+      expect(wired.indexOf('CrumbsPlugin.install();'), lessThan(initIdx));
+      expect(
+        wired.indexOf('MagicPerfIntegration.install();'),
+        lessThan(initIdx),
+      );
     });
 
     test('injects the Magic integration block AFTER Magic.init', () {
       final cmd = MagicInstallCommand();
       final wired = cmd.buildDevtoolsWiring(baseMain);
 
-      expect(wired, contains('MagicDuskIntegration.install();'));
-      expect(wired, contains('MagicTelescopeIntegration.install();'));
+      expect(wired, contains('MagicTapirIntegration.install();'));
+      expect(wired, contains('MagicCrumbsIntegration.install();'));
 
       // The integration blocks must sit AFTER the Magic.init call opening and
       // BEFORE runApp (the container is ready, the app is not yet running).
       final initIdx = wired.indexOf('await Magic.init(');
       final runAppIdx = wired.indexOf('runApp(');
-      final duskIntegrationIdx = wired.indexOf(
-        'MagicDuskIntegration.install();',
+      final tapirIntegrationIdx = wired.indexOf(
+        'MagicTapirIntegration.install();',
       );
-      expect(duskIntegrationIdx, greaterThan(initIdx));
-      expect(duskIntegrationIdx, lessThan(runAppIdx));
-      final telescopeIntegrationIdx = wired.indexOf(
-        'MagicTelescopeIntegration.install();',
+      expect(tapirIntegrationIdx, greaterThan(initIdx));
+      expect(tapirIntegrationIdx, lessThan(runAppIdx));
+      final crumbsIntegrationIdx = wired.indexOf(
+        'MagicCrumbsIntegration.install();',
       );
-      expect(telescopeIntegrationIdx, greaterThan(initIdx));
-      expect(telescopeIntegrationIdx, lessThan(runAppIdx));
+      expect(crumbsIntegrationIdx, greaterThan(initIdx));
+      expect(crumbsIntegrationIdx, lessThan(runAppIdx));
     });
 
-    test('all injected blocks are gated under kDebugMode', () {
+    test('all injected blocks are gated under !kReleaseMode', () {
       final cmd = MagicInstallCommand();
       final wired = cmd.buildDevtoolsWiring(baseMain);
 
-      // Every devtools call must sit inside an `if (kDebugMode) {` block.
-      // Count: 2 before-init blocks (dusk + telescope) + 2 after-init blocks.
-      final kDebugBlocks = 'if (kDebugMode) {'.allMatches(wired).length;
+      // Every devtools call must sit inside an `if (!kReleaseMode) {` block:
+      // debug and profile builds carry the tools (a perf measurement runs on a
+      // profile build) and a release build tree-shakes them. Count: 3
+      // before-init blocks (tapir, crumbs, perf) + 2 after-init blocks.
+      final guardedBlocks = 'if (!kReleaseMode) {'.allMatches(wired).length;
       expect(
-        kDebugBlocks,
-        4,
+        guardedBlocks,
+        5,
         reason:
-            'wiring must add exactly 4 kDebugMode blocks (dusk install, '
-            'telescope install, dusk integration, telescope integration)',
+            'wiring must add exactly 5 !kReleaseMode blocks (tapir install, '
+            'crumbs install, perf, tapir integration, crumbs integration)',
       );
+      expect(wired, isNot(contains('kDebugMode')));
+    });
+
+    test('an app already on the MagicDevtools umbrella is left alone', () {
+      // A second pair of watchers would chain onto the first and record every
+      // exception and debugPrint twice.
+      const umbrella = '''
+import 'package:flutter/foundation.dart';
+import 'package:magic/magic.dart';
+import 'package:magic_devtools/magic_devtools.dart';
+import 'package:material_ui/material_ui.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (!kReleaseMode) MagicDevtools.installPre();
+
+  await Magic.init(configFactories: []);
+
+  if (!kReleaseMode) MagicDevtools.installPost();
+
+  runApp(MagicApplication(title: 'My App'));
+}
+''';
+
+      expect(MagicInstallCommand().buildDevtoolsWiring(umbrella), umbrella);
+    });
+
+    test('a call already in the file is never written a second time', () {
+      // Hand-wired under another guard, or by crumbs:install (which writes
+      // kDebugMode): call presence decides, not the snippet text.
+      const handWired = '''
+import 'package:crumbs/crumbs.dart';
+import 'package:flutter/foundation.dart';
+import 'package:magic/magic.dart';
+import 'package:material_ui/material_ui.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (kDebugMode) {
+    CrumbsPlugin.install();
+    CrumbsPlugin.registerWatcher(ExceptionWatcher());
+  }
+
+  await Magic.init(configFactories: []);
+
+  runApp(MagicApplication(title: 'My App'));
+}
+''';
+
+      final wired = MagicInstallCommand().buildDevtoolsWiring(handWired);
+
+      expect('CrumbsPlugin.install('.allMatches(wired).length, 1);
+      expect('ExceptionWatcher()'.allMatches(wired).length, 1);
+      expect(
+        "import 'package:crumbs/crumbs.dart';".allMatches(wired).length,
+        1,
+      );
+      // The blocks it lacked are still written.
+      expect(wired, contains('TapirPlugin.install();'));
+      expect(wired, contains('MagicTapirIntegration.install();'));
+      expect(wired, contains('MagicCrumbsIntegration.install();'));
     });
 
     test('is idempotent: a second pass adds no duplicate blocks', () {
@@ -2625,15 +2691,9 @@ void main() async {
         reason: 're-running the transform must be a byte-for-byte no-op',
       );
       // Spot-check no statement doubled.
-      expect('DuskPlugin.install();'.allMatches(twice).length, 1);
-      expect(
-        'MagicTelescopeIntegration.install();'.allMatches(twice).length,
-        1,
-      );
-      expect(
-        "import 'package:fluttersdk_dusk/dusk.dart';".allMatches(twice).length,
-        1,
-      );
+      expect('TapirPlugin.install();'.allMatches(twice).length, 1);
+      expect('MagicCrumbsIntegration.install();'.allMatches(twice).length, 1);
+      expect("import 'package:tapir/tapir.dart';".allMatches(twice).length, 1);
     });
 
     test('keeps the import block directives_ordering-clean', () {
@@ -2663,7 +2723,7 @@ void main() async {
       // 2. `package:magic_devtools/*` must sit between `package:magic` and
       //    `package:material_ui` (alphabetical within the group).
       final devtoolsIndex = importLines.indexWhere(
-        (line) => line.contains('package:magic_devtools/dusk.dart'),
+        (line) => line.contains('package:magic_devtools/tapir.dart'),
       );
       final materialIndex = importLines.indexWhere(
         (line) => line.contains('package:material_ui/material_ui.dart'),
@@ -2760,13 +2820,13 @@ void main() async {
       expect(exit, 0, reason: output.content);
       final main = File(p.join(root.path, 'lib', 'main.dart'))
           .readAsStringSync();
-      expect(main, isNot(contains('DuskPlugin.install();')));
-      expect(main, isNot(contains('MagicTelescopeIntegration.install();')));
+      expect(main, isNot(contains('TapirPlugin.install();')));
+      expect(main, isNot(contains('MagicCrumbsIntegration.install();')));
       final pubspec = File(p.join(root.path, 'pubspec.yaml'))
           .readAsStringSync();
       expect(pubspec, isNot(contains('magic_devtools:')));
-      expect(pubspec, isNot(contains('fluttersdk_dusk:')));
-      expect(pubspec, isNot(contains('fluttersdk_telescope:')));
+      expect(pubspec, isNot(contains('tapir:')));
+      expect(pubspec, isNot(contains('crumbs:')));
     });
 
     test(
@@ -2794,51 +2854,48 @@ void main() async {
       'devtools constraints match the ones the post-install message documents',
       () {
         // The installer's constant and install.yaml's message are two copies
-        // of one list, and they drifted: the code pinned `magic_devtools
-        // ^0.0.1` and `fluttersdk_dusk ^0.0.8` while the message told the same
-        // reader `^0.0.2` and `^0.0.9`. So the message is read here rather than
-        // restated, and a release that moves one copy fails until it moves
-        // the other.
+        // of one list, and they drifted once: the code pinned `magic_devtools
+        // ^0.0.1` while the message told the same reader `^0.0.2`. So the
+        // message is read here rather than restated, and a release that moves
+        // one copy fails until it moves the other.
         final String manifest = File(p.join(_magicRoot, 'install.yaml'))
             .readAsStringSync();
         final Map<String, String> documented = <String, String>{
           for (final RegExpMatch match in RegExp(
-            r'^\s+(magic_devtools|fluttersdk_dusk|fluttersdk_telescope): (\^\S+)$',
+            r'^\s+(magic_devtools|tapir|crumbs): (\^\S+)$',
             multiLine: true,
           ).allMatches(manifest))
             match.group(1)!: match.group(2)!,
         };
         expect(
           documented.keys,
-          unorderedEquals(<String>[
-            'magic_devtools',
-            'fluttersdk_dusk',
-            'fluttersdk_telescope',
-          ]),
+          unorderedEquals(<String>['magic_devtools', 'tapir', 'crumbs']),
         );
 
         expect(MagicInstallCommand().devtoolsDependencies, documented);
       },
     );
 
-    test('--with-devtools stops before writing anything', () async {
+    test('--with-devtools adds the trio and wires lib/main.dart', () async {
       final (:cmd, :ctx, :root, :output) = seedRealFsConsumer(
         optionOverrides: <String, dynamic>{'with-devtools': true},
       );
-      final String pubspecBefore = File(p.join(root.path, 'pubspec.yaml'))
-          .readAsStringSync();
 
       final exit = await cmd.handle(ctx);
 
-      expect(exit, isNot(0));
-      expect(output.content, contains('magic_devtools'));
-      expect(output.content, contains('--with-devtools'));
-      expect(File(p.join(root.path, 'lib', 'main.dart')).existsSync(), isFalse);
-      expect(
-        File(p.join(root.path, 'pubspec.yaml')).readAsStringSync(),
-        pubspecBefore,
-      );
-      expect(cmd.dowelDelegateCallCount, 0);
+      expect(exit, 0, reason: output.content);
+      final pubspec = File(p.join(root.path, 'pubspec.yaml'))
+          .readAsStringSync();
+      expect(pubspec, contains('magic_devtools: ^1.0.0'));
+      expect(pubspec, contains('tapir: ^1.0.0'));
+      expect(pubspec, contains('crumbs: ^1.0.0'));
+      expect(pubspec, isNot(contains('fluttersdk_')));
+      final main = File(p.join(root.path, 'lib', 'main.dart'))
+          .readAsStringSync();
+      expect(main, contains('TapirPlugin.install();'));
+      expect(main, contains('CrumbsPlugin.install();'));
+      expect(main, contains('MagicTapirIntegration.install();'));
+      expect(main, contains('MagicCrumbsIntegration.install();'));
     });
   });
 }
