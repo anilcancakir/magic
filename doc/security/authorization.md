@@ -1,6 +1,6 @@
 # Authorization
 
-Magic's authorization system lets you define and check user abilities via the `Gate` facade, with support for policies, super-admin bypasses, and declarative UI widgets.
+Magic's authorisation system lets you define and check user abilities via the `Gate` facade, with support for policies, super-admin bypasses, and declarative UI widgets.
 
 - [Introduction](#introduction)
 - [Defining Abilities](#defining-abilities)
@@ -18,7 +18,7 @@ Magic's authorization system lets you define and check user abilities via the `G
 <a name="introduction"></a>
 ## Introduction
 
-In addition to authentication, Magic provides a simple way to authorize user actions against a given resource. Like Laravel, authorization logic is defined using the `Gate` facade and may be checked anywhere in your application.
+In addition to authentication, Magic provides a simple way to authorise user actions against a given resource. Like Laravel, authorisation logic is defined using the `Gate` facade and may be checked anywhere in your application.
 
 ```dart
 // Define abilities (in provider)
@@ -156,7 +156,7 @@ Return values:
 <a name="policies"></a>
 ## Policies
 
-Policies organize related authorization logic into classes. This is the recommended approach for complex applications:
+Policies organise related authorisation logic into classes. This is the recommended approach for complex applications:
 
 ```dart
 import 'package:magic/magic.dart';
@@ -224,7 +224,7 @@ Gate.flush();
 ```
 
 | Method | Returns | Description |
-|--------|---------|-------------|
+|:---|:---|:---|
 | `Gate.has(ability)` | `bool` | Returns `true` if the named ability has been registered. |
 | `Gate.abilities` | `List<String>` | All currently registered ability names. |
 | `Gate.flush()` | `void` | Removes all registered abilities and before-callbacks. |
@@ -238,7 +238,7 @@ Gate.flush();
 <a name="magiccan-widget"></a>
 ### MagicCan Widget
 
-Conditionally render UI based on authorization:
+Conditionally render UI based on authorisation:
 
 ```dart
 // Basic usage
@@ -294,7 +294,7 @@ MagicCannot(
 <a name="gateserviceprovider"></a>
 ## GateServiceProvider
 
-Create a dedicated provider for all authorization logic:
+Create a dedicated provider for all authorisation logic:
 
 ```dart
 import 'package:magic/magic.dart';
@@ -347,7 +347,7 @@ dart run magic:dowel make:policy Comment --model=Comment
 ### Options
 
 | Option | Shortcut | Description |
-|--------|----------|-------------|
+|:---|:---|:---|
 | `--model` | `-m` | The model that the policy applies to |
 
 **Output:** Creates `lib/app/policies/<name>_policy.dart` with `view`, `create`, `update` and `delete` stubs, each returning `true` until you fill it in.
@@ -383,7 +383,7 @@ class PostPolicy extends Policy {
 ```
 
 > [!TIP]
-> Use policies for model-specific authorization and simple `Gate.define()` calls for general abilities like "view-dashboard" or "access-admin".
+> Use policies for model-specific authorisation and simple `Gate.define()` calls for general abilities like "view-dashboard" or "access-admin".
 
 <a name="related-documentation"></a>
 ## Related Documentation

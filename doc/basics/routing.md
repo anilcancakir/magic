@@ -32,7 +32,7 @@ Magic's routing wraps `go_router` with a Laravel-style fluent API: define routes
 <a name="introduction"></a>
 ## Introduction
 
-The most basic Magic routes accept a URI and a closure, providing a very simple and expressive method of defining routes and behavior without complicated routing configuration files.
+The most basic Magic routes accept a URI and a closure, providing a very simple and expressive method of defining routes and behaviour without complicated routing configuration files.
 
 All routes for your application are defined in the `lib/routes` directory. These files are loaded by the `RouteServiceProvider`, which is included in your `config/app.dart` by default.
 
@@ -193,7 +193,7 @@ MagicRoute.toNamed('search', query: {'q': 'flutter'});
 `MagicRoute.resource()` wires the four canonical GET routes for a resource in a single line. The target controller must mix in `ResourceController` and implement the view-building methods it supports.
 
 | Path                 | Method       |
-| -------------------- | ------------ |
+|:---|:---|
 | `/{name}`            | `index()`    |
 | `/{name}/create`     | `create()`   |
 | `/{name}/:id`        | `show(id)`   |
@@ -427,14 +427,14 @@ MagicApplication(
 )
 ```
 
-It is passed straight to `MaterialApp.builder`, so the builder runs inside the app's `Theme`, localizations, `Directionality` and `MediaQuery`, and `child` is the `Router`, which builds the root `Navigator`. Whatever you put around `child` sits above the Navigator and inside no route, so its State survives every `to()`, push and `back()`. That is the property a floating video player needs, since remounting its platform view would restart the stream.
+It is passed straight to `MaterialApp.builder`, so the builder runs inside the app's `Theme`, localisations, `Directionality` and `MediaQuery`, and `child` is the `Router`, which builds the root `Navigator`. Whatever you put around `child` sits above the Navigator and inside no route, so its State survives every `to()`, push and `back()`. That is the property a floating video player needs, since remounting its platform view would restart the stream.
 
 The same position means `Navigator.of(context)` and `Overlay.of(context)` find nothing from the layer's own context. Navigate with `MagicRoute` and open a dialog with `Magic.dialog()`, which shows it on the root Navigator. A widget inside the layer that needs an `Overlay` of its own, such as a `Tooltip`, a `WPopover` or a `WSelect`, throws unless the layer puts an `Overlay` around it.
 
 > [!WARNING]
 > A soft restart is not a navigation. `Magic.reload()` rebuilds the whole `MaterialApp`, so the layer is remounted with a new State, and `Lang.setLocale()` calls it unless you pass `reload: false`.
 
-Only the running app is wrapped: the loading and failure screens shown before `MagicApplication` finishes initializing are not. Leaving `builder` null changes nothing.
+Only the running app is wrapped: the loading and failure screens shown before `MagicApplication` finishes initialising are not. Leaving `builder` null changes nothing.
 
 <a name="context-free-navigation"></a>
 ## Context-Free Navigation
@@ -537,7 +537,7 @@ The page a stacked route builds is `MagicPlatformPage`, exported for a test or a
 Navigating to the path you are already on depends on whether you name a query:
 
 | From | `to(...)` | Result |
-|---|---|---|
+|:---|:---|:---|
 | `/monitors/42` | `'/monitors/42'` | nothing; a re-tapped destination does not stack a screen on itself |
 | `/monitors/42?tab=checks` | `'/monitors/42'` | nothing; naming no query is asking for the screen, not asking to clear its tab |
 | `/monitors/42?tab=overview` | `'/monitors/42', query: {'tab': 'checks'}` | the top page is swapped, so the screen rebuilds with the new tab and the pages under it survive |
@@ -565,7 +565,7 @@ MagicRouter.instance.defaultTransition = RouteTransition.platform;
 The other values build a custom transition on a bare page route, which carries no gesture at all: Flutter installs the back-swipe detector inside the Cupertino transition rather than beside it. `RouteTransition.none`, the default, is an instant switch with no animation.
 
 | Value | Animation | Back gesture |
-|---|---|---|
+|:---|:---|:---|
 | `none` (default) | none | no |
 | `platform` | the running platform's | yes |
 | `fade`, `slideRight`, `slideUp`, `scale` | as named, every platform | no |
@@ -612,7 +612,7 @@ MagicApplication(
 )
 ```
 
-It is applied with `copyWith`, so your `wind_kit` theme's colors, typography and component defaults are untouched, and leaving it null changes nothing at all.
+It is applied with `copyWith`, so your `wind_kit` theme's colours, typography and component defaults are untouched, and leaving it null changes nothing at all.
 
 A per-route `RouteTransition` cannot express this, which is why the knob exists: the transition is chosen once at registration, and the case that comes up is the opposite shape, keep the mobile builds' native animation and give the desktop or web build none.
 
@@ -691,7 +691,7 @@ Set `url_strategy` in your `config/routing.dart`:
 ```
 
 | Value | URL shape | Notes |
-| ------- | ---------- | ----- |
+|:---|:---|:---|
 | `null` (default) | `https://example.com/#/dashboard` | No web server config required |
 | `'path'` | `https://example.com/dashboard` | Web server must rewrite all paths to `index.html` |
 | `'hash'` | `https://example.com/#/dashboard` | Explicit hash; identical to `null` |
@@ -769,7 +769,7 @@ Observers are passed directly to GoRouter and receive all navigation events (`di
 
 Magic provides automatic page title management via `SystemChrome.setApplicationSwitcherDescription`, which updates the browser tab title on web and the app switcher description on mobile.
 
-On Android the switcher card also carries a color, and on web the same value becomes the `theme-color` meta. `MagicApplication` hands its theme's `primaryColor` to `TitleManager.instance.setPrimaryColor()`, the color `MaterialApp` uses, so once the app has built a title change keeps that color.
+On Android the switcher card also carries a colour, and on web the same value becomes the `theme-color` meta. `MagicApplication` hands its theme's `primaryColor` to `TitleManager.instance.setPrimaryColor()`, the colour `MaterialApp` uses, so once the app has built a title change keeps that colour.
 
 Chrome keeps a tab title per history entry, and the Flutter engine swaps entries with `history.pushState` or `replaceState` after a page builds, which used to leave the tab showing the previous entry's title or the bare host (`app.example.com`) while `document.title` was correct. `MagicApplication` re-sends the title after every history entry change on the web (through the Navigation API), so nothing is needed in your app. Other platforms, and browsers without the Navigation API, are unaffected.
 
@@ -867,7 +867,7 @@ Widget build(BuildContext context) {
 ## Gotchas
 
 | Mistake | Fix |
-|---------|-----|
+|:---|:---|
 | Reading `Request.query()` once in `initState()` | A query change does not remount the screen; read it in `build()` (or through `queryParameterOf(context, key)`) |
 | A `const` page widget in `MagicRoute.page('/search', () => const SearchPage())` | It hands back one identical instance, so nothing rebuilds on a query change; take a path parameter or read the query in `build()` |
 | Using `MagicRouter.instance.pathParameter()` from a widget | It answers for the page that built last, which may sit beneath the one on screen; use `pathParameterOf(context, key)` from `didChangeDependencies` or `build` |

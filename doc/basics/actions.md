@@ -83,7 +83,7 @@ WButton(
 ## Failure Modes
 
 | What `handle` does | What `runAction` does |
-|---|---|
+|:---|:---|
 | Throws `ValidationException`, host is `ValidatesRequests` | Paints field errors via `setErrorsFromMap`; answers `ActionFailed` |
 | Throws `ValidationException`, host is not `ValidatesRequests` | Falls back to the generic-failure toast below; answers `ActionFailed` |
 | Throws anything else | Logs the exception, shows an error toast titled and bodied with `trans('common.error_occurred')` (or `failureMessage` as the body when given); answers `ActionFailed` |
@@ -153,7 +153,7 @@ dart run magic:dowel make:action PauseMonitor --force    # Overwrite existing fi
 ## Gotchas
 
 | Mistake | Fix |
-|---|---|
+|:---|:---|
 | `MagicAction.bind(() => FakePauseMonitor())` with no type argument | Name the type: `MagicAction.bind<PauseMonitor>(...)`. Dart infers the fake's own type from the closure, so `resolve` never finds the binding and the override silently never applies |
 | Constructing the action directly at the call site | Go through `MagicAction.resolve(PauseMonitor.new)`, otherwise a test cannot swap it |
 | Treating a non-`null` result as success | `runAction` answers `ActionRefused` for a same-key re-entry: check `outcome.succeeded` |

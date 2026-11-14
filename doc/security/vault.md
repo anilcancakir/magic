@@ -171,7 +171,7 @@ Pass an optional map of initial values to `Vault.fake()` to pre-seed the store.
 ### FakeVaultService Assertions
 
 | Method | Description |
-|--------|-------------|
+|:---|:---|
 | `fake.assertWritten(key)` | Fails if `Vault.put(key, ...)` was never called. |
 | `fake.assertDeleted(key)` | Fails if `Vault.delete(key)` was never called. |
 | `fake.assertContains(key)` | Fails if `key` is not currently in the store. |

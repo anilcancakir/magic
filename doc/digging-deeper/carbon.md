@@ -79,7 +79,7 @@ date.toDateTimeString();             // "2024-01-15 14:30:00"
 ### Format Tokens
 
 | Token | Output | Description |
-|-------|--------|-------------|
+|:---|:---|:---|
 | `yyyy` | 2024 | 4-digit year |
 | `yy` | 24 | 2-digit year |
 | `MMMM` | January | Full month name |

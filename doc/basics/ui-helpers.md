@@ -81,7 +81,7 @@ Magic.snackbar(
 <a name="custom-dialogs"></a>
 ### Custom Dialogs
 
-Display any widget in a centered dialog:
+Display any widget in a centred dialog:
 
 ```dart
 Magic.dialog(
@@ -230,7 +230,7 @@ class OrderController extends MagicController with MagicStateMixin<Order> {
 <a name="toast-messages"></a>
 ## Toast Messages
 
-Show brief, non-intrusive messages (centered, pill-shaped):
+Show brief, non-intrusive messages (centred, pill-shaped):
 
 ```dart
 Magic.toast('Item added to cart');
@@ -244,7 +244,7 @@ Toasts are ideal for quick confirmations that don't require user interaction.
 <a name="configuration"></a>
 ## Configuration
 
-Customize appearance via `lib/config/view.dart`; any key you leave out keeps its default from `defaultViewConfig`:
+Customise appearance via `lib/config/view.dart`; any key you leave out keeps its default from `defaultViewConfig`:
 
 ```dart
 Map<String, dynamic> get viewConfig => {
@@ -309,7 +309,7 @@ MagicBuilder<int>(
 The two required parameters are:
 
 | Parameter | Type | Purpose |
-|-----------|------|---------|
+|:---|:---|:---|
 | `listenable` | `ValueListenable<T>` | The notifier to observe |
 | `builder` | `Widget Function(T value)` | Called on every change with the new value |
 
@@ -476,7 +476,7 @@ class UserProfileView extends MagicView<UserController> {
 The constructor accepts two required parameters:
 
 | Parameter | Type | Purpose |
-|-----------|------|---------|
+|:---|:---|:---|
 | `title` | `String` | The page title to display |
 | `child` | `Widget` | The subtree to render |
 
@@ -517,7 +517,7 @@ class DashboardView extends MagicResponsiveView<DashboardController> {
 The dispatch order is:
 
 | Condition | Method called |
-|-----------|--------------|
+|:---|:---|
 | `width < 320 px` | `watch(context)` |
 | `width < sm` (default 640 px) | `phone(context)` |
 | `width < lg` (default 1024 px) | `tablet(context)` |
@@ -548,7 +548,7 @@ class AdminView extends MagicResponsiveViewExtended<AdminController> {
 }
 ```
 
-Methods that you do not override cascade to the next smaller breakpoint, so you only implement the layouts where behavior changes.
+Methods that you do not override cascade to the next smaller breakpoint, so you only implement the layouts where behaviour changes.
 
 <a name="context-helpers"></a>
 ### Context Helpers
@@ -567,7 +567,7 @@ Widget build(BuildContext context) {
 Available getters:
 
 | Getter | Type | Meaning |
-|--------|------|---------|
+|:---|:---|:---|
 | `screenWidth` | `double` | `MediaQuery.of(context).size.width` |
 | `screenHeight` | `double` | `MediaQuery.of(context).size.height` |
 | `isPhone` | `bool` | Width is below the `md` breakpoint |
@@ -598,7 +598,7 @@ Future<void> _submit() async {
 ```
 
 | Member | Type | Description |
-|--------|------|-------------|
+|:---|:---|:---|
 | `process<T>(Future<T> Function() action)` | `Future<T>` | Runs `action` with automatic `isProcessing` tracking |
 | `isProcessing` | `bool` | `true` while `process()` is executing |
 | `processingListenable` | `ValueListenable<bool>` | Notifier backing `isProcessing`; use with `MagicBuilder` |
@@ -655,7 +655,7 @@ Future<void> fetchList<E>(
 ```
 
 | Parameter | Default | Description |
-|-----------|---------|-------------|
+|:---|:---|:---|
 | `url` | required | The endpoint to GET |
 | `fromMap` | required | Factory that maps a JSON object to type `E` |
 | `dataKey` | `'data'` | Key in the response payload that holds the list |
@@ -718,7 +718,7 @@ class UserProfileView extends MagicView<UserController> {
 ## Gotchas
 
 | Mistake | Fix |
-|---------|-----|
+|:---|:---|
 | Calling `Magic.info()` or `Magic.warning()` | Only `success` and `error` have shortcuts; use `Magic.snackbar(title, message, type: 'info')` or `type: 'warning'` |
 | Calling `Magic.loading()` and not closing it when the work throws | Close it in a `finally` block with `Magic.closeLoading()`, or the blocking overlay stays on screen |
 | A `MagicSelector` builder that reads a value from the enclosing `build` | The cached subtree never sees it change; select every value the builder needs (a record compares by content) and do inherited lookups inside a `Builder` |

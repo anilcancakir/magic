@@ -83,7 +83,7 @@ void register() {
 The service container supports two types of bindings:
 
 | Method | Description |
-|--------|-------------|
+|:---|:---|
 | `app.bind(key, closure)` | Creates a new instance each time |
 | `app.singleton(key, closure)` | Creates a single shared instance |
 
@@ -116,7 +116,7 @@ Future<void> boot() async {
 ```
 
 > [!NOTE]
-> The `boot` method supports `async` operations. You may perform asynchronous initialization here.
+> The `boot` method supports `async` operations. You may perform asynchronous initialisation here.
 
 <a name="registering-providers"></a>
 ## Registering Providers
@@ -177,7 +177,7 @@ class SimpleServiceProvider extends ServiceProvider {
 Magic includes several built-in service providers for core functionality:
 
 | Provider | Purpose |
-|----------|---------|
+|:---|:---|
 | `CacheServiceProvider` | Cache stores and drivers |
 | `NetworkServiceProvider` | HTTP client configuration |
 | `AuthServiceProvider` | Authentication guards and state |

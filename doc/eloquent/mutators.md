@@ -111,7 +111,7 @@ class Task extends Model {
 ### Available Cast Types
 
 | Cast | Returns |
-|------|---------|
+|:---|:---|
 | `bool` | `bool` |
 | `int` | `int` |
 | `double` | `double` |
@@ -212,7 +212,7 @@ if (event?.startsAt?.isFuture() == true) {
 <a name="json-casting"></a>
 ## JSON Casting
 
-JSON attributes are serialized/deserialized automatically:
+JSON attributes are serialised/deserialised automatically:
 
 ```dart
 class Monitor extends Model {

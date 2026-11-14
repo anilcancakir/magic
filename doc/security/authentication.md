@@ -25,7 +25,7 @@ Magic provides a simple, frontend-focused authentication system with user cachin
 ### Key Features
 
 | Feature | Description |
-|---------|-------------|
+|:---|:---|
 | **User Caching** | Instant restore from secure cache, then sync from API |
 | **Auto Token Refresh** | 401 response → refresh token → retry original request (for guards built with a refresh endpoint) |
 | **Multiple Guards** | Support for Bearer, Basic, API Key, or custom guards |
@@ -190,7 +190,7 @@ abstract class Guard {
 ### Built-in Guards
 
 | Guard | `driver` | Login Data | Use Case |
-|-------|----------|-----------|----------|
+|:---|:---|:---|:---|
 | `BearerTokenGuard` | `bearer` (or `sanctum`) | `token` | JWT/OAuth APIs |
 | `BasicAuthGuard` | `basic` | `username`, `password` | Basic HTTP Auth |
 | `ApiKeyGuard` | `api_key` | `api_key` | API Key authentication |
@@ -495,7 +495,7 @@ void main() {
 ### FakeAuthManager Assertions
 
 | Method | Description |
-|--------|-------------|
+|:---|:---|
 | `fake.assertLoggedIn()` | Fails if no user is currently set. |
 | `fake.assertLoggedOut()` | Fails if a user is currently set. |
 | `fake.assertLoginAttempted()` | Fails if `Auth.login()` was never called. |

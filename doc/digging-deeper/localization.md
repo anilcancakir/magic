@@ -1,6 +1,6 @@
 # Localization
 
-Magic provides a Laravel-style localization system that lets you retrieve and switch translation strings at runtime without needing BuildContext.
+Magic provides a Laravel-style localisation system that lets you retrieve and switch translation strings at runtime without needing BuildContext.
 
 - [Introduction](#introduction)
 - [Configuration](#configuration)
@@ -27,7 +27,7 @@ Magic provides a Laravel-style localization system that lets you retrieve and sw
 <a name="introduction"></a>
 ## Introduction
 
-Magic provides a Laravel-style localization system that allows you to retrieve strings in various languages **without needing BuildContext**.
+Magic provides a Laravel-style localisation system that allows you to retrieve strings in various languages **without needing BuildContext**.
 
 ```dart
 // Anywhere in your code, no context needed
@@ -68,7 +68,7 @@ Map<String, dynamic> get localizationConfig => {
 ### Configuration Options
 
 | Key | Default | Description |
-|-----|---------|-------------|
+|:---|:---|:---|
 | `locale` | `'en'` | Default locale |
 | `fallback_locale` | `'en'` | Fallback when translation is missing |
 | `supported_locales` | `['en']` | Supported locale codes |
@@ -224,7 +224,7 @@ Write a line that is **all** conditions or none. A half-conditional line shifts 
 This is the part that surprises people, and it is why the count is not simply compared to one.
 
 | Language | Forms | Rule |
-|---|---|---|
+|:---|:---|:---|
 | `tr`, `ja`, `ko`, `zh`, `id`, `vi` and others | 1 | every count takes segment 0 |
 | `en`, `de`, `es`, `nl`, `pt`, `sv` and others | 2 | `n == 1` takes segment 0 |
 | `fr`, `hi`, `fil`, `am` and others | 2 | `n == 0 \|\| n == 1` takes segment 0 |
@@ -270,7 +270,7 @@ print(locale.languageCode);  // "tr"
 <a name="loaded-state"></a>
 ### Loaded State
 
-`Lang.isLoaded` returns `true` once translations have been loaded for the current locale. Use this to guard against calling `trans()` before the localization service has finished booting:
+`Lang.isLoaded` returns `true` once translations have been loaded for the current locale. Use this to guard against calling `trans()` before the localisation service has finished booting:
 
 ```dart
 if (Lang.isLoaded) {
@@ -340,7 +340,7 @@ final locale = await Lang.detectAndSetLocale();
 print(locale); // e.g., Locale('tr')
 ```
 
-You can also use `auto_detect_locale: true` in the localization config to have `LocalizationServiceProvider` call this automatically during boot.
+You can also use `auto_detect_locale: true` in the localisation config to have `LocalizationServiceProvider` call this automatically during boot.
 
 <a name="setting-supported-locales-at-runtime"></a>
 ### Setting Supported Locales at Runtime
@@ -378,7 +378,7 @@ Listeners fire after every successful `setLocale` or `detectAndSetLocale` call, 
 <a name="flutter-integration-delegate"></a>
 ## Flutter Integration (Delegate)
 
-When you use a plain `MaterialApp` from `package:material_ui/material_ui.dart` (rather than `MagicApp`), you must pass `Lang.delegate` to `localizationsDelegates` so Flutter's localization lifecycle triggers translation reloads when the device locale changes. `GlobalMaterialLocalizations.delegates` already carries the Material, Cupertino and Widgets delegates:
+When you use a plain `MaterialApp` from `package:material_ui/material_ui.dart` (rather than `MagicApp`), you must pass `Lang.delegate` to `localizationsDelegates` so Flutter's localisation lifecycle triggers translation reloads when the device locale changes. `GlobalMaterialLocalizations.delegates` already carries the Material, Cupertino and Widgets delegates:
 
 ```dart
 MaterialApp(
@@ -402,7 +402,7 @@ MaterialApp(
 When `LocalizationServiceProvider` is registered, Magic automatically attaches two headers to every outgoing HTTP request via `LocalizationInterceptor`. No manual setup is required.
 
 | Header | Value | Example |
-|--------|-------|---------|
+|:---|:---|:---|
 | `Accept-Language` | Current locale language code | `en`, `tr`, `es` |
 | `X-Timezone` | Current IANA timezone identifier | `Europe/Istanbul`, `America/New_York` |
 
@@ -461,7 +461,7 @@ dart run magic:dowel make:lang tr --from=en
 The command does not edit `pubspec.yaml`: add the new file under `flutter: assets:` yourself (see Register Assets under [Configuration](#configuration)).
 
 > [!TIP]
-> Keep your translation keys organized by feature (auth, validation, users, etc.) for easier maintenance.
+> Keep your translation keys organised by feature (auth, validation, users, etc.) for easier maintenance.
 
 <a name="development-hot-restart"></a>
 ## Development: Hot Restart
@@ -469,12 +469,12 @@ The command does not edit `pubspec.yaml`: add the new file under `flutter: asset
 During development, Magic attempts to bypass Flutter's asset bundle cache so that translation JSON changes can be picked up on **hot restart** (`Shift+R`) without a full rebuild.
 
 | Platform | Mechanism | Reliability |
-|----------|-----------|-------------|
+|:---|:---|:---|
 | Web (Chrome) | Fetches JSON via HTTP with cache-busting query parameter | Verified |
 | macOS / Linux / Windows | Reads JSON from disk via `dart:io` | Best-effort (works when `flutter run` sets the working directory to the project root) |
 | iOS / Android | Attempts disk read via `dart:io`, falls back to `rootBundle` | Limited (asset files are typically not on disk) |
 
-This behavior is **debug-mode only** (`kDebugMode`). Release builds use Flutter's standard `rootBundle` with full caching for optimal performance.
+This behaviour is **debug-mode only** (`kDebugMode`). Release builds use Flutter's standard `rootBundle` with full caching for optimal performance.
 
 > [!NOTE]
 > Hot **reload** (lowercase `r`) only reloads Dart code and cannot pick up asset changes. Use hot **restart** (`Shift+R`) to see translation updates.

@@ -318,7 +318,7 @@ dart run magic:dowel make:view Monitors/List --controller=Monitor --list --form=
 ### Command Options
 
 | Option | Description |
-|--------|-------------|
+|:---|:---|
 | `--stateful` | Create a stateful view bound to a controller (derived from the view's name) |
 | `--controller` | Bind the view to this controller (suffix optional); implies `--stateful` |
 | `--list` | Add `RefetchesOnMount`, which calls the controller's `ensureFresh()` (a controller made with `make:controller --resource` has one); implies `--stateful` |
@@ -332,7 +332,7 @@ dart run magic:dowel make:view Monitors/List --controller=Monitor --list --form=
 ## Gotchas
 
 | Mistake | Fix |
-|---------|-----|
+|:---|:---|
 | Keeping a `TextEditingController` or `MagicFormData` in a `MagicView` | `MagicView` is stateless and has no lifecycle; use `MagicStatefulView` with a `MagicStatefulViewState` and dispose the form from `onClose` |
 | A view whose controller was never registered | `controller` is `Magic.find<T>()` and throws when nothing is registered; reach the controller through its `Magic.findOrPut` accessor first |
 | Loading data in `onInit` and expecting a refetch when the screen is revisited | `onInit` runs once per controller instance; mix `RefetchesOnMount` into the state |

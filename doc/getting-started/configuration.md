@@ -240,12 +240,12 @@ final value = repo.get<String>('app.name');
 <a name="configuration-files"></a>
 ## Configuration Files
 
-Magic recommends organizing your configuration into logical files:
+Magic recommends organising your configuration into logical files:
 
 | File | Purpose | Config Key |
-|------|---------|------------|
+|:---|:---|:---|
 | `app.dart` | General settings, service providers | `app` |
-| `auth.dart` | Authentication guards and behavior | `auth` |
+| `auth.dart` | Authentication guards and behaviour | `auth` |
 | `network.dart` | API endpoints, timeouts, headers | `network` |
 | `cache.dart` | Cache stores and TTL settings | `cache` |
 | `logging.dart` | Log levels and channels | `logging` |

@@ -45,7 +45,7 @@ Each `fake()` call returns its fake instance so you can run assertions after the
 ## Fake Catalog
 
 | Facade | `fake()` return type | Unfake | Docs |
-|--------|----------------------|--------|------|
+|:---|:---|:---|:---|
 | `Auth` | `FakeAuthManager` | `Auth.unfake()` | [Auth.fake()](#auth-fake) |
 | `Cache` | `FakeCacheManager` | `Cache.unfake()` | [Cache.fake()](#cache-fake) |
 | `Vault` | `FakeVaultService` | `Vault.unfake()` | [Vault.fake()](#vault-fake) |
@@ -89,7 +89,7 @@ test('user is pre-authenticated', () {
 ### Assertions
 
 | Method | Description |
-|--------|-------------|
+|:---|:---|
 | `fake.assertLoggedIn()` | Assert a user is currently authenticated. |
 | `fake.assertLoggedOut()` | Assert no user is currently authenticated. |
 | `fake.assertLoginAttempted()` | Assert at least one login call was made. |
@@ -152,7 +152,7 @@ test('controller caches user list', () async {
 ### Assertions
 
 | Method | Description |
-|--------|-------------|
+|:---|:---|
 | `fake.assertHas(String key)` | Assert that the key currently exists in the cache. |
 | `fake.assertMissing(String key)` | Assert that the key does not exist in the cache. |
 | `fake.assertPut(String key)` | Assert that the key was stored via `put` at least once. |
@@ -239,7 +239,7 @@ test('controller writes token to vault', () async {
 ### Assertions
 
 | Method | Description |
-|--------|-------------|
+|:---|:---|
 | `fake.assertWritten(String key)` | Assert that `key` was written via `put` at least once. |
 | `fake.assertDeleted(String key)` | Assert that `key` was deleted via `delete` at least once. |
 | `fake.assertContains(String key)` | Assert that `key` currently exists in the store. |
@@ -317,7 +317,7 @@ test('controller logs error on failure', () async {
 ### Assertions
 
 | Method | Description |
-|--------|-------------|
+|:---|:---|
 | `fake.assertLogged(String level, String message)` | Assert at least one entry matches both level and message. |
 | `fake.assertLoggedError(String message)` | Shorthand for `assertLogged('error', message)`. |
 | `fake.assertNothingLogged([String? level])` | Assert no entries recorded. If `level` is given, assert no entries at that level. |

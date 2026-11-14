@@ -1,6 +1,6 @@
 # Forms
 
-Magic provides a complete form handling system: `MagicFormData` for centralized form state, `wind_kit` form widgets for UI, `FormRequest` classes for structured validation and authorization, and the `ValidatesRequests` mixin for controller-side error management.
+Magic provides a complete form handling system: `MagicFormData` for centralised form state, `wind_kit` form widgets for UI, `FormRequest` classes for structured validation and authorisation, and the `ValidatesRequests` mixin for controller-side error management.
 
 - [Introduction](#introduction)
 - [MagicFormData](#magicformdata)
@@ -162,7 +162,7 @@ WFormInput(
 #### Input Types
 
 | Type | Description |
-|------|-------------|
+|:---|:---|
 | `InputType.text` | Standard text input (default) |
 | `InputType.password` | Obscured password input |
 | `InputType.email` | Email keyboard |
@@ -257,7 +257,7 @@ class AuthController extends MagicController with ValidatesRequests {
 <a name="custom-form-request-classes"></a>
 ## Custom FormRequest Classes
 
-`FormRequest` collapses the authorize-prepare-validate ceremony into a single, reusable class. Subclass it, declare `rules()`, and optionally override `authorize()` for access checks and `prepared()` for input normalization.
+`FormRequest` collapses the authorize-prepare-validate ceremony into a single, reusable class. Subclass it, declare `rules()`, and optionally override `authorize()` for access checks and `prepared()` for input normalisation.
 
 ```dart
 import 'package:magic/magic.dart';
@@ -369,7 +369,7 @@ When the controller bound to a `MagicFormData` instance implements `ValidatesReq
 **Available mixin members:**
 
 | Member | Description |
-|--------|-------------|
+|:---|:---|
 | `validate(data, rules)` | Run rules; returns validated data or throws `ValidationException` |
 | `validateRequest(request, data)` | Run a `FormRequest` (authorize, prepare, rules); returns the prepared data or throws |
 | `setErrorsFromResponse(response)` | Populate field errors from a 422 `MagicResponse` |
@@ -707,7 +707,7 @@ class _RegisterViewState extends MagicStatefulViewState<AuthController, Register
 ## Gotchas
 
 | Mistake | Fix |
-|---------|-----|
+|:---|:---|
 | Reading a `bool` or list field with `form['x']`, or a text field with `value<T>('x')` | Strings become `TextEditingController`s (`form['x']`, `get`, `set`); every other type is a `ValueNotifier` (`value<T>`, `setValue`). The wrong accessor fails an assert |
 | Not calling `form.dispose()` from the state's `onClose` | `MagicFormData` owns every controller and notifier it created; `dispose()` releases them all |
 | Passing a controller to `MagicFormData` that does not mix in `ValidatesRequests` | Server-side errors never reach the form and field errors are not cleared as the user types; add the mixin to the controller |

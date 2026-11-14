@@ -170,7 +170,7 @@ MagicRoute.group(
 Since middleware controls navigation flow, there are two possible outcomes:
 
 | Action | Effect |
-|--------|--------|
+|:---|:---|
 | Call `next()` | Navigation proceeds to the route |
 | Don't call `next()` | Navigation is blocked |
 
@@ -192,11 +192,11 @@ Future<void> handle(void Function() next) async {
 <a name="authorization-middleware"></a>
 ## Authorization Middleware
 
-Magic includes `AuthorizeMiddleware` that integrates with the Gate authorization system, the counterpart of Laravel's `can` middleware.
+Magic includes `AuthorizeMiddleware` that integrates with the Gate authorisation system, the counterpart of Laravel's `can` middleware.
 
 ### Basic Usage
 
-Register authorization middleware in your Kernel:
+Register authorisation middleware in your Kernel:
 
 ```dart
 void registerKernel() {
@@ -220,7 +220,7 @@ MagicRoute.page('/admin', () => AdminPanel())
 
 ### Custom Redirect
 
-By default, unauthorized users are redirected to `/unauthorized`. Customize this:
+By default, unauthorised users are redirected to `/unauthorized`. Customise this:
 
 ```dart
 Kernel.register('can:admin', () => AuthorizeMiddleware(
@@ -231,7 +231,7 @@ Kernel.register('can:admin', () => AuthorizeMiddleware(
 
 ### With Model Arguments
 
-For authorization requiring a model (like checking ownership), create a custom middleware:
+For authorisation requiring a model (like checking ownership), create a custom middleware:
 
 ```dart
 class CanEditPostMiddleware extends MagicMiddleware {
@@ -263,7 +263,7 @@ See the [Authorization documentation](../security/authorization.md) for more on 
 ## Gotchas
 
 | Mistake | Fix |
-|---------|-----|
+|:---|:---|
 | A `redirectTarget` that does not return `null` when `location` already equals the target | Return `null` for the target itself, otherwise the redirect loops |
 | Redirecting with `MagicRoute.to()` from inside `handle()` | Use `redirectTarget`: it runs before the route builds, so the destination mounts once instead of remounting |
 | Using a route alias nobody registered | `Magic.init` stops with a `StateError` naming the route and the alias; register it with `Kernel.register` or `Kernel.registerAll` |

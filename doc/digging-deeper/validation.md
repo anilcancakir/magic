@@ -26,7 +26,7 @@ Magic provides a validation system that integrates with Flutter forms. Define yo
 ### Key Features
 
 | Feature | Description |
-|---------|-------------|
+|:---|:---|
 | **MagicForm Widget** | Automatic form state management and error handling |
 | **rules() Helper** | Concise rule definition with auto-injected controller |
 | **Server-Side Errors** | Automatic display of API 422 validation errors |
@@ -149,7 +149,7 @@ Rules are evaluated in order. If any rule fails, validation stops and the error 
 ## Available Rules
 
 | Rule | Description | Example |
-|------|-------------|---------|
+|:---|:---|:---|
 | `Required()` | Field must not be empty | `[Required()]` |
 | `Email()` | Valid email format | `[Email()]` |
 | `Url()` | Valid http(s) address with a host | `[Url()]`, `[Url(schemes: ['https'])]` |
@@ -279,7 +279,7 @@ WFormInput(
 <a name="form-request"></a>
 ## Form Requests
 
-A `FormRequest` collapses "authorize, normalize, validate" into a single class so controllers stop hand-rolling that ceremony. Subclass `FormRequest`, implement `rules()`, optionally override `authorize()` and `prepared()`, then call `.validate(rawInput)`:
+A `FormRequest` collapses "authorize, normalise, validate" into a single class so controllers stop hand-rolling that ceremony. Subclass `FormRequest`, implement `rules()`, optionally override `authorize()` and `prepared()`, then call `.validate(rawInput)`:
 
 ```dart
 class StoreMonitorRequest extends FormRequest {
@@ -319,7 +319,7 @@ try {
 ```
 
 - `authorize()` runs first and throws `AuthorizationException` on `false`.
-- `prepared()` normalizes the payload before rules see it (trim, slugify, merge defaults).
+- `prepared()` normalises the payload before rules see it (trim, slugify, merge defaults).
 - `validate()` returns the prepared payload filtered to the keys declared in `rules()`, the same contract as `Validator.validate`.
 - `attributes()` names fields for `:attribute` in this request's messages (see below). Default is an empty map.
 
@@ -425,15 +425,15 @@ class AuthController extends MagicController
 
 The `handleApiError()` method handles different error types:
 
-| Error Type | Behavior |
-|------------|----------|
+| Error Type | Behaviour |
+|:---|:---|
 | 422 Validation | Sets field-level errors; with `MagicStateMixin`, sets the response's error message, or empty when it has none |
 | Any other failure | With `MagicStateMixin`, sets the first error from the response, else `fallback`, else `'An error occurred'` |
 
 ### ValidatesRequests Methods
 
 | Method | Description |
-|--------|-------------|
+|:---|:---|
 | `handleApiError(response)` | Handle any API error automatically |
 | `setErrorsFromResponse(response)` | Populate errors from 422 response |
 | `hasError('field')` | Check if a field has an error |
@@ -617,7 +617,7 @@ Define user-friendly field names:
 }
 ```
 
-The `:attribute` placeholder is replaced with the localized field name.
+The `:attribute` placeholder is replaced with the localised field name.
 
 <a name="related-documentation"></a>
 ## Related Documentation

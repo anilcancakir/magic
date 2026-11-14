@@ -52,7 +52,7 @@ Magic ships the `dowel` executable in its `pubspec.yaml`, so `dart run magic:dow
 <a name="install"></a>
 ### install
 
-Initializes Magic in an existing Flutter project with the recommended directory structure and configuration.
+Initialises Magic in an existing Flutter project with the recommended directory structure and configuration.
 
 ```bash
 dart run magic:dowel magic:install
@@ -71,7 +71,7 @@ This command:
 The default `flutter create` counter app is overwritten silently. Any other existing `lib/main.dart` prompts for overwrite, preserve, diff or cancel; with `--non-interactive` the command stops with an error instead.
 
 | Flag | Effect |
-|------|--------|
+|:---|:---|
 | `--force` | Overwrite without asking |
 | `--preserve` | Inject the Magic bootstrap into the existing `main()`; a synchronous `main()` is rejected with exit 1 |
 | `--dry-run` | Print the staged operations without writing |
@@ -87,7 +87,7 @@ dart run magic:dowel magic:install --without-auth --without-cache
 ```
 
 | Flag | What it skips |
-|------|---------------|
+|:---|:---|
 | `--without-auth` | Auth config, `VaultServiceProvider`, `AuthServiceProvider` |
 | `--without-network` | `config/network.dart`, `NetworkServiceProvider` |
 | `--without-cache` | `config/cache.dart`, `CacheServiceProvider` |
@@ -159,7 +159,7 @@ The run is all-or-nothing: every target path is checked first, and any clash oth
 #### Options
 
 | Option | Description |
-|--------|-------------|
+|:---|:---|
 | `--no-views` | Stop after the data and write layers (no views, no printed routes) |
 | `--no-model` | Leave the model and factory out |
 
@@ -179,12 +179,12 @@ dart run magic:dowel make:model Order --all
 #### Options
 
 | Option | Shortcut | Description |
-|--------|----------|-------------|
+|:---|:---|:---|
 | `--migration` | `-m` | Create a database migration (needs `magic_local_storage`) |
 | `--controller` | `-c` | Create a controller |
 | `--factory` | `-f` | Create a model factory (needs `magic_local_storage`) |
 | `--seeder` | `-s` | Create a database seeder (needs `magic_local_storage`) |
-| `--policy` | `-p` | Create an authorization policy |
+| `--policy` | `-p` | Create an authorisation policy |
 | `--all` | `-a` | Create migration, seeder, factory, policy, repository, and resource controller |
 
 > [!NOTE]
@@ -215,7 +215,7 @@ A `--resource` controller owns the read state as one `RepositoryQuery` over `<Mo
 #### Options
 
 | Option | Shortcut | Description |
-|--------|----------|-------------|
+|:---|:---|:---|
 | `--resource` | `-r` | Own a `RepositoryQuery` over the model's repository |
 | `--model` | `-m` | The model a `--resource` controller reads (defaults to the controller's own name) |
 | `--actions` | | Mix in `RunsActions` |
@@ -244,7 +244,7 @@ dart run magic:dowel make:view Monitors/List --controller=Monitor --list --form=
 #### Options
 
 | Option | Description |
-|--------|-------------|
+|:---|:---|
 | `--stateful` | Bind a `MagicStatefulView` to the controller derived from the view's name (`Dashboard` -> `DashboardController`), which has to exist |
 | `--controller` | Bind the view to this controller (suffix optional); implies `--stateful` |
 | `--list` | Add `RefetchesOnMount`; expects a `--resource` controller, which exposes `ensureFresh()` |
@@ -289,7 +289,7 @@ A refused save throws `ActionRequestFailed` (a `ValidationException` when the mo
 #### Options
 
 | Option | Description |
-|--------|-------------|
+|:---|:---|
 | `--kind` | `create`, `update` or `delete`; requires `--model` |
 | `--model` | The model the action writes |
 | `--test` | Also write the matching action test |
@@ -312,7 +312,7 @@ dart run magic:dowel make:form Monitor --resource=Monitor
 #### Options
 
 | Option | Description |
-|--------|-------------|
+|:---|:---|
 | `--request` | The `FormRequest` class the form validates against |
 | `--resource` | The model the form creates and edits |
 | `--test` | Also write the matching form test |
@@ -335,7 +335,7 @@ The test imports the class as `package:<name>/...`, with `<name>` read from the 
 #### Options
 
 | Option | Description |
-|--------|-------------|
+|:---|:---|
 | `--kind` | `controller`, `action`, `form`, `repository`, `request`, `view` or `unit` |
 
 **Output:** for example `test/app/controllers/<name>_controller_test.dart`
@@ -343,7 +343,7 @@ The test imports the class as `package:<name>/...`, with `<name>` read from the 
 <a name="makepolicy"></a>
 ### make:policy
 
-Creates an authorization policy:
+Creates an authorisation policy:
 
 ```bash
 dart run magic:dowel make:policy Post
@@ -355,7 +355,7 @@ dart run magic:dowel make:policy Admin/Dashboard
 #### Options
 
 | Option | Shortcut | Description |
-|--------|----------|-------------|
+|:---|:---|:---|
 | `--model` | `-m` | The model the policy applies to |
 
 **Output:** `lib/app/policies/<name>_policy.dart`
@@ -427,7 +427,7 @@ dart run magic:dowel make:listener Auth/RestoreSession
 #### Options
 
 | Option | Shortcut | Description |
-|--------|----------|-------------|
+|:---|:---|:---|
 | `--event` | `-e` | The event class the listener handles (defaults to `MagicEvent`) |
 
 **Output:** `lib/app/listeners/<name>.dart`
@@ -540,11 +540,11 @@ dart run magic:dowel design:lint --input=DESIGN.md
 The command exits nonzero only on an error-severity finding (a broken reference). Warnings and info notes are reported but do not fail the lint. Rules:
 
 - **broken-ref** (error): a component references a token (`{colors.x}`, `{rounded.x}`, `{spacing.x}`) that does not resolve.
-- **missing-primary** (warning): colors are defined but `primary` is absent.
+- **missing-primary** (warning): colours are defined but `primary` is absent.
 - **unknown-key** (warning): a top-level YAML key looks like a typo of a schema key. The single-file `dark:` overlay lives inside `colors`, so it is never flagged.
 - **section-order** (warning): markdown `##` sections appear out of canonical order.
 - **missing-sections** (info): the optional `spacing` / `rounded` groups are absent.
-- **orphaned-tokens** (warning): a custom color token is defined but never referenced by any component (Material Design 3 baseline families are exempt).
+- **orphaned-tokens** (warning): a custom colour token is defined but never referenced by any component (Material Design 3 baseline families are exempt).
 - **contrast-ratio** (warning): a component `backgroundColor` / `textColor` pair falls below the WCAG AA minimum of 4.5:1.
 
 #### Options
@@ -592,7 +592,7 @@ components:
 ...
 ```
 
-Each color role is either a bare hex scalar (light only; dark mirrors light) or a `{ light, dark }` overlay map. The semantic roles map onto the wind alias keys as: `surface`/`surface-container`/`surface-container-high` -> `bg-surface*`; `fg` (or `on-surface`)/`fg-muted`/`fg-disabled` -> `text-fg*`; `primary`/`on-primary`/`primary-container` -> `bg-primary` / `text-on-primary` / `bg-primary-container`; `accent` -> `bg-accent`; `border`/`border-subtle` -> `border-color-border*`; `destructive`/`on-destructive`/`destructive-container` -> `bg-destructive` / `text-on-destructive` / `bg-destructive-container`; `success`/`warning` -> `bg-success` / `bg-warning`.
+Each colour role is either a bare hex scalar (light only; dark mirrors light) or a `{ light, dark }` overlay map. The semantic roles map onto the wind alias keys as: `surface`/`surface-container`/`surface-container-high` -> `bg-surface*`; `fg` (or `on-surface`)/`fg-muted`/`fg-disabled` -> `text-fg*`; `primary`/`on-primary`/`primary-container` -> `bg-primary` / `text-on-primary` / `bg-primary-container`; `accent` -> `bg-accent`; `border`/`border-subtle` -> `border-color-border*`; `destructive`/`on-destructive`/`destructive-container` -> `bg-destructive` / `text-on-destructive` / `bg-destructive-container`; `success`/`warning` -> `bg-success` / `bg-warning`.
 
 This is a wind-flavored superset of the open DESIGN.md format: the single-file `dark:` overlay is the deliberate divergence that lets one document drive both light and dark wind aliases.
 

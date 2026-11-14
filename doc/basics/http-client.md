@@ -87,7 +87,7 @@ app makes. Accented Latin letters fold to their base letter rather than being
 dropped, since dropping leaves a mangled word:
 
 | `app.name` | sent as |
-|---|---|
+|:---|:---|
 | `Uptizm` | `Uptizm (Flutter; iOS)` |
 | `Şirket Takip` | `Sirket Takip (Flutter; iOS)` |
 | `Café Münster` | `Cafe Munster (Flutter; iOS)` |
@@ -257,7 +257,7 @@ checks.generation;    // bumps on every landed reset
 A list renders a loading state three different ways and `isLoading` cannot tell them apart on its own:
 
 | State | What the screen does |
-|---|---|
+|:---|:---|
 | first load, nothing on screen | render a skeleton |
 | `isRefreshing`, rows already held | keep the rows, say more is coming |
 | `isLoadingMore` | put a footer under the last row |
@@ -338,7 +338,7 @@ Everything else (accumulation, the in-flight and disposal guards, the lazy list)
 The mode is read from the response rather than configured, so one paginator serves whichever the endpoint uses:
 
 | Response `meta` | Mode | Next page |
-|---|---|---|
+|:---|:---|:---|
 | `next_cursor` | `PaginationMode.cursor` | `?cursor=<token>` |
 | `current_page` + `last_page` | `PaginationMode.offset` | `?page=<n+1>` |
 | neither | `PaginationMode.single` | there is no next page |
@@ -592,7 +592,7 @@ Http.unfake();
 ## Gotchas
 
 | Mistake | Fix |
-|---------|-----|
+|:---|:---|
 | Wrapping `Http` calls in `try`/`catch` for a failed request | The request methods never throw: read `response.successful`. A timeout or dead link is a `MagicResponse` with status code `0`, not an exception |
 | Passing a file path to `Http.upload()` without a `try`/`catch` | The files are read before the request, outside the driver's `DioException` handling, so an unreadable path throws a `FileSystemException`. Catch it around `upload()` |
 | Looking for `Http.addInterceptor` or passing a Dio `Interceptor` to the driver | Extend `MagicNetworkInterceptor` and call `addInterceptor` on `Magic.make<NetworkDriver>('network')`; reach Dio's own types through `DioNetworkDriver.configureDriver` |
