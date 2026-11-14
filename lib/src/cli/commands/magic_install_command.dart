@@ -426,7 +426,7 @@ class MagicInstallCommand extends DowelInstallCommand {
   /// `dowel` pubspec dep, then auto-chains `make:fast-cli` for
   /// `bin/dowel`. Returns the exit code of the underlying scaffold.
   ///
-  /// Called from [handle] inside the `if (result is Success)` block between
+  /// Called from [handle] inside the `if (result is InstallSuccess)` block between
   /// the post-install message print and the `plugins:refresh` invocation:
   /// dispatcher.dart must exist BEFORE plugins:refresh regenerates
   /// `lib/app/_plugins.g.dart`.
@@ -574,7 +574,7 @@ class MagicInstallCommand extends DowelInstallCommand {
     );
 
     // 8. Print post_install.message on Success.
-    if (result is Success && manifest.postInstall.message != null) {
+    if (result is InstallSuccess && manifest.postInstall.message != null) {
       ctx.output.info(manifest.postInstall.message!);
     }
 
@@ -586,7 +586,7 @@ class MagicInstallCommand extends DowelInstallCommand {
     //    Ordering: AFTER the post_install advisory print (operator sees magic's
     //    message first) and BEFORE plugins:refresh (so the dispatcher exists
     //    on disk when codegen picks up the provider list).
-    if (result is Success) {
+    if (result is InstallSuccess) {
       final dowelInstallExitCode = await delegateDowelInstall(
         ctx,
         installContext,
@@ -610,14 +610,14 @@ class MagicInstallCommand extends DowelInstallCommand {
     //      consumer scaffold but does not register itself as a plugin.
     //      Idempotent: re-running magic:install on a project that already
     //      lists magic skips the registry write.
-    if (result is Success) {
+    if (result is InstallSuccess) {
       _selfRegisterPlugin(ctx, installContext);
     }
 
     // 10. Auto-refresh: regenerate lib/app/_plugins.g.dart so MagicDowelProvider
     //     plus any installed plugin providers are picked up by the consumer wrapper.
     //     Only runs on a real commit (Success); dry-run/conflict/error skip refresh.
-    if (result is Success) {
+    if (result is InstallSuccess) {
       final refresh = ctx.registry?.find('plugins:refresh');
       if (refresh != null) {
         await refresh.handle(ctx);
@@ -1157,13 +1157,13 @@ class MagicInstallCommand extends DowelInstallCommand {
   /// @return The process exit code per the table above.
   int _renderResult(DowelContext ctx, TransactionResult result) {
     switch (result) {
-      case Success(opCount: final n, recordPath: final path):
+      case InstallSuccess(opCount: final n, recordPath: final path):
         ctx.output.success('magic installed ($n op(s)). Install record: $path');
         return 0;
-      case DryRun(opCount: final n):
+      case InstallDryRun(opCount: final n):
         ctx.output.info('Dry-run: $n op(s) staged; no files were written.');
         return 0;
-      case Conflict(conflicts: final list):
+      case InstallConflict(conflicts: final list):
         ctx.output.error(
           'Conflict on ${list.length} file(s). Re-run with --force to overwrite.',
         );
@@ -1171,7 +1171,7 @@ class MagicInstallCommand extends DowelInstallCommand {
           ctx.output.warning('  ${c.absPath}: ${c.reason}');
         }
         return 1;
-      case Error(error: final msg, rolledBack: final ok):
+      case InstallError(error: final msg, rolledBack: final ok):
         ctx.output.error('Install failed: $msg (rolledBack: $ok)');
         return 2;
     }

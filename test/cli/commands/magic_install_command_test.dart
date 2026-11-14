@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dowel/dowel.dart';
-import 'package:dowel/src/commands/make_fast_cli_command.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:magic/src/cli/commands/magic_install_command.dart';
 import 'package:path/path.dart' as p;
