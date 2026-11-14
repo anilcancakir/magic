@@ -2667,6 +2667,27 @@ void main() async {
       expect(wired, contains('MagicTapirIntegration.install();'));
     });
 
+    test('a nested block comment ends at its outer delimiter', () {
+      // Dart block comments nest: the inner */ does not end the comment.
+      const nested = '''
+import 'package:magic/magic.dart';
+import 'package:material_ui/material_ui.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  /* disabled /* note */ CrumbsPlugin.install(); */
+  await Magic.init(configFactories: []);
+
+  runApp(MagicApplication(title: 'My App'));
+}
+''';
+
+      final wired = MagicInstallCommand().buildDevtoolsWiring(nested);
+
+      expect('\n    CrumbsPlugin.install();'.allMatches(wired).length, 1);
+    });
+
     test('a // inside a string literal does not hide a call after it', () {
       const withUrl = '''
 import 'package:flutter/foundation.dart';

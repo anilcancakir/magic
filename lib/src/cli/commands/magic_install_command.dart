@@ -1114,8 +1114,20 @@ class MagicInstallCommand extends DowelInstallCommand {
           i++;
         }
       } else if (source.startsWith('/*', i)) {
-        final int close = source.indexOf('*/', i + 2);
-        i = close == -1 ? source.length : close + 2;
+        // Dart block comments nest, so count the delimiters.
+        int depth = 1;
+        i += 2;
+        while (i < source.length && depth > 0) {
+          if (source.startsWith('/*', i)) {
+            depth++;
+            i += 2;
+          } else if (source.startsWith('*/', i)) {
+            depth--;
+            i += 2;
+          } else {
+            i++;
+          }
+        }
       } else {
         out.write(c);
         i++;
