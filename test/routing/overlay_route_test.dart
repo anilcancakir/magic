@@ -877,6 +877,67 @@ void main() {
       expectDialogOpen(tester);
     });
 
+    testWidgets('a bare text panel gets the theme text style', (tester) async {
+      MagicRoute.page('/stock', () => const _StockPage());
+      MagicRoute.page(
+        '/items/new',
+        () => const Text('dialog'),
+      ).overlay(base: '/stock');
+      MagicRouter.instance.setInitialLocation('/stock');
+      presentAsDialog();
+      await openDialog(tester);
+
+      final Material material = tester.widget<Material>(
+        find.ancestor(of: find.text('dialog'), matching: find.byType(Material)),
+      );
+      expect(material.type, MaterialType.transparency);
+      final Element text = tester.element(find.text('dialog'));
+      expect(
+        DefaultTextStyle.of(text).style,
+        Theme.of(text).textTheme.bodyMedium,
+        reason: 'not the debug fallback style of text outside a Material',
+      );
+    });
+
+    testWidgets('the scrim around the panel Material still takes a tap', (
+      tester,
+    ) async {
+      allowed = true;
+      registerDialog(canDismiss: () => allowed);
+      presentAsDialog();
+      await openDialog(tester);
+      expect(
+        find.ancestor(of: find.text('dialog'), matching: find.byType(Material)),
+        findsOneWidget,
+      );
+
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+      expectClosed();
+    });
+
+    testWidgets('the sheet keeps the BottomSheet Material alone', (
+      tester,
+    ) async {
+      registerDialog();
+      await openDialog(tester);
+
+      final Finder materials = find.ancestor(
+        of: find.text('dialog'),
+        matching: find.byType(Material),
+      );
+      expect(materials, findsOneWidget);
+      expect(
+        find.descendant(of: find.byType(BottomSheet), matching: materials),
+        findsOneWidget,
+      );
+      final Element text = tester.element(find.text('dialog'));
+      expect(
+        DefaultTextStyle.of(text).style,
+        Theme.of(text).textTheme.bodyMedium,
+      );
+    });
+
     testWidgets('MagicRouter.reset() returns overlays to the sheet', (
       tester,
     ) async {
