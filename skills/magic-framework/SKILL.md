@@ -25,7 +25,7 @@ The host app already depends on `package:magic/magic.dart`. Every API you write 
 
 1. **`await Magic.init()` first.** Await it in `main()` before any facade call and before `runApp()`. Never `.then()`: providers are not booted until the future completes.
 2. **Facade-first.** Reach for `Auth`, `Http`, `Config`, `Cache`, `Log`, `Event`, `Lang`, `MagicRoute`, `Gate`, `Session`, `Vault`, `Storage` and `Launch`. `DB`, `Schema`, `Echo`, `Pick` and `Crypt` belong to plugins (section 10). Resolve from the container by hand (`Magic.make<T>('key')`) only when extending the framework.
-3. **Controllers are singletons.** `static X get instance => Magic.findOrPut(X.new);` is the accessor. Views resolve controllers with `Magic.find<T>()` (automatic in `MagicView`), never through a constructor.
+3. **Controllers are singletons.** `static X get instance => Magic.findOrPut(X.new);` is the accessor. Views resolve controllers with `Magic.find<T>()` (automatic in `MagicView`), never through a constructor. `Magic.find` throws when nothing registered the controller, so register it before the view's first build: reading `X.instance` or calling `Magic.put` does it, while declaring the getter alone does not.
 4. **IoC over `new` for services.** Bind in a provider's `register()`, resolve through the facade or `Magic.make<T>('key')`; do not scatter `Service()` construction across the app.
 5. **Provider discipline.** `register()` is synchronous and is where routes and bindings go. `boot()` is async and may resolve other services; set `Auth.manager.setUserFactory(...)` there.
 6. **Reactive state, not `setState`.** Controllers extend `MagicController` (a `ChangeNotifier`); state flows through `MagicStateMixin` and `RxStatus`. Use `refreshUI()` (the guarded `notifyListeners` that every controller notification goes through), `setLoading/setSuccess/setError/setEmpty`, `MagicBuilder` for a section backed by a `ValueListenable`, and `MagicSelector` for a section backed by a plain controller field (it caches its child, so it survives the parent's `setState`). `MagicPerfHooks.sink` is a null-by-default static that tooling sets to observe those notifications; there is no `onRefreshUI`. Local `setState` belongs only to widget-local UI state inside a `MagicStatefulView`.
@@ -166,7 +166,8 @@ class UserController extends MagicController
 ### Views
 
 ```dart
-// Stateless: resolves its controller with Magic.find<T>() and rebuilds on controller change
+// Stateless: resolves its controller with Magic.find<T>() and does not listen to it. renderState listens on its own;
+// for other controller fields use MagicBuilder or MagicSelector, or a MagicStatefulView.
 class UserListView extends MagicView<UserController> {
   const UserListView({super.key});
   @override Widget build(BuildContext context) => controller.renderState(
@@ -307,15 +308,18 @@ import 'package:magic/testing.dart';   // a separate barrel: fakes and MagicTest
 void main() {
   MagicTest.init();   // registers setUpAll, setUp (MagicApp.reset and Magic.flush) and tearDown
 
-  test('store creates a user', () async {
-    Http.fake({'users': Http.response({'data': {'id': 1}}, 201)});
+  test('store turns a 422 into field errors', () async {
+    final http = Http.fake({'users': Http.response({'errors': {'email': ['Taken.']}}, 422)});
     Gate.define('create-user', (user, _) => true);   // an undefined ability is denied, and MagicTest.init flushes the Gate
-    final auth = Auth.fake(user: User.fromMap({'id': 1}));
+    Auth.fake(user: User.fromMap({'id': 1}));
     await UserController.instance.store({'name': 'A', 'email': 'a@b.co'});
-    auth.assertLoggedIn();
+    expect(UserController.instance.hasError('email'), isTrue);
+    http.assertSent((request) => request.method == 'POST');
   });
 }
 ```
+
+`MagicTest.init()` builds no router, so the success branch of `store()` (`MagicRoute.to`) throws `Router not initialized` in a plain `test`: cover it in a widget test that pumps the app's router, or keep navigation out of the controller method under test.
 
 These facades fake without a mock library: `Http.fake` (`FakeNetworkDriver`: `assertSent/assertNotSent/assertSentCount/assertNothingSent`), `Auth.fake` (`assertLoggedIn/assertLoggedOut/assertLoginAttempted/assertLoginCount`), `Cache.fake` (`assertHas/assertMissing/assertPut`), `Vault.fake` (`assertWritten/assertDeleted/assertContains/assertMissing`) and `Log.fake` (`assertLogged/assertLoggedError/assertNothingLogged/assertLoggedCount`). A plugin's fakes ship with the plugin (`Echo.fake` in `package:magic_socket/testing.dart`): see its skill. A `useLocal` model test binds a `LocalModelStore` (an in-memory one by contract inheritance, or `magic_local_storage`'s). Every `setUp` must reset the container (`MagicTest.init()` does); skipping it leaks state and gives false passes. A widget test that needs a few real providers uses `MagicTest.bootProviders(providers)` (register all, then boot all, as `Magic.init` does) with `MagicTest.disposeBooted()` in `tearDown`. Patterns: `${CLAUDE_SKILL_DIR}/references/testing-patterns.md`.
 

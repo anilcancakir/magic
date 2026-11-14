@@ -236,7 +236,7 @@ class MonitorListView extends MagicView<MonitorController> {
 }
 ```
 
-`MagicView` does not auto-listen to controller changes: `renderState` handles its own `AnimatedBuilder` internally. For arbitrary controller-driven rebuilds outside `renderState`, use `MagicStatefulView`.
+`MagicView` does not auto-listen to controller changes: `renderState` handles its own `AnimatedBuilder` internally. For a controller field read outside `renderState`, wrap that section in a listener-backed widget (`MagicBuilder` over a `ValueListenable`, `MagicSelector` over a plain field), or use `MagicStatefulView`, which listens to the whole controller.
 
 
 ## MagicStatefulView\<T\>
