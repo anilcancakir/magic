@@ -75,15 +75,14 @@ The `middleware` directory contains your application's route middleware. Middlew
 // lib/app/middleware/auth_middleware.dart
 class AuthMiddleware extends MagicMiddleware {
   @override
-  Future<void> handle(void Function() next) async {
-    if (Auth.check()) {
-      next();
-    } else {
-      MagicRoute.to('/login');
-    }
+  String? redirectTarget(String location) {
+    if (!Auth.check() && location != '/login') return '/login';
+    return null;
   }
 }
 ```
+
+A redirect belongs in `redirectTarget`, which runs before the route builds, so the destination mounts once. Redirecting from `handle()` with `MagicRoute.to()` runs after the view has mounted and remounts the destination.
 
 ### The Models Directory
 

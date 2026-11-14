@@ -349,13 +349,10 @@ void main() async {
 Configuration is loaded during `Magic.init()` and cached in memory for the duration of the application lifecycle. To update configuration:
 
 1. Modify your config files
-2. Use `Magic.reload()` to rebuild the widget tree without a hot restart, or
-3. Hot reload/restart your application
+2. Perform a hot restart (or restart the application) so `Magic.init()` runs again
 
-```dart
-// Rebuilds the widget tree without a hot restart
-Magic.reload();
-```
+> [!NOTE]
+> `Magic.reload()` and hot reload do not reload configuration. `Magic.reload()` only rebuilds the widget tree through `MagicAppWidget.restart()`, and hot reload does not run initialisation again, so the cached values stay as they were.
 
 > [!TIP]
 > For production apps, consider using `Config.getOrFail()` for critical values to catch missing configuration early during startup.

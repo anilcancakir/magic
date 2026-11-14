@@ -303,14 +303,17 @@ class StoreMonitorRequest extends FormRequest {
   };
 }
 
-// In the controller:
+// In a controller with the ValidatesRequests mixin:
 try {
   final payload = StoreMonitorRequest(Auth.user()!).validate(form.data);
   await Http.post('/monitors', data: payload);
 } on AuthorizationException {
   Magic.error('Error', 'You do not have permission to create monitors.');
 } on ValidationException catch (e) {
-  // e.errors maps each failing field to its message
+  // e.errors maps each failing field to its message; put them on the form
+  setErrorsFromMap(
+    e.errors.map((field, message) => MapEntry(field, [message])),
+  );
 }
 ```
 

@@ -352,7 +352,7 @@ String get resource => 'users';
 
 When using hybrid mode:
 
-1. **Read operations** try local storage first and fall back to the API when the local read finds nothing or fails; rows fetched from the API are written back to local storage
+1. **Read operations** try local storage first. A single-record read (`find`) falls back to the API when the local read finds no record or fails; a collection read (`all`) falls back only when the local read fails, so an empty local table returns an empty list without an API call. Rows fetched from the API are written back to local storage on a best-effort basis: a failed write-back is ignored and does not fail the read, so the next read goes to the API again
 2. **Write operations** persist to both local and remote
 
 > [!TIP]

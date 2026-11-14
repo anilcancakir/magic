@@ -349,6 +349,7 @@ class ProjectController extends MagicController
 // test/app/controllers/project_controller_test.dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:magic/magic.dart';
+import 'package:my_app/app/controllers/project_controller.dart';
 
 void main() {
   group('ProjectController.fetchList', () {
@@ -418,6 +419,7 @@ class ProjectDetailController extends MagicController
 // test/app/controllers/project_detail_controller_test.dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:magic/magic.dart';
+import 'package:my_app/app/controllers/project_detail_controller.dart';
 
 void main() {
   group('ProjectDetailController.fetchOne', () {

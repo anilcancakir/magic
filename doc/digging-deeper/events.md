@@ -221,11 +221,11 @@ class ScreenOpened extends MagicEvent implements ReportsBreadcrumb {
   String get breadcrumbMessage => 'Screen opened';
 
   @override
-  Map<String, Object?> get breadcrumbData => {'path': path};
+  Map<String, Object?> get breadcrumbData => {'path': Uri.parse(path).path};
 }
 ```
 
-`breadcrumbData` is a WHITELIST, not a dump of the event: it never carries a URL with a query string, an auth token, or a raw payload value, since a breadcrumb trail is uploaded to a third party. A wildcard listener's own throw is caught and logged the same way a typed listener's is; it never stops the caller or another wildcard callback.
+`breadcrumbData` is a WHITELIST, not a dump of the event: it never carries a URL with a query string, an auth token, or a raw payload value, since a breadcrumb trail is uploaded to a third party. The event author keeps that rule, because a reporter copies the map as it is: the sample sends `Uri.parse(path).path` so a query such as `?token=...` never leaves the device. A wildcard listener's own throw is caught and logged the same way a typed listener's is; it never stops the caller or another wildcard callback.
 
 <a name="framework-events"></a>
 ## Framework Events

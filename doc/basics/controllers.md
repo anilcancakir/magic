@@ -168,8 +168,11 @@ State transitions:
 | Condition | Resulting State |
 |-----------|----------------|
 | Request fails (4xx/5xx) | `isError` with `response.errorMessage` |
+| Body is not a JSON object, including a transport failure (status `0`, no body) | `isEmpty` |
 | `dataKey` list is null or empty | `isEmpty` |
 | List has items | `isSuccess` with `List<E>` cast to `T` |
+
+`MagicResponse.failed` is true only for a status of 400 or more, so a timeout or dead link (status `0`) does not reach `setError` in `fetchList`: the view shows its empty state. Check `response.statusCode == 0` yourself with a direct `Http.get` call when a dead connection must read as an error.
 
 #### `fetchOne`
 
@@ -202,6 +205,7 @@ State transitions:
 | Condition | Resulting State |
 |-----------|----------------|
 | Request fails (4xx/5xx) | `isError` with `response.errorMessage` |
+| Body is not a JSON object, including a transport failure (status `0`, no body) | `isError` with `'Invalid response format'` |
 | `dataKey` value is null | `isError` with `'Resource not found'` |
 | Data present | `isSuccess` with parsed `T` |
 
@@ -367,6 +371,7 @@ A `--resource` controller imports `lib/app/models/<model>.dart` and `lib/app/rep
 | Caching per-user rows on a controller with no session hook | Implement `SessionScoped` so a login or team switch clears them, see [Session Scope](../digging-deeper/session-scope.md) |
 | A view built on a controller nobody registered | `MagicView.controller` is `Magic.find<T>()`, so reach the controller through the `Magic.findOrPut(Controller.new)` accessor (or `Magic.put`) first |
 | Calling `own(...)` on a controller that is already disposed | It throws a `StateError`; register timers in `onInit` or while the controller is alive |
+| Expecting `fetchList` to show an error when the device is offline | A transport failure has status `0`, which `MagicResponse.failed` does not count, so `fetchList` ends in `isEmpty`. Fetch with `Http.get` and test `statusCode == 0` when offline must read as an error |
 
 <a name="related-documentation"></a>
 ## Related Documentation

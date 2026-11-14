@@ -168,31 +168,50 @@ Implement `CacheStore` for custom backends. `get()` and `has()` are synchronous 
 ```dart
 class MemoryStore implements CacheStore {
   final Map<String, dynamic> _items = {};
+  final Map<String, DateTime> _expiresAt = {};
 
   @override
   Future<void> init() async {}
 
   @override
   dynamic get(String key, {dynamic defaultValue}) {
-    return _items.containsKey(key) ? _items[key] : defaultValue;
+    return has(key) ? _items[key] : defaultValue;
   }
 
   @override
   Future<void> put(String key, dynamic value, {Duration? ttl}) async {
     _items[key] = value;
+
+    // A null ttl means the item never expires.
+    if (ttl == null) {
+      _expiresAt.remove(key);
+    } else {
+      _expiresAt[key] = DateTime.now().add(ttl);
+    }
   }
 
   @override
-  bool has(String key) => _items.containsKey(key);
+  bool has(String key) {
+    final expiresAt = _expiresAt[key];
+
+    if (expiresAt != null && !DateTime.now().isBefore(expiresAt)) {
+      _items.remove(key);
+      _expiresAt.remove(key);
+    }
+
+    return _items.containsKey(key);
+  }
 
   @override
   Future<void> forget(String key) async {
     _items.remove(key);
+    _expiresAt.remove(key);
   }
 
   @override
   Future<void> flush() async {
     _items.clear();
+    _expiresAt.clear();
   }
 }
 ```

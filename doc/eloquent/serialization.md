@@ -93,6 +93,9 @@ final array = user?.makeHidden(['email', 'phone']).toMap();
 
 `makeHidden`, `makeVisible` and `append` return the same model and change it: every later `toMap()` or `toJson()` on that instance keeps the change, while other instances are untouched.
 
+> [!WARNING]
+> A name in the model's own `visible` list wins over every hidden name. `toMap()` removes each model-level `visible` name from the hidden set before it serializes, and `makeHidden` only edits the runtime sets, so `makeHidden(['password'])` does not hide `password` on a model whose `visible` lists it. The same removal applies to a model-level `hidden` entry that is also in `visible`. Take the name out of `visible` to stop serializing it.
+
 ### Making Hidden Attributes Visible
 
 Show attributes the model hides by default:
@@ -120,6 +123,8 @@ class User extends Model {
 ```
 
 An appended name is read with `getAttribute`, so it is included only when the attribute exists and is not `null`, and a hidden attribute is never appended. A Dart getter such as `bool get isAdmin` is not called: Dart has no reflection, so to serialize a computed value, store it with `setAttribute` first.
+
+The stored value is a real attribute of the model, not an output-only field: `toArray()` is `toMap()`, so a later `save()` includes it in the payload it sends to the API and the local store. Build output-only values on a separate map when the backend must not receive them.
 
 ```dart
 final user = await User.find(1);
@@ -155,7 +160,7 @@ final payload = users
     .toList();
 ```
 
-This returns:
+`makeHidden` only hides these names when the model's `visible` list does not name them (see [Hiding Attributes](#hiding-attributes)). With no `visible` list on `User`, this returns:
 
 ```json
 [

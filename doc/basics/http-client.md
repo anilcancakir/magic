@@ -29,7 +29,7 @@ The `Http` facade is Magic's HTTP client, built on top of Dio, with one API for 
 <a name="introduction"></a>
 ## Introduction
 
-Every call on the `Http` facade returns a `MagicResponse` and never throws: a failed request is a value you read, including a transport failure, which arrives as status code `0`.
+Every request method on the `Http` facade returns a `MagicResponse` and never throws: a failed request is a value you read, including a transport failure, which arrives as status code `0`. The one exception is `Http.upload()`, which reads the files before it sends anything: a path in `files` that cannot be read throws a `FileSystemException`, and an unsupported file value throws an `ArgumentError` (see [File Uploads](#file-uploads)).
 
 ```dart
 final response = await Http.get('/users');
@@ -493,6 +493,8 @@ final response = await Http.upload(
 );
 ```
 
+The Dio driver catches only `DioException`, so a string path in `files` that cannot be read raises a `FileSystemException` out of the call instead of a status `0` response. A value that is not a path, a `MagicFile`, a `MultipartFile`, a `Uint8List` or a `List<int>` raises an `ArgumentError`. Wrap an upload that takes user-chosen paths in `try`/`catch`.
+
 <a name="interceptors"></a>
 ## Interceptors
 
@@ -591,7 +593,8 @@ Http.unfake();
 
 | Mistake | Fix |
 |---------|-----|
-| Wrapping `Http` calls in `try`/`catch` for a failed request | The facade never throws: read `response.successful`. A timeout or dead link is a `MagicResponse` with status code `0`, not an exception |
+| Wrapping `Http` calls in `try`/`catch` for a failed request | The request methods never throw: read `response.successful`. A timeout or dead link is a `MagicResponse` with status code `0`, not an exception |
+| Passing a file path to `Http.upload()` without a `try`/`catch` | The files are read before the request, outside the driver's `DioException` handling, so an unreadable path throws a `FileSystemException`. Catch it around `upload()` |
 | Looking for `Http.addInterceptor` or passing a Dio `Interceptor` to the driver | Extend `MagicNetworkInterceptor` and call `addInterceptor` on `Magic.make<NetworkDriver>('network')`; reach Dio's own types through `DioNetworkDriver.configureDriver` |
 | Relying on header name casing on the web | Casing is preserved on mobile and desktop only; the browser lowercases names, so do not build a web feature on a case-sensitive header |
 | Reading a response header with its original casing | `MagicResponse.headers` keys are always lowercase |

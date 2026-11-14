@@ -409,6 +409,8 @@ class SessionController extends MagicController {
 import 'package:flutter_test/flutter_test.dart';
 import 'package:magic/magic.dart';
 import 'package:magic/testing.dart';
+import 'package:my_app/app/controllers/session_controller.dart';
+import 'package:my_app/app/models/user.dart';
 
 void main() {
   group('SessionController', () {

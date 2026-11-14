@@ -61,6 +61,7 @@ HEADING = re.compile(r'^(#{1,6})\s+(.+?)\s*$', re.MULTILINE)
 ANCHOR = re.compile(r'<a\s+name="([^"]+)"')
 INLINE_LINK = re.compile(r'\]\(\s*([^)\s]+)')
 REFERENCE_LINK = re.compile(r'^\[[^\]]+\]:\s*(\S+)')
+HTML_LINK = re.compile(r'''<a\s[^>]*?href\s*=\s*["']([^"']+)["']''', re.IGNORECASE)
 SITE_URL = re.compile(re.escape(SITE_ORIGIN) + r'/[^\s)>"\']+')
 PAGE_NAME = re.compile(r'[a-z0-9-]+')
 
@@ -172,6 +173,8 @@ def iter_links(body: str) -> Iterator[tuple[int, str]]:
             yield number, target.strip('<>')
         for target in REFERENCE_LINK.findall(line):
             yield number, target.strip('<>')
+        for target in HTML_LINK.findall(line):
+            yield number, target.strip('<>')
 
 
 def site_url_to_doc(url: str) -> Path | None:
@@ -262,7 +265,8 @@ def check_links(path: Path, body: str, fragments: dict[Path, set[str]]) -> list[
 
     for number, target in iter_links(body):
         if target.startswith('#'):
-            fragment = target[1:]
+            # Browsers resolve the percent-decoded fragment, like site URLs do.
+            fragment = unquote(target[1:])
             if fragment and fragment not in fragments[path]:
                 issues.append(Issue(path, number, f'fragment #{fragment} has no anchor or heading on this page'))
             continue
@@ -271,6 +275,7 @@ def check_links(path: Path, body: str, fragments: dict[Path, set[str]]) -> list[
             continue
 
         route, _, fragment = target.partition('#')
+        fragment = unquote(fragment)
         if not route.endswith('.md'):
             continue
 
@@ -312,14 +317,36 @@ def check_anchor_reachability(path: Path, body: str) -> list[Issue]:
     """
     lines = body.splitlines()
     first_anchor = next((index for index, line in enumerate(lines) if ANCHOR.search(line)), len(lines))
-    listed = {target[1:] for _, target in iter_links('\n'.join(lines[:first_anchor])) if target.startswith('#')}
+    toc = [
+        (number, unquote(target[1:]))
+        for number, target in iter_links('\n'.join(lines[:first_anchor]))
+        if target.startswith('#')
+    ]
+    listed = {name for _, name in toc}
+    explicit = {name for line in lines for name in ANCHOR.findall(line)}
 
-    return [
+    issues = [
         Issue(path, number, f'anchor #{name} is not listed in the Table of Contents')
         for number, line in enumerate(lines, 1)
         for name in ANCHOR.findall(line)
         if name not in listed
     ]
+
+    # The other direction: a ToC entry that points at a `##` section must reach
+    # it through the explicit `<a name>` anchor the page shape requires, not
+    # through the heading slug, which a heading rewrite silently changes.
+    sections = {
+        slugify(heading)
+        for level, heading in HEADING.findall(blank_fences(path.read_text(encoding='utf-8')))
+        if len(level) == 2
+    }
+    issues += [
+        Issue(path, number, f'Table of Contents entry #{name} has no explicit <a name> anchor before its ## heading')
+        for number, name in toc
+        if name in sections and name not in explicit
+    ]
+
+    return issues
 
 
 def check_site_urls(path: Path, body: str, fragments: dict[Path, set[str]]) -> list[Issue]:

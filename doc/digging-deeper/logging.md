@@ -209,7 +209,7 @@ class SlackLoggerDriver extends LoggerDriver {
 <a name="registering-the-custom-driver"></a>
 ### Registering the Custom Driver
 
-Register your driver via `LogManager.extend()` in a Service Provider's `boot()` phase:
+Register your driver via `LogManager.extend()` in a Service Provider's `register()` phase, not `boot()`. `LogManager` caches the default driver on the first `Log` call that names no channel, a channel whose driver name is not yet registered resolves to `console` at that moment, and `extend()` does not clear the cache. A `Log` call that runs before your `boot()` therefore leaves a default `stack` containing `slack` writing those logs to the console for the rest of the process:
 
 ```dart
 // lib/app/providers/logging_service_provider.dart
@@ -217,7 +217,7 @@ class LoggingServiceProvider extends ServiceProvider {
   LoggingServiceProvider(super.app);
 
   @override
-  Future<void> boot() async {
+  void register() {
     LogManager.extend('slack', (config) => SlackLoggerDriver(
       webhookUrl: config['webhook_url'],
       channel: config['channel'] ?? '#alerts',
