@@ -410,11 +410,10 @@ class MagicPaginator<E> extends ChangeNotifier {
 
     if (_disposed) return;
 
-    // NOT `response.failed`, which is `statusCode >= 400`. A transport failure
-    // (a timeout, a dead link, no connectivity) reaches here as statusCode 0
-    // from `DioNetworkDriver._handleError`, so it is neither failed nor
-    // successful; read through `failed` it took the success path, and a first
-    // page that never arrived rendered as an empty collection. "No rows" and
+    // `!successful`, not `failed`: a 3xx the driver hands back is neither, and
+    // an answer that is not a 2xx page must not render as an empty collection.
+    // A transport failure (a timeout, a dead link, no connectivity) reaches here
+    // as statusCode 0 from `DioNetworkDriver._handleError`. "No rows" and
     // "nobody answered" are different screens.
     if (!response.successful) {
       // The rows already on screen stay there. A page that failed to arrive is

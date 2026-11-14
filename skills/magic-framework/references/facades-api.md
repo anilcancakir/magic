@@ -542,7 +542,7 @@ There is **no migration between the two keychains in either direction**, and a m
 - **Init required**: Facades that resolve from the container (`Cache`, `Http`, `Log`, `Launch`, `Vault`) will throw if called before `Magic.init()` completes.
 - **Auth.guest is a getter**: `Auth.guest` — no parentheses. `Auth.check()` requires parentheses.
 - **Event listeners use factories**: `EventDispatcher.instance.register(Type, [() => MyListener()])` — pass factory closures, not instances.
-- **Extracted facades**: encryption, picker, broadcasting and the SQLite layer are not in core 0.1.0. Install the matching plugin (`magic_encryption`, `magic_picker`, `magic_socket`, `magic_local_storage`) and read its page; see the list at the top of this file.
+- **Extracted facades**: encryption, picker, broadcasting and the SQLite layer are not in core 1.0.0. Install the matching plugin (`magic_encryption`, `magic_picker`, `magic_socket`, `magic_local_storage`) and read its page; see the list at the top of this file.
 - **LaunchServiceProvider**: Not auto-registered. Add `(app) => LaunchServiceProvider(app)` to providers config. Declare URL schemes in the native manifest for `canLaunch()` to work on iOS 9+ and Android 11+.
 - **Route facade name**: The class is `MagicRoute`, not `Route`. Alias it if you prefer: `import 'package:magic/magic.dart' show MagicRoute as Route;`.
 - **Storage on Web**: `put()` stores Base64 in the browser's `localStorage` under `flutter.` + path (the keys 0.0.41 wrote); `url()` returns a `blob:` URL, not a file path.

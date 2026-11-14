@@ -1,4 +1,4 @@
-<!-- magic_notifications v0.4.0 | Updated: 2026-11-14 -->
+<!-- magic_notifications v1.0.0 | Updated: 2026-11-14 -->
 
 # magic_notifications Plugin
 
@@ -34,7 +34,7 @@ dart run magic:dowel notifications:install
 dart run magic:dowel notifications:doctor
 ```
 
-The floors are `magic ^0.1.0`, `dowel ^0.0.21` and `wind_kit ^1.12.0`. The real `magic` requirement is 0.0.29, not a name only: the realtime path follows `BroadcastChannel.isSubscribed` and `onSubscriptionChanged`, which that release introduces. The other requirements underneath are older: `magic` 0.0.22 for `Event.listenAny`, which `PushStateReporter` calls, `magic` 0.0.6 for `Echo.connection`, the accessor the realtime path needs to tell an open connection from a closed one, and `dowel` for `XcodeProjectEditor.setEntitlementsPaths`, which the iOS install below cannot do without.
+The floors are `magic ^1.0.0`, `magic_socket ^1.0.0`, `dowel ^1.0.0` and `wind_kit ^1.12.0`. The real `magic` requirement is 0.0.29, not a name only: the realtime path follows `BroadcastChannel.isSubscribed` and `onSubscriptionChanged`, which that release introduces. The other requirements underneath are older: `magic` 0.0.22 for `Event.listenAny`, which `PushStateReporter` calls, `magic_socket`, where `Echo` lives since core 1.0.0, for `Echo.connection`, the accessor the realtime path needs to tell an open connection from a closed one, and `dowel` for `XcodeProjectEditor.setEntitlementsPaths`, which the iOS install below cannot do without.
 
 ### The APNs entitlement install writes, and why there are two files
 
@@ -159,7 +159,7 @@ From 0.3.10 a `connect()` that fails no longer ends it: the channel is subscribe
 
 An identity switch with no sign-out between (a guest signing in, an account switch) re-adopts the channel armed under the auth generation now in effect and reads the list again (0.3.10+); a channel armed under an earlier generation is the previous person's and stays dropped until the host re-arms it.
 
-Requires `magic ^0.0.6` for `Echo.connection`, the public accessor that tells an open connection from a closed one, and `magic ^0.0.29` for the channel's subscription state.
+Requires `magic_socket ^1.0.0`, where `Echo` lives, for `Echo.connection` (the public accessor that tells an open connection from a closed one) and for the channel's subscription state.
 
 ### Manager Access
 

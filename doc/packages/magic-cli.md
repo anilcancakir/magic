@@ -98,8 +98,29 @@ The SQLite layer, encryption, the file picker and real-time broadcasting are sep
 
 #### The `--with-devtools` flag
 
-> [!WARNING]
-> `--with-devtools` currently prints an error and returns exit code 1 before anything is written. Run `magic:install` without it.
+The optional debug trio (`magic_devtools` + `tapir` + `crumbs`) gives you the LLM-agent E2E driver (Tapir) and the runtime inspector (Crumbs). Pass `--with-devtools` to wire all three in a single command instead of the manual multi-step bootstrap:
+
+```bash
+dart run magic:dowel magic:install --with-devtools
+```
+
+When set, after the core install completes the command:
+
+1. Adds `magic_devtools ^1.0.0`, `tapir ^1.0.0`, and `crumbs ^1.0.0` to `dependencies` (not `dev_dependencies`: `lib/main.dart` imports them, and the `!kReleaseMode` gate tree-shakes the subsystem out of release builds).
+2. Wires the runtime setup into `lib/main.dart` under `!kReleaseMode` (debug and profile builds carry the tools, so a perf measurement runs on a profile build; release tree-shakes them): it imports `package:flutter/foundation.dart` (`show kReleaseMode`), `package:crumbs/crumbs.dart`, `package:magic_devtools/crumbs.dart`, `package:magic_devtools/magic_devtools.dart`, `package:magic_devtools/tapir.dart`, and `package:tapir/tapir.dart`; before `Magic.init(` it calls `TapirPlugin.install()`, `CrumbsPlugin.install()`, `CrumbsPlugin.registerWatcher(ExceptionWatcher())`, `CrumbsPlugin.registerWatcher(DumpWatcher())`, and `MagicPerfIntegration.install()`; after `Magic.init(` it calls `MagicCrumbsIntegration.install()` and `MagicTapirIntegration.install()`.
+
+The wiring is idempotent and decided by call presence: an app already calling `MagicDevtools.installPre(` is left untouched, and a block whose call (`TapirPlugin.install(`, `CrumbsPlugin.install(`, `MagicPerfIntegration.install(`, `MagicTapirIntegration.install(`, `MagicCrumbsIntegration.install(`) is already in `lib/main.dart` is not written again, so re-running `magic:install --with-devtools` or running it after hand wiring never duplicates a watcher, a block or a dependency entry. It writes `MagicPerfIntegration`, not the `MagicDevtools` umbrella (`MagicDevtools.installPre()` / `installPost()` is the alternative to this wiring: do not mix the two). Then finish the setup by hand:
+
+```bash
+flutter pub get
+dart run magic:dowel plugin:install tapir
+dart run magic:dowel plugin:install crumbs
+dart run magic:dowel tapir:install
+dart run magic:dowel crumbs:install
+dart run magic:dowel mcp:install
+```
+
+`mcp:install` surfaces the `tapir_*` and `crumbs_*` MCP tools. `tapir:install` and `crumbs:install` write single-tool blocks only, never `MagicDevtools` or `MagicPerfIntegration`, and each skips a block whose `TapirPlugin.install(` or `CrumbsPlugin.install(` call is already in `lib/main.dart`, so running them after `--with-devtools` writes nothing twice.
 
 <a name="make-commands"></a>
 ## Make Commands

@@ -114,7 +114,7 @@ class MagicInstallCommand extends DowelInstallCommand {
       '{--without-cache : Skip cache setup} '
       '{--without-localization : Skip localization setup} '
       '{--without-logging : Skip logging setup} '
-      '{--with-devtools : Wire the debug trio (magic_devtools + fluttersdk_dusk + fluttersdk_telescope) into lib/main.dart under kDebugMode and add them as dependencies (unavailable until magic_devtools supports magic 0.1.x)}';
+      '{--with-devtools : Wire the debug trio (magic_devtools + tapir + crumbs) into lib/main.dart under !kReleaseMode and add them as dependencies}';
 
   @override
   String get description =>
@@ -136,14 +136,13 @@ class MagicInstallCommand extends DowelInstallCommand {
   /// Returns `true` when the operator passed `--with-devtools`.
   ///
   /// The flag is a one-step replacement for the manual debug-trio bootstrap
-  /// (add three deps, then run `dusk:install` + `telescope:install`). When set,
-  /// [_applyFluentOverride] wires the trio (`magic_devtools` + `fluttersdk_dusk`
-  /// + `fluttersdk_telescope`) into `lib/main.dart` under `kDebugMode` and adds
-  /// the three packages as regular `dependencies`. They go under `dependencies`
-  /// (not `dev_dependencies`) because `lib/main.dart` imports them: the
-  /// `kDebugMode` gate tree-shakes the subsystem out of release builds, so the
-  /// dep classification matches the dusk/telescope install docs and avoids the
-  /// `depend_on_referenced_packages` lint.
+  /// (add three deps, then run `tapir:install` + `crumbs:install`). When set,
+  /// [_applyFluentOverride] wires the trio (`magic_devtools` + `tapir` +
+  /// `crumbs`) into `lib/main.dart` under `!kReleaseMode` and adds the three
+  /// packages as regular `dependencies`. They go under `dependencies` (not
+  /// `dev_dependencies`) because `lib/main.dart` imports them: the
+  /// `!kReleaseMode` guard tree-shakes the subsystem out of release builds,
+  /// which avoids the `depend_on_referenced_packages` lint.
   ///
   /// @param ctx  The active [DowelContext] handed to [handle].
   /// @return The boolean value of the `--with-devtools` flag.
@@ -427,7 +426,7 @@ class MagicInstallCommand extends DowelInstallCommand {
   /// `dowel` pubspec dep, then auto-chains `make:fast-cli` for
   /// `bin/dowel`. Returns the exit code of the underlying scaffold.
   ///
-  /// Called from [handle] inside the `if (result is Success)` block between
+  /// Called from [handle] inside the `if (result is InstallSuccess)` block between
   /// the post-install message print and the `plugins:refresh` invocation:
   /// dispatcher.dart must exist BEFORE plugins:refresh regenerates
   /// `lib/app/_plugins.g.dart`.
@@ -454,19 +453,7 @@ class MagicInstallCommand extends DowelInstallCommand {
 
   @override
   Future<int> handle(DowelContext ctx) async {
-    // 0a. --with-devtools cannot produce a resolvable app on magic 0.1.x yet:
-    //     stop before any file is written or any command is delegated.
-    if (isWithDevtools(ctx)) {
-      ctx.output.error(
-        '--with-devtools is unavailable on magic 0.1.x: magic_devtools has '
-        'no release for magic ^0.1.0 yet, it waits on dowel based releases of '
-        'its dusk and telescope dependencies. Run magic:install without '
-        '--with-devtools.',
-      );
-      return 1;
-    }
-
-    // 0b. Mutual exclusion: --force and --preserve cannot be used together.
+    // 0. Mutual exclusion: --force and --preserve cannot be used together.
     //    Exit 2 signals incorrect CLI usage (same convention as getopt/argparse).
     if (isForce(ctx) && isPreserve(ctx)) {
       ctx.output.error('Cannot specify both --force and --preserve. Pick one.');
@@ -587,7 +574,7 @@ class MagicInstallCommand extends DowelInstallCommand {
     );
 
     // 8. Print post_install.message on Success.
-    if (result is Success && manifest.postInstall.message != null) {
+    if (result is InstallSuccess && manifest.postInstall.message != null) {
       ctx.output.info(manifest.postInstall.message!);
     }
 
@@ -599,7 +586,7 @@ class MagicInstallCommand extends DowelInstallCommand {
     //    Ordering: AFTER the post_install advisory print (operator sees magic's
     //    message first) and BEFORE plugins:refresh (so the dispatcher exists
     //    on disk when codegen picks up the provider list).
-    if (result is Success) {
+    if (result is InstallSuccess) {
       final dowelInstallExitCode = await delegateDowelInstall(
         ctx,
         installContext,
@@ -623,14 +610,14 @@ class MagicInstallCommand extends DowelInstallCommand {
     //      consumer scaffold but does not register itself as a plugin.
     //      Idempotent: re-running magic:install on a project that already
     //      lists magic skips the registry write.
-    if (result is Success) {
+    if (result is InstallSuccess) {
       _selfRegisterPlugin(ctx, installContext);
     }
 
     // 10. Auto-refresh: regenerate lib/app/_plugins.g.dart so MagicDowelProvider
     //     plus any installed plugin providers are picked up by the consumer wrapper.
     //     Only runs on a real commit (Success); dry-run/conflict/error skip refresh.
-    if (result is Success) {
+    if (result is InstallSuccess) {
       final refresh = ctx.registry?.find('plugins:refresh');
       if (refresh != null) {
         await refresh.handle(ctx);
@@ -871,11 +858,11 @@ class MagicInstallCommand extends DowelInstallCommand {
         );
     }
 
-    // Debug-trio deps: add magic_devtools + fluttersdk_dusk +
-    // fluttersdk_telescope as regular dependencies (not dev_dependencies) when
-    // --with-devtools is set. The kDebugMode wiring injected above imports
-    // them from lib/, so dev_dependencies would trip depend_on_referenced_packages;
-    // the kDebugMode gate tree-shakes the subsystem from release builds.
+    // Debug-trio deps: add magic_devtools + tapir + crumbs as regular
+    // dependencies (not dev_dependencies) when --with-devtools is set. The
+    // wiring injected above imports them from lib/, so dev_dependencies would
+    // trip depend_on_referenced_packages; the !kReleaseMode guard tree-shakes
+    // the subsystem from release builds.
     // addDependency routes through the same ConfigEditor.addDependencyToPubspec
     // mechanism the delegated dowel install uses for dowel, and
     // is idempotent (YamlEditor.update overwrites in place, never duplicates).
@@ -903,12 +890,12 @@ class MagicInstallCommand extends DowelInstallCommand {
   /// and the install test reads that message and fails when the two disagree,
   /// so a release moves both. They
   /// are regular `dependencies` (not `dev_dependencies`) because the wiring in
-  /// `lib/main.dart` imports them; the `kDebugMode` gate tree-shakes them from
-  /// release builds.
+  /// `lib/main.dart` imports them; the `!kReleaseMode` guard tree-shakes them
+  /// from release builds.
   static const Map<String, String> _devtoolsDependencies = <String, String>{
-    'magic_devtools': '^0.0.11',
-    'fluttersdk_dusk': '^0.0.20',
-    'fluttersdk_telescope': '^0.0.12',
+    'magic_devtools': '^1.0.0',
+    'tapir': '^1.0.0',
+    'crumbs': '^1.0.0',
   };
 
   /// Exposes [_devtoolsDependencies] so a test can tie it to `install.yaml`.
@@ -918,109 +905,235 @@ class MagicInstallCommand extends DowelInstallCommand {
   /// Injects the debug-trio runtime wiring into a generated `lib/main.dart`
   /// [source] and returns the transformed source.
   ///
-  /// Mirrors `dusk_install_command._injectRuntimeWiring` +
-  /// `telescope_install_command._injectRuntimeWiring`: the imports plus the
-  /// `kDebugMode`-gated `DuskPlugin.install()` / `TelescopePlugin.install()`
-  /// (with its `ExceptionWatcher` + `DumpWatcher`) blocks are placed BEFORE
+  /// Mirrors the tapir and crumbs installers (`tapir:install`,
+  /// `crumbs:install`), which skip a block whose `TapirPlugin.install(` or
+  /// `CrumbsPlugin.install(` call is already in the file, so a later run of
+  /// either writes nothing twice. The blocks sit under `!kReleaseMode`, the
+  /// guard `magic_devtools` mandates (debug and profile builds carry the
+  /// tools, so a perf measurement runs on a profile build, and release
+  /// tree-shakes them): the `TapirPlugin.install()` / `CrumbsPlugin.install()`
+  /// (with its `ExceptionWatcher` + `DumpWatcher`) blocks and
+  /// `MagicPerfIntegration.install()` (the perf path, which registers a
+  /// navigator observer the router refuses once built) are placed BEFORE
   /// `await Magic.init(` so the drivers are live during Magic boot, and the
-  /// `MagicDuskIntegration.install()` / `MagicTelescopeIntegration.install()`
+  /// `MagicTapirIntegration.install()` / `MagicCrumbsIntegration.install()`
   /// blocks are placed AFTER `Magic.init(` (those query `Magic.find<X>()` /
   /// resolve the network driver, so they need the container ready).
   ///
-  /// Pure-functional and idempotent: every block is injected through
-  /// [MainDartEditor.injectBeforeAnchor] / [MainDartEditor.injectAfterAnchor],
-  /// each of which early-returns when the snippet is already present, so a
-  /// second pass over an already-wired source is a byte-for-byte no-op. This
-  /// is what makes a re-run of `magic:install --with-devtools` safe.
+  /// Pure-functional and idempotent. Call presence decides what is missing,
+  /// not the snippet text: a source that already calls `MagicDevtools.installPre(`
+  /// is returned untouched, and a block whose call is already in the file (hand
+  /// wired under another guard, or written by `tapir:install` /
+  /// `crumbs:install`) is not written again, because a second
+  /// `ExceptionWatcher` or `DumpWatcher` chains onto the first and records
+  /// every exception and `debugPrint` twice. A second pass over an already
+  /// wired source is a byte-for-byte no-op, which is what makes a re-run of
+  /// `magic:install --with-devtools` safe.
   ///
   /// @param source  The generated (or smart-merged) `lib/main.dart` content.
   /// @return The transformed source with the debug-trio wiring injected.
   @visibleForTesting
   String buildDevtoolsWiring(String source) {
+    // 0. A call counts only when it is code: a commented example (the one in
+    //    install.yaml, say) is not installed setup.
+    final String code = _withoutComments(source);
+
+    // The umbrella call installs every block below.
+    if (code.contains('MagicDevtools.installPre(')) return source;
+
+    final bool wiresTapir = !code.contains('TapirPlugin.install(');
+    final bool wiresCrumbs = !code.contains('CrumbsPlugin.install(');
+    final bool wiresPerf = !code.contains('MagicPerfIntegration.install(');
+    final bool wiresTapirIntegration = !code.contains(
+      'MagicTapirIntegration.install(',
+    );
+    final bool wiresCrumbsIntegration = !code.contains(
+      'MagicCrumbsIntegration.install(',
+    );
+    if (!(wiresTapir ||
+        wiresCrumbs ||
+        wiresPerf ||
+        wiresTapirIntegration ||
+        wiresCrumbsIntegration)) {
+      return source;
+    }
+
     // 1. Imports. Each devtools package import is anchored against the existing
     //    package import it must sit beside, so the generated import block stays
     //    `directives_ordering`-clean: package imports grouped before relative
     //    `config/...` imports, and alphabetically sorted within the group
-    //    (`flutter/foundation` and `fluttersdk_*` before `magic`,
-    //    `magic_devtools/*` between `magic` and `material_ui`). Each
-    //    injectBeforeAnchor is idempotent via its snippet-presence check, so a
-    //    re-run is a no-op.
+    //    (`crumbs` and `flutter/foundation` before `magic`, `magic_devtools/*`
+    //    between `magic` and `material_ui`, `tapir` after the last package
+    //    import). Each injection is idempotent via its snippet-presence check,
+    //    so a re-run is a no-op.
     var result = source;
 
     // 1a. `flutter/foundation` sorts before every other package import the
-    //     template carries, the first of which is `magic`.
-    result = MainDartEditor.injectBeforeAnchor(
-      source: result,
-      anchor: "import 'package:magic/magic.dart'",
-      snippet: "import 'package:flutter/foundation.dart' show kDebugMode;\n",
-    );
+    //     template carries, the first of which is `magic`. An import that
+    //     already brings `kReleaseMode` (unrestricted, or a `show` naming it)
+    //     is enough.
+    final bool hasReleaseMode = RegExp(
+      r"import 'package:flutter/foundation\.dart'"
+      r'(;| show [^;]*\bkReleaseMode\b[^;]*;)',
+    ).hasMatch(result);
+    if (!hasReleaseMode) {
+      result = MainDartEditor.injectBeforeAnchor(
+        source: result,
+        anchor: "import 'package:magic/magic.dart'",
+        snippet:
+            "import 'package:flutter/foundation.dart' show kReleaseMode;\n",
+      );
+    }
 
-    // 1b. `fluttersdk_*` sort after `flutter/foundation` and before `magic`;
-    //     injected second, they land between the two.
-    result = MainDartEditor.injectBeforeAnchor(
-      source: result,
-      anchor: "import 'package:magic/magic.dart'",
-      snippet:
-          "import 'package:fluttersdk_dusk/dusk.dart';\n"
-          "import 'package:fluttersdk_telescope/telescope.dart';\n",
-    );
+    // 1b. `crumbs` sorts before `flutter/foundation`.
+    if (wiresCrumbs) {
+      result = MainDartEditor.injectBeforeAnchor(
+        source: result,
+        anchor: "import 'package:flutter/foundation.dart'",
+        snippet: "import 'package:crumbs/crumbs.dart';\n",
+      );
+    }
 
     // 1c. `magic_devtools/*` sort after `magic` and before whichever comes
     //     first of `material_ui` (the generated template) and the relative
     //     `config/...` imports (a smart-merged source places them above
     //     `material_ui`); fall back to the `void main(` anchor when neither is
-    //     present (a preserve-mode source without configs).
-    const devtoolsImports =
-        "import 'package:magic_devtools/dusk.dart';\n"
-        "import 'package:magic_devtools/telescope.dart';\n";
-    final importAnchors =
-        <String>[
-            "import 'package:material_ui/",
-            "import 'config/",
-          ].where((anchor) => result.contains(anchor)).toList()
-          ..sort((a, b) => result.indexOf(a).compareTo(result.indexOf(b)));
-    result = MainDartEditor.injectBeforeAnchor(
-      source: result,
-      anchor: importAnchors.isEmpty ? 'void main(' : importAnchors.first,
-      snippet: devtoolsImports,
-    );
+    //     present (a preserve-mode source without configs). Alphabetical:
+    //     crumbs, magic_devtools (the perf path), tapir.
+    final String devtoolsImports =
+        '${wiresCrumbsIntegration ? "import 'package:magic_devtools/crumbs.dart';\n" : ''}'
+        '${wiresPerf ? "import 'package:magic_devtools/magic_devtools.dart';\n" : ''}'
+        '${wiresTapirIntegration ? "import 'package:magic_devtools/tapir.dart';\n" : ''}';
+    if (devtoolsImports.isNotEmpty) {
+      final importAnchors =
+          <String>[
+              "import 'package:material_ui/",
+              "import 'config/",
+            ].where((anchor) => result.contains(anchor)).toList()
+            ..sort((a, b) => result.indexOf(a).compareTo(result.indexOf(b)));
+      result = MainDartEditor.injectBeforeAnchor(
+        source: result,
+        anchor: importAnchors.isEmpty ? 'void main(' : importAnchors.first,
+        snippet: devtoolsImports,
+      );
+    }
 
-    // 2. Plugin-install blocks BEFORE Magic.init: Dusk first so its snapshot
-    //    pipeline is live during Magic boot, then Telescope so ExceptionWatcher
-    //    catches boot errors.
-    result = MainDartEditor.injectBeforeAnchor(
-      source: result,
-      anchor: 'await Magic.init(',
-      snippet: '  if (kDebugMode) {\n    DuskPlugin.install();\n  }\n',
-    );
-    result = MainDartEditor.injectBeforeAnchor(
-      source: result,
-      anchor: 'await Magic.init(',
-      snippet:
-          '  if (kDebugMode) {\n'
-          '    TelescopePlugin.install();\n'
-          '    TelescopePlugin.registerWatcher(ExceptionWatcher());\n'
-          '    TelescopePlugin.registerWatcher(DumpWatcher());\n'
-          '  }\n',
-    );
+    // 1d. `tapir` sorts after `magic_devtools/*` and `material_ui`, so it goes
+    //     behind the last package import now in the file (the editor can only
+    //     insert before an anchor line, or after a call).
+    const tapirImport = "import 'package:tapir/tapir.dart';\n";
+    final packageImports = RegExp(
+      r"^import 'package:[^']*';[^\n]*\n",
+      multiLine: true,
+    ).allMatches(result).toList();
+    if (wiresTapir &&
+        packageImports.isNotEmpty &&
+        !result.contains(tapirImport.trim())) {
+      final int end = packageImports.last.end;
+      result = result.substring(0, end) + tapirImport + result.substring(end);
+    }
+
+    // 2. Plugin-install blocks BEFORE Magic.init: tapir first so its snapshot
+    //    pipeline is live during Magic boot, then crumbs so ExceptionWatcher
+    //    catches boot errors, then the perf path.
+    if (wiresTapir) {
+      result = MainDartEditor.injectBeforeAnchor(
+        source: result,
+        anchor: 'await Magic.init(',
+        snippet: '  if (!kReleaseMode) {\n    TapirPlugin.install();\n  }\n',
+      );
+    }
+    if (wiresCrumbs) {
+      result = MainDartEditor.injectBeforeAnchor(
+        source: result,
+        anchor: 'await Magic.init(',
+        snippet:
+            '  if (!kReleaseMode) {\n'
+            '    CrumbsPlugin.install();\n'
+            '    CrumbsPlugin.registerWatcher(ExceptionWatcher());\n'
+            '    CrumbsPlugin.registerWatcher(DumpWatcher());\n'
+            '  }\n',
+      );
+    }
+    if (wiresPerf) {
+      result = MainDartEditor.injectBeforeAnchor(
+        source: result,
+        anchor: 'await Magic.init(',
+        snippet: '  if (!kReleaseMode) {\n    MagicPerfIntegration.install();\n  }\n',
+      );
+    }
 
     // 3. Integration blocks AFTER Magic.init: both query the ready container.
-    result = MainDartEditor.injectAfterAnchor(
-      source: result,
-      anchor: 'Magic.init',
-      snippet:
-          '  if (kDebugMode) {\n    MagicDuskIntegration.install();\n  }\n',
-    );
-    result = MainDartEditor.injectAfterAnchor(
-      source: result,
-      anchor: 'Magic.init',
-      snippet:
-          '  if (kDebugMode) {\n'
-          '    MagicTelescopeIntegration.install();\n'
-          '  }\n',
-    );
+    //    Each insert lands right behind the call, so crumbs, written second,
+    //    ends up first: the order MagicDevtools.installPost uses.
+    if (wiresTapirIntegration) {
+      result = MainDartEditor.injectAfterAnchor(
+        source: result,
+        anchor: 'Magic.init',
+        snippet: '  if (!kReleaseMode) {\n    MagicTapirIntegration.install();\n  }\n',
+      );
+    }
+    if (wiresCrumbsIntegration) {
+      result = MainDartEditor.injectAfterAnchor(
+        source: result,
+        anchor: 'Magic.init',
+        snippet:
+            '  if (!kReleaseMode) {\n'
+            '    MagicCrumbsIntegration.install();\n'
+            '  }\n',
+      );
+    }
 
     return result;
+  }
+
+  /// Returns [source] with its `//` and `/* */` comments removed.
+  ///
+  /// String literals are kept whole (single, double and triple quoted, raw or
+  /// not), so a `//` inside `'https://x'` does not start a comment. Used only
+  /// to decide whether a call is code, never to rewrite the file.
+  static String _withoutComments(String source) {
+    final StringBuffer out = StringBuffer();
+    int i = 0;
+    while (i < source.length) {
+      final String c = source[i];
+      final bool raw = i > 0 && source[i - 1] == 'r' && (c == "'" || c == '"');
+      if (c == "'" || c == '"') {
+        final String triple = c * 3;
+        final bool isTriple = source.startsWith(triple, i);
+        final String close = isTriple ? triple : c;
+        int j = i + close.length;
+        while (j < source.length && !source.startsWith(close, j)) {
+          j += (!raw && source[j] == r'\') ? 2 : 1;
+        }
+        final int end = (j + close.length).clamp(0, source.length);
+        out.write(source.substring(i, end));
+        i = end;
+      } else if (source.startsWith('//', i)) {
+        while (i < source.length && source[i] != '\n') {
+          i++;
+        }
+      } else if (source.startsWith('/*', i)) {
+        // Dart block comments nest, so count the delimiters.
+        int depth = 1;
+        i += 2;
+        while (i < source.length && depth > 0) {
+          if (source.startsWith('/*', i)) {
+            depth++;
+            i += 2;
+          } else if (source.startsWith('*/', i)) {
+            depth--;
+            i += 2;
+          } else {
+            i++;
+          }
+        }
+      } else {
+        out.write(c);
+        i++;
+      }
+    }
+    return out.toString();
   }
 
   /// Assembles the provider list rendered into `lib/config/app.dart`.
@@ -1097,13 +1210,13 @@ class MagicInstallCommand extends DowelInstallCommand {
   /// @return The process exit code per the table above.
   int _renderResult(DowelContext ctx, TransactionResult result) {
     switch (result) {
-      case Success(opCount: final n, recordPath: final path):
+      case InstallSuccess(opCount: final n, recordPath: final path):
         ctx.output.success('magic installed ($n op(s)). Install record: $path');
         return 0;
-      case DryRun(opCount: final n):
+      case InstallDryRun(opCount: final n):
         ctx.output.info('Dry-run: $n op(s) staged; no files were written.');
         return 0;
-      case Conflict(conflicts: final list):
+      case InstallConflict(conflicts: final list):
         ctx.output.error(
           'Conflict on ${list.length} file(s). Re-run with --force to overwrite.',
         );
@@ -1111,7 +1224,7 @@ class MagicInstallCommand extends DowelInstallCommand {
           ctx.output.warning('  ${c.absPath}: ${c.reason}');
         }
         return 1;
-      case Error(error: final msg, rolledBack: final ok):
+      case InstallError(error: final msg, rolledBack: final ok):
         ctx.output.error('Install failed: $msg (rolledBack: $ok)');
         return 2;
     }

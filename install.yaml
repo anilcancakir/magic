@@ -104,48 +104,48 @@ post_install:
     to verify the bootstrap.
 
     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    ➕ OPTIONAL: Debug tooling (Dusk + Telescope)
+    ➕ OPTIONAL: Debug tooling (Tapir + Crumbs)
 
-    Recommended for development. Dusk is the LLM-agent E2E driver (snap,
-    tap, find, screenshot); Telescope is the runtime inspector (HTTP, log,
-    exception, model, gate watchers). Both gate on kDebugMode so production
-    builds tree-shake them entirely.
+    Recommended for development. Tapir is the LLM-agent E2E driver (snap,
+    tap, find, screenshot); Crumbs is the runtime inspector (HTTP, log,
+    exception, model, gate watchers). Both gate on !kReleaseMode so release
+    builds tree-shake them entirely, while debug and profile builds keep them.
 
-    Unavailable on magic 0.1.x until magic_devtools is released for it: the
-    published magic_devtools requires magic ^0.0.29, so the pins below do not
-    resolve against this version, and magic:install --with-devtools stops
-    without writing anything.
+    One step: `dart run magic:dowel magic:install --with-devtools` adds the
+    packages below and wires lib/main.dart, including
+    MagicPerfIntegration.install() before Magic.init(). A call already in
+    lib/main.dart is never written twice. By hand, the Magic adapters live
+    in the sibling `magic_devtools` package. They are wired into lib/main.dart
+    under !kReleaseMode (release builds tree-shake them), so add them to
+    dependencies, not dev_dependencies (lib/ imports them):
 
-    The Magic adapters live in the sibling `magic_devtools` package. They are
-    wired into lib/main.dart under kDebugMode (release builds tree-shake them),
-    so add them to dependencies, not dev_dependencies (lib/ imports them):
-
-       magic_devtools: ^0.0.11
-       fluttersdk_dusk: ^0.0.20
-       fluttersdk_telescope: ^0.0.12
+       magic_devtools: ^1.0.0
+       tapir: ^1.0.0
+       crumbs: ^1.0.0
 
     Then:
 
        flutter pub get
-       dart run magic:dowel plugin:install fluttersdk_dusk
-       dart run magic:dowel plugin:install fluttersdk_telescope
-       dart run magic:dowel dusk:install
-       dart run magic:dowel telescope:install
+       dart run magic:dowel plugin:install tapir
+       dart run magic:dowel plugin:install crumbs
+       dart run magic:dowel tapir:install
+       dart run magic:dowel crumbs:install
 
-    Wire the adapters in lib/main.dart (debug-only, two phases around Magic.init()):
+    tapir:install and crumbs:install write their setup blocks into
+    lib/main.dart (each skips a block already there), and the Magic
+    integrations after Magic.init() once magic_devtools is a dependency. Instead of those two commands you can wire
+    everything with the umbrella (do not mix the two: each registers the
+    watchers):
 
        import 'package:magic_devtools/magic_devtools.dart';
-       // if (kDebugMode) MagicDevtools.installPre();    <- before Magic.init()
+       // if (!kReleaseMode) MagicDevtools.installPre();    <- before Magic.init()
        // await Magic.init(configFactories: [...]);
-       // if (kDebugMode) MagicDevtools.installPost();   <- after Magic.init()
+       // if (!kReleaseMode) MagicDevtools.installPost();   <- after Magic.init()
 
-    Keep kDebugMode at the call site; moving it inside the methods defeats the
-    release tree-shake.
-
-    The dusk:install / telescope:install commands wire the kDebugMode setup
-    blocks into lib/main.dart. MCP tools surface for Claude Code / Cursor via:
+    Keep !kReleaseMode at the call site; moving it inside the methods defeats
+    the release tree-shake. MCP tools surface for Claude Code / Cursor via:
 
        dart run magic:dowel mcp:install
-       # then restart Claude Code; /mcp lists 40+ dusk_/telescope_ tools.
+       # then restart Claude Code; /mcp lists the tapir_ and crumbs_ tools.
 
 bootstrap_command: magic:install

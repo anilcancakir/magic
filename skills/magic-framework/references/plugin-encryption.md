@@ -1,8 +1,8 @@
-<!-- magic_encryption v0.0.1 | Updated: 2026-11-14 -->
+<!-- magic_encryption v1.0.0 | Updated: 2026-11-14 -->
 
 # magic_encryption Plugin
 
-AES-256-CBC for a Magic app: the `Crypt` facade, `MagicEncrypter`, `EncryptionServiceProvider`, `MagicDecryptException` and the `key:generate` command. They lived in core `magic` up to 0.0.41 and moved here in core 0.1.0, with the wire format unchanged, so ciphertext written by 0.0.41 still decrypts.
+AES-256-CBC for a Magic app: the `Crypt` facade, `MagicEncrypter`, `EncryptionServiceProvider`, `MagicDecryptException` and the `key:generate` command. They lived in core `magic` up to 0.0.41 and moved here in core 1.0.0, with the wire format unchanged, so ciphertext written by 0.0.41 still decrypts.
 
 ## Contents
 
@@ -17,10 +17,10 @@ AES-256-CBC for a Magic app: the `Crypt` facade, `MagicEncrypter`, `EncryptionSe
 
 ```yaml
 dependencies:
-  magic_encryption: ^0.0.1
+  magic_encryption: ^1.0.0
 ```
 
-Requires Dart >=3.13, Flutter >=3.47 and `magic ^0.1.0`.
+Requires Dart >=3.13, Flutter >=3.47 and `magic ^1.0.0`.
 
 ```bash
 flutter pub add magic_encryption

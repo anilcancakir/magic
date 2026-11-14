@@ -7,7 +7,7 @@ import 'package:magic/magic.dart';
 /// Written to settle a report rather than to add coverage. A consumer put a
 /// query parameter on a route, read it back through `queryParameter`, got
 /// null, and filed it against this package. The evidence turned out to be a
-/// misreading: the value they were looking at came from `dusk:get_routes`,
+/// misreading: the value they were looking at came from `tapir:get_routes`,
 /// whose `location` is `route.settings.name` off the Navigator (the declared
 /// path pattern) rather than anything this router exposes.
 ///

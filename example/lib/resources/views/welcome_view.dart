@@ -82,7 +82,7 @@ class WelcomeView extends StatelessWidget {
                       title: 'GitHub',
                       description:
                           'Star the repo, report issues, or contribute code.',
-                      url: 'https://github.com/fluttersdk/magic',
+                      url: 'https://github.com/anilcancakir/magic',
                     ),
                     _buildLinkCard(
                       icon: Icons.terminal,

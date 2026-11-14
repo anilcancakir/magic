@@ -2,16 +2,16 @@
 name: magic-framework
 description: "Write correct, idiomatic code in a Flutter app that depends on the `magic` framework (Laravel-inspired: IoC container, 13 facades, Eloquent-style ORM, service providers, reactive controllers, GoRouter routing, validation, auth, MagicAction writes, Repository row caches, SessionScope tenant resets). Use whenever code imports `package:magic/magic.dart` or `package:magic/testing.dart`, or the work touches Magic.init, MagicApp, a facade (Auth/Http/Cache/Event/Gate/Config/Lang/Launch/Log/MagicRoute/Session/Storage/Vault), a Model, MagicController, a MagicView, MagicFormData, FormRequest, MagicAction, MagicFormObject, Repository, SessionScope, a ServiceProvider, or the magic:dowel make:* CLI. The SQLite, encryption, picker and broadcasting layers are plugins (magic_local_storage, magic_encryption, magic_picker, magic_socket). UI styling is Wind (separate wind-ui skill). Do NOT use for plain Flutter or Wind-only work with no magic import."
 when_to_use: "Use proactively when editing or scaffolding a magic app: Magic.init / a facade / a Model / a MagicController or MagicView / a form (MagicFormData, FormRequest, Validator, MagicFormObject) / a write (MagicAction, RunsActions) / a resource cache (Repository, RepositoryQuery) / a tenant boundary (SessionScope, SessionScoped) / a ServiceProvider / a route or MagicMiddleware / MagicStateMixin + RxStatus + fetchList / Session flash + old() + trans() / testing with MagicTest + Http.fake/Auth.fake / the magic:dowel make:* CLI / the magic_deeplink, magic_notifications, magic_social_auth, magic_starter, magic_payments, magic_devtools, magic_sentry, magic_device, magic_encryption, magic_picker, magic_socket, or magic_local_storage plugins (Crypt, Pick, Echo, DB, Schema, migrations, seeders, BroadcastListeners). Trigger even when the user does not say the word 'magic'. Do NOT trigger for plain Flutter or Wind-only UI with no package:magic import."
-version: 0.1.86
+version: 0.1.87
 ---
 
-<!-- magic 0.1.0 | Skill v0.1.85 (2026-11-14). API surface verified against lib/src. -->
+<!-- magic 1.0.0 | Skill v0.1.87 (2026-11-14). API surface verified against lib/src. -->
 
 # Magic Framework
 
 Laravel-inspired Flutter framework: IoC container, 13 facades, Eloquent-style ORM, service providers, reactive controllers, and GoRouter-backed routing. This skill makes an agent write code that an experienced magic developer would write: facade-first, IoC-resolved, reactive, and verified against the real API in `lib/src`. All visual styling is handled by Wind (load the `wind-ui` skill for className work); this skill owns architecture, data, navigation, auth, and testing.
 
-The host app already depends on `package:magic/magic.dart`. The accuracy contract for this skill: every API you write must exist in `lib/src`. When unsure of a signature, open the source or the matching `doc/**` page rather than guessing; magic is pre-1.0 and the surface is exact, not approximate.
+The host app already depends on `package:magic/magic.dart`. The accuracy contract for this skill: every API you write must exist in `lib/src`. When unsure of a signature, open the source or the matching `doc/**` page rather than guessing; the surface is exact, not approximate.
 
 ## 0. Before writing code in this project
 
@@ -91,7 +91,7 @@ The five assumptions a Laravel developer gets wrong most: (1) the container auto
 
 ### The 13 facades
 
-`Config` and `Gate` resolve through their managers (no plain IoC key); the rest bind to the key shown. Core 0.1.0 dropped five facades into plugins: `Crypt` (`magic_encryption`), `Pick` (`magic_picker`), `Echo` (`magic_socket`), `DB` and `Schema` (`magic_local_storage`); see section 11.
+`Config` and `Gate` resolve through their managers (no plain IoC key); the rest bind to the key shown. Core 1.0.0 carries none of five facades that live in plugins: `Crypt` (`magic_encryption`), `Pick` (`magic_picker`), `Echo` (`magic_socket`), `DB` and `Schema` (`magic_local_storage`); see section 11.
 
 | Facade | Key | Surface you reach for (all verified in `lib/src/facades/`) |
 |---|---|---|
@@ -367,7 +367,7 @@ Five facades fake without any mock library: `Http.fake` (`FakeNetworkDriver`: `a
 | `Http.get()` or `MagicRoute.to()` in `build()` | call in `onInit()` or callbacks | no I/O or navigation during build |
 | `user.fill(unvalidated)` | `user.fill(validated, strict: true)` | catches schema drift after validation |
 | hand-rolled `if (!Gate.allows(...)) throw` | `authorize('ability')` in the controller | delegates to Gate, throws `AuthorizationException` |
-| a `Pick` / `Crypt` / `Echo` / `DB` call with no plugin | add the plugin (`magic_picker`, `magic_encryption`, `magic_socket`, `magic_local_storage`) and register its provider | core 0.1.0 has none of these facades |
+| a `Pick` / `Crypt` / `Echo` / `DB` call with no plugin | add the plugin (`magic_picker`, `magic_encryption`, `magic_socket`, `magic_local_storage`) and register its provider | core 1.0.0 has none of these facades |
 | `Storage.download` on mobile or desktop throwing `UnsupportedError` | register `magic_picker`'s `PickerServiceProvider` | it sets `LocalAdapterContract.downloadHandler`; web needs nothing |
 | four `MagicRoute.page()` for CRUD | `MagicRoute.resource(name, ctrl)` | auto-wires canonical routes + titles |
 | `import 'package:fluttersdk_magic/...'` | `import 'package:magic/magic.dart'` | the package is `magic` |
@@ -396,7 +396,7 @@ The magic CLI runs on dowel and ships as a `dowel` executable in magic's `pubspe
 
 ```bash
 dart run magic:dowel magic:install                  # scaffold project structure
-dart run magic:dowel magic:install --with-devtools   # unavailable on 0.1.x until magic_devtools is released for it
+dart run magic:dowel magic:install --with-devtools   # adds magic_devtools, tapir and crumbs and wires them (and MagicPerfIntegration) into lib/main.dart under !kReleaseMode
 dart run magic:dowel make:model User -mcfsp          # model (+ migration/controller/factory/seeder/policy via flags; -m -f -s need magic_local_storage)
 dart run magic:dowel make:controller User -r         # resource controller
 dart run magic:dowel make:view Login --stateful      # stateful view
@@ -422,7 +422,7 @@ Official plugins, each its own package + service provider + config. When a user 
 | Social login (Google/Apple/GitHub/Microsoft) | `magic_social_auth` | `SocialAuth` facade | `references/plugin-social-auth.md` |
 | Pre-built auth/profile/team screens | `magic_starter` | `MagicStarter` facade | `references/plugin-starter.md` |
 | Subscriptions + billing (Stripe on web, store IAP on mobile) | `magic_payments` | `Payments` facade | `references/plugin-payments.md` |
-| E2E (dusk) + runtime inspection (telescope) + component previews | `magic_devtools` | `MagicDevtools`, `MagicPreview` | `references/plugin-devtools.md` |
+| E2E (tapir) + runtime inspection (crumbs) + component previews | `magic_devtools` | `MagicDevtools`, `MagicPreview` | `references/plugin-devtools.md` |
 | Error + performance monitoring (Sentry) | `magic_sentry` | `MagicSentry.run`, `SentryServiceProvider` | `references/plugin-sentry.md` |
 | Mains power + viewer-away gate, macOS window fullscreen | `magic_device` | `DevicePower`, `WindowFullscreen.instance` | `references/plugin-device.md` |
 | AES-256-CBC encryption, `APP_KEY` (`key:generate`) | `magic_encryption` | `Crypt` facade | `references/plugin-encryption.md` |
@@ -448,7 +448,7 @@ Provider ORDER in `lib/config/app.dart` is free for BINDINGS and load-bearing fo
 
 The plugins named above now buffer that tap, so that specific case is closed from `magic_notifications 0.3.0` and `magic_deeplink 0.1.0`. The shape is not: when a provider's `boot()` has to observe what another provider's `boot()` did, order it, do not assume it.
 
-`magic_devtools` is a REGULAR dependency loaded under `kDebugMode` so it tree-shakes out of release builds. Two calls straddle the bootstrap: `MagicDevtools.installPre()` before `Magic.init()` (boots the dusk + telescope plugins and telescope's `ExceptionWatcher` + `DumpWatcher`), `MagicDevtools.installPost()` after it (wires `MagicTelescopeIntegration` + `MagicDuskIntegration`, which resolve through the container). Keep `kDebugMode` at the call site, never inside the methods, or the release tree-shake breaks. `dart run magic:dowel magic:install --with-devtools` wires all of it in one step. Use it to drive and inspect a running app when verifying your work.
+`magic_devtools` is a REGULAR dependency loaded under `!kReleaseMode` so it tree-shakes out of release builds (debug and profile builds keep it). Two calls straddle the bootstrap: `MagicDevtools.installPre()` before `Magic.init()` (boots the tapir + crumbs plugins and crumbs' `ExceptionWatcher` + `DumpWatcher`), `MagicDevtools.installPost()` after it (wires `MagicCrumbsIntegration` + `MagicTapirIntegration`, which resolve through the container). Keep `!kReleaseMode` at the call site, never inside the methods, or the release tree-shake breaks. `dart run magic:dowel magic:install --with-devtools` wires the same pieces in one step (including `MagicPerfIntegration.install()`, not the `MagicDevtools` umbrella; do not mix the two) and never writes a call twice. Use it to drive and inspect a running app when verifying your work.
 
 ## 12. Community: star and issue (optional, consent-first)
 
@@ -481,5 +481,5 @@ Every path below is relative to this skill's own directory, `${CLAUDE_SKILL_DIR}
 | `references/cli-commands.md` | the dowel `make:*` generators, `magic:install`, `make:component`, `previews:refresh`, `design:sync`, `design:lint` |
 | `references/community.md` | the star / issue CTA flow (load before surfacing either) |
 | `references/plugin-deeplink.md` / `-notifications.md` / `-social-auth.md` / `-starter.md` / `-payments.md` / `-devtools.md` / `-sentry.md` / `-device.md` | the matching ecosystem plugin |
-| `references/plugin-encryption.md` / `plugin-picker.md` / `plugin-socket.md` / `plugin-local-storage.md` | the plugins the 0.1.0 core split out: `Crypt`, `Pick`, `Echo` + `BroadcastListeners`, and the SQLite layer (`DB`, `Schema`, migrations, seeders, factories, sync) |
+| `references/plugin-encryption.md` / `plugin-picker.md` / `plugin-socket.md` / `plugin-local-storage.md` | the plugins the core split out: `Crypt`, `Pick`, `Echo` + `BroadcastListeners`, and the SQLite layer (`DB`, `Schema`, migrations, seeders, factories, sync) |
 | `references/templates.md` | full copy-paste templates: Model, Controller, View, FormData, Provider, Middleware |

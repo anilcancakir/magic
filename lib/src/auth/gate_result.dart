@@ -7,7 +7,7 @@
 /// intentionally a thin value-bag with no behaviour — the cache layer
 /// owns retention and eviction.
 ///
-/// The dusk integration's `magicGateResultEnricher` reads this through
+/// The tapir integration's `magicGateResultEnricher` reads this through
 /// `Gate.manager.lastResult(...)` to surface the most recent gate decision
 /// in the snapshot YAML.
 ///

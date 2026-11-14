@@ -1,8 +1,8 @@
-<!-- magic_picker v0.0.1 | Updated: 2026-11-14 -->
+<!-- magic_picker v1.0.0 | Updated: 2026-11-14 -->
 
 # magic_picker Plugin
 
-File, image and video picking for a Magic app: the `Pick` facade, the `XFile` and `MagicFile` converters, and the share handler behind `Storage.download` on mobile and desktop. All of it lived in core `magic` up to 0.0.41; core 0.1.0 dropped the `file_picker`, `image_picker` and `share_plus` re-exports and the `toXFile` / `fromXFile` helpers.
+File, image and video picking for a Magic app: the `Pick` facade, the `XFile` and `MagicFile` converters, and the share handler behind `Storage.download` on mobile and desktop. All of it lived in core `magic` up to 0.0.41; core 1.0.0 dropped the `file_picker`, `image_picker` and `share_plus` re-exports and the `toXFile` / `fromXFile` helpers.
 
 ## Contents
 
@@ -17,10 +17,10 @@ File, image and video picking for a Magic app: the `Pick` facade, the `XFile` an
 
 ```yaml
 dependencies:
-  magic_picker: ^0.0.1
+  magic_picker: ^1.0.0
 ```
 
-Requires Dart >=3.13, Flutter >=3.47 and `magic ^0.1.0`.
+Requires Dart >=3.13, Flutter >=3.47 and `magic ^1.0.0`.
 
 ```bash
 flutter pub add magic_picker

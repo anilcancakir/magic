@@ -30,7 +30,7 @@ void main() {
   group('MagicMainDartEditor.injectBeforeMagicInit', () {
     test('delegates to MainDartEditor.injectBeforeAnchor with Magic.init anchor', () {
       // The snippet should be inserted before the line containing 'Magic.init'.
-      const snippet = '  DuskPlugin.install();\n';
+      const snippet = '  TapirPlugin.install();\n';
       final result = MagicMainDartEditor.injectBeforeMagicInit(
         source: _singleLineSource,
         snippet: snippet,
@@ -54,7 +54,7 @@ void main() {
     test(
       'is idempotent — calling twice with same snippet leaves source unchanged',
       () {
-        const snippet = '  DuskPlugin.install();\n';
+        const snippet = '  TapirPlugin.install();\n';
         final once = MagicMainDartEditor.injectBeforeMagicInit(
           source: _singleLineSource,
           snippet: snippet,
@@ -75,13 +75,13 @@ void main() async {
 ''';
       final result = MagicMainDartEditor.injectBeforeMagicInit(
         source: source,
-        snippet: '  DuskPlugin.install();\n',
+        snippet: '  TapirPlugin.install();\n',
       );
       expect(result, equals(source));
     });
 
     test('respects optional indent parameter', () {
-      const snippet = 'DuskPlugin.install();\n';
+      const snippet = 'TapirPlugin.install();\n';
       const indent = '  ';
       final result = MagicMainDartEditor.injectBeforeMagicInit(
         source: _singleLineSource,
@@ -89,7 +89,7 @@ void main() async {
         indent: indent,
       );
       // With indent applied the inserted line should have leading spaces.
-      expect(result, contains('  DuskPlugin.install();'));
+      expect(result, contains('  TapirPlugin.install();'));
     });
 
     test('works on multi-line Magic.init call', () {
@@ -111,7 +111,7 @@ void main() async {
 
   group('MagicMainDartEditor.injectAfterMagicInit', () {
     test('inserts snippet after the closing paren of Magic.init on a single-line call', () {
-      const snippet = '  MagicDuskIntegration.install();\n';
+      const snippet = '  MagicTapirIntegration.install();\n';
       final result = MagicMainDartEditor.injectAfterMagicInit(
         source: _singleLineSource,
         snippet: snippet,
@@ -139,7 +139,7 @@ void main() async {
     });
 
     test('inserts snippet after closing paren of multi-line Magic.init', () {
-      const snippet = '  MagicDuskIntegration.install();\n';
+      const snippet = '  MagicTapirIntegration.install();\n';
       final result = MagicMainDartEditor.injectAfterMagicInit(
         source: _multiLineSource,
         snippet: snippet,
@@ -156,7 +156,7 @@ void main() async {
     test(
       'is idempotent — calling twice with same snippet leaves source unchanged',
       () {
-        const snippet = '  MagicDuskIntegration.install();\n';
+        const snippet = '  MagicTapirIntegration.install();\n';
         final once = MagicMainDartEditor.injectAfterMagicInit(
           source: _singleLineSource,
           snippet: snippet,
@@ -177,7 +177,7 @@ void main() async {
 ''';
       final result = MagicMainDartEditor.injectAfterMagicInit(
         source: source,
-        snippet: '  MagicDuskIntegration.install();\n',
+        snippet: '  MagicTapirIntegration.install();\n',
       );
       expect(result, equals(source));
     });

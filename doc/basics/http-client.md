@@ -392,7 +392,7 @@ final response = await Http.get('/users');
 
 // Status checks
 response.successful        // true if 2xx status
-response.failed           // true if 4xx or 5xx
+response.failed           // true if 4xx or 5xx, or status 0 (no connection, timeout)
 response.unauthorized     // true if 401
 response.forbidden        // true if 403
 response.notFound         // true if 404

@@ -1,4 +1,4 @@
-<!-- magic_payments v0.1.0 | Updated: 2026-11-14 -->
+<!-- magic_payments v1.0.0 | Updated: 2026-11-14 -->
 
 # magic_payments Plugin
 
@@ -26,10 +26,10 @@ The backend half of the same contract lives in `magic-starter-laravel` (`api/v1/
 
 ```yaml
 dependencies:
-  magic_payments: ^0.0.12
+  magic_payments: ^1.0.0
 ```
 
-It builds on `magic ^0.1.0` and `dowel ^0.0.21`, with `purchases_flutter` for the store rail.
+It builds on `magic ^1.0.0` and `dowel ^1.0.0`, with `purchases_flutter` for the store rail.
 
 ```bash
 # Register the plugin's dowel provider with the app dispatcher (once)

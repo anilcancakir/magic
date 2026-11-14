@@ -905,7 +905,7 @@ await file.storeAs('avatars');               // Store as {directory}/{timestamp}
 
 ## Extracted layers
 
-Core 0.1.0 no longer carries the encryption, picker, broadcasting and SQLite layers. Each is a plugin package with its own page:
+Core 1.0.0 no longer carries the encryption, picker, broadcasting and SQLite layers. Each is a plugin package with its own page:
 
 | Layer | Package | Page |
 |:------|:--------|:-----|
@@ -924,4 +924,4 @@ Core 0.1.0 no longer carries the encryption, picker, broadcasting and SQLite lay
 - **Vault**: Async operations. May fail if hardware keystore is locked (e.g., on first boot before PIN unlock).
 - **Carbon**: All manipulation methods return NEW instances; original is immutable.
 - **Launch**: Never throws; always returns bool. Register `LaunchServiceProvider` manually.
-- **Extracted**: `Crypt`, `Pick`, `Echo`, `DB`, `Schema` and the sync skeleton are not in core 0.1.0; see Extracted layers above.
+- **Extracted**: `Crypt`, `Pick`, `Echo`, `DB`, `Schema` and the sync skeleton are not in core 1.0.0; see Extracted layers above.

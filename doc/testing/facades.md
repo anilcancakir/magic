@@ -193,7 +193,7 @@ expect(fake.recorded[1].operation, 'get');
 expect(fake.recorded[2].operation, 'forget');
 ```
 
-Each entry is a `CacheRecord` record type: `({String operation, String key, dynamic value})`.
+Each entry is a `FakeCacheCall` record type: `({String operation, String key, dynamic value})`.
 
 ### Resetting State
 

@@ -1,8 +1,8 @@
-<!-- magic_socket v0.0.1 | Updated: 2026-11-14 -->
+<!-- magic_socket v1.0.0 | Updated: 2026-11-14 -->
 
 # magic_socket Plugin
 
-Real-time broadcasting for a Magic app: the `Echo` facade, `BroadcastManager`, the Reverb (Pusher protocol) and null drivers, `BroadcastListeners`, `ListensToBroadcasts`, `AuthChannelSubscription`, `SocketIdInterceptor` and `FakeBroadcastManager`. They lived in core `magic` up to 0.0.41; core 0.1.0 removed them, together with `make:controller --broadcasts` and the installer's `--without-broadcasting`.
+Real-time broadcasting for a Magic app: the `Echo` facade, `BroadcastManager`, the Reverb (Pusher protocol) and null drivers, `BroadcastListeners`, `ListensToBroadcasts`, `AuthChannelSubscription`, `SocketIdInterceptor` and `FakeBroadcastManager`. They lived in core `magic` up to 0.0.41; core 1.0.0 removed them, together with `make:controller --broadcasts` and the installer's `--without-broadcasting`.
 
 ## Contents
 
@@ -18,10 +18,10 @@ Real-time broadcasting for a Magic app: the `Echo` facade, `BroadcastManager`, t
 
 ```yaml
 dependencies:
-  magic_socket: ^0.0.1
+  magic_socket: ^1.0.0
 ```
 
-Requires Dart >=3.13, Flutter >=3.47 and `magic ^0.1.0`.
+Requires Dart >=3.13, Flutter >=3.47 and `magic ^1.0.0`.
 
 ```bash
 flutter pub add magic_socket

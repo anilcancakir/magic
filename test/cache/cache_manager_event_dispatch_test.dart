@@ -1,6 +1,6 @@
 // Tests that CacheManager dispatches CacheHit / CacheMiss / CachePut /
 // CacheForget / CacheFlush via EventDispatcher so MagicCacheWatcher
-// (telescope-side) can capture the operation lifecycle.
+// (crumbs-side) can capture the operation lifecycle.
 import 'package:flutter_test/flutter_test.dart' hide EventDispatcher;
 import 'package:magic/magic.dart';
 
