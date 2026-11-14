@@ -4,11 +4,11 @@ paths: "lib/src/ui/**/*.dart"
 
 # Building Views That Are Stable and E2E-Drivable
 
-Views are part of the definition of done only when their primary user flows can be driven end to end by a dusk agent or a CI test. The rules below keep widget identity and semantic labels stable enough for label-based resolution (rules 1-3) and make dusk drivability part of the definition of done (rule 4).
+Views are part of the definition of done only when their primary user flows can be driven end to end by a tapir agent or a CI test. The rules below keep widget identity and semantic labels stable enough for label-based resolution (rules 1-3) and make tapir drivability part of the definition of done (rule 4).
 
 ## 1. Drive button loading state with `processingListenable` + `MagicBuilder`
 
-Use a targeted subtree rebuild instead of a full-view `setState`. This keeps the button tree stable, avoids identity loss, and prevents the dusk agent from losing its reference mid-action.
+Use a targeted subtree rebuild instead of a full-view `setState`. This keeps the button tree stable, avoids identity loss, and prevents the tapir agent from losing its reference mid-action.
 
 Pattern (`magic_form_data.dart:267`, `magic_builder.dart:76`):
 
@@ -30,11 +30,11 @@ MagicBuilder<bool>(
 - `form.processingListenable` is a `ValueListenable<bool>` on `MagicFormData` — only the `MagicBuilder` subtree rebuilds.
 - `MagicBuilder<T>` wraps `ValueListenableBuilder` with a cleaner API; see `magic_builder.dart:76`.
 - Cross-link: Step M1 makes `processingListenable` + `MagicBuilder` the scaffolded default in generated view stubs.
-- Never replace this with `setState(() => _loading = ...)` on the parent widget — it tears down and remounts interactive descendants, breaking dusk locators.
+- Never replace this with `setState(() => _loading = ...)` on the parent widget — it tears down and remounts interactive descendants, breaking tapir locators.
 
 ## 2. Assign stable `ValueKey` to interactive elements that can be conditionally rendered or reordered
 
-Widget identity in the Flutter element tree is position-based by default. When a button toggles between states or appears in a dynamic list, a stable key guarantees dusk resolves the same element across frames.
+Widget identity in the Flutter element tree is position-based by default. When a button toggles between states or appears in a dynamic list, a stable key guarantees tapir resolves the same element across frames.
 
 ```dart
 // Submit button that conditionally renders a loading state
@@ -56,7 +56,7 @@ Rule of thumb: any interactive widget (`WButton`, `WInput`, custom controls) ins
 
 ## 3. Set `semanticLabel` on icon-only and ambiguous interactive widgets
 
-The dusk agent resolves elements by semantic label. Without a label, an icon-only button is invisible to label-based resolution.
+The tapir agent resolves elements by semantic label. Without a label, an icon-only button is invisible to label-based resolution.
 
 `WButton.semanticLabel` (`wind/lib/src/widgets/w_button.dart:113`) propagates to the `Semantics` node wrapping the interactive surface:
 
@@ -80,11 +80,11 @@ WButton(
 
 For generic Flutter widgets that do not accept `semanticLabel` directly, wrap with `Semantics(label: '...', child: widget)`.
 
-## 4. Definition of done for view work includes dusk drivability
+## 4. Definition of done for view work includes tapir drivability
 
 A view is done when:
-- Its primary user flows (form submit, list action, navigation) can be driven by a dusk agent using semantic labels and stable keys.
+- Its primary user flows (form submit, list action, navigation) can be driven by a tapir agent using semantic labels and stable keys.
 - No interactive element in a primary flow is label-free or identity-unstable across a state change.
 - The processingListenable + MagicBuilder pattern is used for any submit/loading state.
 
-"Tests pass" and "looks correct" are necessary but not sufficient — dusk drivability is the third gate.
+"Tests pass" and "looks correct" are necessary but not sufficient — tapir drivability is the third gate.

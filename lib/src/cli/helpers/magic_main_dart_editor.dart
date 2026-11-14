@@ -15,13 +15,13 @@ import 'package:dowel/dowel.dart' show MainDartEditor;
 /// // Insert plugin-install code before Magic.init().
 /// final updated = MagicMainDartEditor.injectBeforeMagicInit(
 ///   source: source,
-///   snippet: '  DuskPlugin.install();\n',
+///   snippet: '  TapirPlugin.install();\n',
 /// );
 ///
 /// // Insert post-init adapter code after Magic.init().
 /// final updated = MagicMainDartEditor.injectAfterMagicInit(
 ///   source: source,
-///   snippet: '  MagicDuskIntegration.install();\n',
+///   snippet: '  MagicTapirIntegration.install();\n',
 /// );
 /// ```
 class MagicMainDartEditor {

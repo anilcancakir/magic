@@ -1694,7 +1694,7 @@ class MagicRouter {
   /// `_buildGoRoute` page builder records the active definition before
   /// rendering the page.
   ///
-  /// Consumers (e.g. the dusk middleware enricher) use this to walk the
+  /// Consumers (e.g. the tapir middleware enricher) use this to walk the
   /// active route's `middlewares` list without depending on the private
   /// router state.
   ///

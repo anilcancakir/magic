@@ -67,7 +67,7 @@ class GateManager {
   /// [LinkedHashMap] preserves insertion order; [_recordResult] removes
   /// then re-inserts the entry to keep the most-recently-written key at
   /// the back, and evicts the first key (the least-recently-written) on
-  /// overflow. This gives the dusk integration a cheap "what was the
+  /// overflow. This gives the tapir integration a cheap "what was the
   /// latest decision for ability X" lookup without retaining argument
   /// references.
   final LinkedHashMap<String, GateResult> _resultCache =
@@ -237,7 +237,7 @@ class GateManager {
   /// Return the most recently recorded [GateResult] across all
   /// abilities, or `null` when no check has run yet.
   ///
-  /// Consumed by dev-tooling integrations (the dusk snapshot enricher)
+  /// Consumed by dev-tooling integrations (the tapir snapshot enricher)
   /// that want the "latest gate decision" without knowing the ability
   /// name in advance. Backed by [LinkedHashMap] insertion order — the
   /// `_recordResult` touch+insert pattern guarantees the last write is
