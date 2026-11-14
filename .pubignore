@@ -1,8 +1,10 @@
 # AI Development & Documentation
+.ac/
 .claude/
 CLAUDE.md
 .mcp.json
 skills/
+tool/
 
 # IDEs
 .idea/

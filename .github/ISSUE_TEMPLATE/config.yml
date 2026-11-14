@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Question / Discussion
-    url: https://github.com/fluttersdk/magic/discussions
-    about: Ask questions and discuss Magic Framework with the community
+  - name: Report a security vulnerability
+    url: https://github.com/anilcancakir/magic/security/advisories/new
+    about: Private vulnerability reporting. Do not open a public issue for a security problem.
+  - name: API reference
+    url: https://pub.dev/documentation/magic/latest/
+    about: Classes, facades and commands, generated from the source.
