@@ -2667,6 +2667,28 @@ void main() async {
       expect(wired, contains('MagicTapirIntegration.install();'));
     });
 
+    test('a // inside a string literal does not hide a call after it', () {
+      const withUrl = '''
+import 'package:flutter/foundation.dart';
+import 'package:magic/magic.dart';
+import 'package:material_ui/material_ui.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (kDebugMode && 'https://x.test'.isNotEmpty) CrumbsPlugin.install();
+  await Magic.init(configFactories: []);
+
+  runApp(MagicApplication(title: 'My App'));
+}
+''';
+
+      final wired = MagicInstallCommand().buildDevtoolsWiring(withUrl);
+
+      expect('CrumbsPlugin.install('.allMatches(wired).length, 1);
+      expect(wired, contains('MagicCrumbsIntegration.install();'));
+    });
+
     test('a call already in the file is never written a second time', () {
       // Hand-wired under another guard, or by crumbs:install (which writes
       // kDebugMode): call presence decides, not the snippet text.

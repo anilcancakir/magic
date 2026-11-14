@@ -936,10 +936,7 @@ class MagicInstallCommand extends DowelInstallCommand {
   String buildDevtoolsWiring(String source) {
     // 0. A call counts only when it is code: a commented example (the one in
     //    install.yaml, say) is not installed setup.
-    final String code = source.replaceAll(
-      RegExp(r'/\*[\s\S]*?\*/|//[^\n]*'),
-      '',
-    );
+    final String code = _withoutComments(source);
 
     // The umbrella call installs every block below.
     if (code.contains('MagicDevtools.installPre(')) return source;
@@ -1088,6 +1085,43 @@ class MagicInstallCommand extends DowelInstallCommand {
     }
 
     return result;
+  }
+
+  /// Returns [source] with its `//` and `/* */` comments removed.
+  ///
+  /// String literals are kept whole (single, double and triple quoted, raw or
+  /// not), so a `//` inside `'https://x'` does not start a comment. Used only
+  /// to decide whether a call is code, never to rewrite the file.
+  static String _withoutComments(String source) {
+    final StringBuffer out = StringBuffer();
+    int i = 0;
+    while (i < source.length) {
+      final String c = source[i];
+      final bool raw = i > 0 && source[i - 1] == 'r' && (c == "'" || c == '"');
+      if (c == "'" || c == '"') {
+        final String triple = c * 3;
+        final bool isTriple = source.startsWith(triple, i);
+        final String close = isTriple ? triple : c;
+        int j = i + close.length;
+        while (j < source.length && !source.startsWith(close, j)) {
+          j += (!raw && source[j] == r'\') ? 2 : 1;
+        }
+        final int end = (j + close.length).clamp(0, source.length);
+        out.write(source.substring(i, end));
+        i = end;
+      } else if (source.startsWith('//', i)) {
+        while (i < source.length && source[i] != '\n') {
+          i++;
+        }
+      } else if (source.startsWith('/*', i)) {
+        final int close = source.indexOf('*/', i + 2);
+        i = close == -1 ? source.length : close + 2;
+      } else {
+        out.write(c);
+        i++;
+      }
+    }
+    return out.toString();
   }
 
   /// Assembles the provider list rendered into `lib/config/app.dart`.
