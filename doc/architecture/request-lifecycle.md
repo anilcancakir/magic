@@ -102,13 +102,15 @@ Providers are registered in `config/app.dart`:
 ```dart
 'providers': [
   (app) => NetworkServiceProvider(app),
-  (app) => AuthServiceProvider(app),
   (app) => CacheServiceProvider(app),
   (app) => LocalizationServiceProvider(app),
   (app) => EventServiceProvider(app),
   (app) => AppServiceProvider(app),
+  (app) => AuthServiceProvider(app),
 ],
 ```
+
+`AppServiceProvider` comes before `AuthServiceProvider` so the session restore finds the user factory; see [Provider Loading Order](../getting-started/service-providers.md#registering-providers).
 
 ### Provider Lifecycle
 
@@ -204,15 +206,14 @@ Middleware intercepts navigation before the view renders:
 ```dart
 class EnsureAuthenticated extends MagicMiddleware {
   @override
-  Future<void> handle(void Function() next) async {
-    if (Auth.check()) {
-      next();  // Allow navigation
-    } else {
-      MagicRoute.to('/login');  // Redirect
-    }
+  String? redirectTarget(String location) {
+    if (!Auth.check() && location != '/login') return '/login';
+    return null; // Allow navigation
   }
 }
 ```
+
+A redirect guard overrides `redirectTarget`, which runs in the router's `redirect` callback before the route builds, so the destination mounts once. `handle(next)` is for async, non-redirecting work; a `MagicRoute.to()` from inside it runs after the route has mounted and remounts the destination. See [Middleware](../basics/middleware.md).
 
 ### Middleware Execution Order
 
@@ -230,22 +231,29 @@ Controllers are resolved using the `findOrPut` pattern:
 MagicRoute.page('/tasks', () => TaskController.instance.index());
 
 // Controller
-class TaskController extends MagicController {
+class TaskController extends MagicController with MagicStateMixin<List<Task>> {
   static TaskController get instance => Magic.findOrPut(TaskController.new);
-  
+
   Widget index() {
     if (isEmpty) _loadTasks();
     return const TaskListView();
   }
+
+  Future<void> _loadTasks() async {
+    setLoading();
+    setSuccess(await Task.all());
+  }
 }
 ```
+
+`isEmpty`, `setLoading()` and `setSuccess()` come from `MagicStateMixin`, so a controller that tracks loading state mixes it in.
 
 ### Controller Lifecycle
 
 1. **findOrPut** - Get existing or create new controller
-2. **onInit()** - Called when controller is created
+2. **onInit()** - Called once, the first time a stateful view backs the controller (a `SimpleMagicController` calls it from its constructor)
 3. **Method execution** - Returns view widget
-4. **State updates** - `notifyListeners()` triggers rebuilds
+4. **State updates** - `refreshUI()` (or a `MagicStateMixin` setter) triggers rebuilds
 5. **onClose()** - Called when controller is disposed
 
 <a name="view-rendering"></a>
@@ -274,7 +282,7 @@ class TaskListView extends MagicView<TaskController> {
 1. Controller calls `setLoading()` → View shows loading
 2. Controller calls `setSuccess(data)` → View renders data
 3. Controller calls `setError(msg)` → View shows error
-4. Controller calls `notifyListeners()` → View rebuilds
+4. Controller calls `refreshUI()` → View rebuilds
 
 > [!TIP]
 > Understanding this lifecycle helps you place logic in the right location: configuration in providers, authorization in middleware, business logic in controllers, and UI in views.

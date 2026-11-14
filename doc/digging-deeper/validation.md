@@ -283,17 +283,18 @@ A `FormRequest` collapses "authorize, normalize, validate" into a single class s
 
 ```dart
 class StoreMonitorRequest extends FormRequest {
-  StoreMonitorRequest(this.actor);
-
-  final User actor;
+  const StoreMonitorRequest();
 
   @override
-  bool authorize() => actor.can('monitor.create');
+  bool authorize() => Gate.allows('monitor.create');
 
   @override
   Map<String, dynamic> prepared(Map<String, dynamic> data) => {
     ...data,
-    'slug': slugify(data['name'] as String? ?? ''),
+    'slug': (data['name'] as String? ?? '')
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'\s+'), '-'),
   };
 
   @override
@@ -305,7 +306,7 @@ class StoreMonitorRequest extends FormRequest {
 
 // In a controller with the ValidatesRequests mixin:
 try {
-  final payload = StoreMonitorRequest(Auth.user()!).validate(form.data);
+  final payload = const StoreMonitorRequest().validate(form.data);
   await Http.post('/monitors', data: payload);
 } on AuthorizationException {
   Magic.error('Error', 'You do not have permission to create monitors.');
@@ -544,12 +545,14 @@ class StrongPassword extends Rule {
   }
 
   @override
-  String message() => trans('validation.strong_password');
+  String message() => 'validation.strong_password';
 }
 
 // Usage
 validator: rules([Required(), StrongPassword()], field: 'password')
 ```
+
+`message()` returns the translation key, not the translated sentence: the validator translates it, and `Rule.name` (here `strong_password`, the key for a `messages` override) is the part after the last dot. A rule that returns a raw sentence has no usable name and overrides `name` itself.
 
 <a name="error-styling"></a>
 ## Error Styling

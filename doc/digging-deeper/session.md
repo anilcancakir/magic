@@ -78,17 +78,24 @@ After a back navigation and a `Session.tick()`, `old('email')` returns the last-
 Flash data survives exactly one navigation. Advance the bucket only when the router location actually changes. Do **not** wire `Session.tick` directly to the router delegate listener: the delegate can notify for more than real navigation (redirect re-evaluation, notifier rebuilds) and would expire flash data prematurely.
 
 ```dart
-var lastLocation = MagicRouter.instance.currentLocation;
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Magic.init(configFactories: [() => appConfig]);
 
-MagicRouter.instance.routerConfig.routerDelegate.addListener(() {
-  final currentLocation = MagicRouter.instance.currentLocation;
-  if (currentLocation == lastLocation) return;
-  lastLocation = currentLocation;
-  Session.tick();
-});
+  var lastLocation = MagicRouter.instance.currentLocation;
+
+  MagicRouter.instance.routerConfig.routerDelegate.addListener(() {
+    final currentLocation = MagicRouter.instance.currentLocation;
+    if (currentLocation == lastLocation) return;
+    lastLocation = currentLocation;
+    Session.tick();
+  });
+
+  runApp(const MagicApplication(title: 'My App'));
+}
 ```
 
-Place this in a `ServiceProvider.boot()` after `Magic.init()` completes.
+Wire it in `main()` after `await Magic.init()`, not in a `ServiceProvider.boot()`. Every `boot()` runs inside `Magic.init()`, and the first read of `routerConfig` builds the router. A `boot()` that reads it before `RouteServiceProvider.boot()` has registered the routes freezes the router early, so the next `addRoute` throws a `StateError`. Once `Magic.init()` returns, the router is built with every route in it.
 
 <a name="testing"></a>
 ## Testing

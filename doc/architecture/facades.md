@@ -185,7 +185,6 @@ MagicRoute.group(prefix: '/admin', routes: () {});
 await Http.get('/users', query: {'page': 1});
 await Http.post('/users', data: {...});
 await Http.put('/users/1', data: {...});
-await Http.patch('/users/1', data: {...});
 await Http.delete('/users/1');
 
 // RESTful shortcuts

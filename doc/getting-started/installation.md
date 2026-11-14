@@ -34,13 +34,13 @@ Magic's structure and vocabulary follow Laravel, so the names carry over:
 
 ```dart
 // Routing
-MagicRoute.get('/users', () => UserController().index());
-MagicRoute.get('/users/:id', (id) => UserController().show(id));
+MagicRoute.page('/users', () => UserController.instance.index());
+MagicRoute.page('/users/:id', (String id) => UserController.instance.show(id));
 
 // Eloquent
 final users = await User.all();
 final user = await User.find(1);
-await user.delete();
+if (user != null) await user.delete();
 
 // HTTP
 final response = await Http.get('/api/users');

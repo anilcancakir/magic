@@ -72,7 +72,7 @@ Map<String, dynamic> get appConfig => {
 ```
 
 > [!NOTE]
-> Any variable in your `.env` file can be overridden by external environment variables at runtime.
+> The `.env` file is a Flutter asset, so its values are bundled at build time. `Magic.init()` reads only that file: process environment variables do not override it at runtime. Ship a different value by building with a different `.env`, or pass `envFileName` to `Magic.init()`.
 
 > [!NOTE]
 > `APP_KEY` is not read by core. The `magic_encryption` plugin reads it as `app.key`, and `dart run magic:dowel key:generate` (from that plugin) writes it. See [magic_encryption](https://anilcancakir.com/magic/docs/encryption/getting-started/installation).
@@ -80,15 +80,20 @@ Map<String, dynamic> get appConfig => {
 <a name="environment-variable-types"></a>
 ### Environment Variable Types
 
-All variables in your `.env` files are parsed as strings. The `env()` helper automatically converts common values:
+All variables in your `.env` files are read as strings. `env()` and `Env.get()` convert a value only when the type argument is `bool`, `int` or `double`; the type is inferred from the default, so `env('APP_DEBUG', false)` reads a `bool` and `env('PORT', 3000)` reads an `int`. Every other type, including a call with no default, returns the raw string:
 
-| `.env` Value | Dart Value |
-|--------------|------------|
-| `true` / `(true)` | `true` (bool) |
-| `false` / `(false)` | `false` (bool) |
-| `null` / `(null)` | `null` |
-| `empty` / `(empty)` | `''` (empty string) |
-| Numeric strings | Parsed as `int` or `double` |
+| Requested type | `.env` value | Result |
+|:---|:---|:---|
+| `bool` | `true`, `1` or `yes` (any case) | `true` |
+| `bool` | any other value, including `false`, `(true)` and `on` | `false` |
+| `int` | a string `int.tryParse` accepts | the parsed `int` |
+| `int` | anything else | the default |
+| `double` | a string `double.tryParse` accepts | the parsed `double` |
+| `double` | anything else | the default |
+| any other type | any value, including `null` and `empty` | the raw string (`'null'`, `'empty'`) |
+| any type | key absent, or `.env` not loaded | the default |
+
+`Env.getBool(key)` and `Env.getInt(key)` default to `false` and `0`; `Env.getString(key)` defaults to `''`.
 
 `KEY=""` and `KEY=''` resolve to `''`, not to the `env()` default: an explicitly present but empty value is not the same as an absent key, matching Laravel's `Env::get`. A blank value reaching a browser tab title or a link as `Monitor | ""` or as a path with no origin is the failure mode this distinguishes; see [Guarding Against a Blank Value](#guarding-against-a-blank-value) for the helper that treats blank as absent instead.
 
