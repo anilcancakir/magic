@@ -14,4 +14,5 @@ paths: "lib/src/auth/**/*.dart"
 - `Authenticatable` interface: models implementing auth must extend this. Provides `getAuthIdentifier()`, token methods
 - Config path: `auth.defaults.guard` for default guard name, `auth.guards.{name}` for guard-specific config
 - Token storage: guards use `Vault` (flutter_secure_storage) for token persistence. Vault must be available
+- Refresh: a 401 on an older token is never replayed, and `BaseGuard.sessionEpoch` (`@internal`) discards a refresh or retry whose session changed meanwhile
 - `AuthServiceProvider` is auto-registered — binds AuthManager as singleton in register phase

@@ -44,6 +44,51 @@ class _RotatingGuard extends BaseGuard {
   }
 }
 
+/// A guard with a refresh endpoint, so [BaseGuard.refreshToken] runs for real.
+class _RefreshingGuard extends BaseGuard {
+  _RefreshingGuard()
+    : super(refreshEndpoint: '/refresh', refreshTokenKey: 'refresh_token');
+
+  @override
+  Future<void> login(Map<String, dynamic> data, Authenticatable user) =>
+      startSession(
+        user,
+        token: data['token'] as String?,
+        refreshToken: data['refresh_token'] as String?,
+      );
+}
+
+/// A vault whose writes land one at a time, in the order they were issued,
+/// as a platform keystore's do, and which holds the write of [holdValue]
+/// until [release] completes.
+class _SerialHoldingVault extends FakeVaultService {
+  /// The value whose write is held, or null to hold nothing.
+  String? holdValue;
+
+  /// Completes when the held write has started and is waiting.
+  final Completer<void> holdStarted = Completer<void>();
+
+  /// Opens the gate the held write is waiting on.
+  final Completer<void> release = Completer<void>();
+
+  Future<void> _tail = Future<void>.value();
+
+  @override
+  Future<void> put(String key, String value) {
+    final write = _tail.then((_) async {
+      if (value == holdValue) {
+        holdStarted.complete();
+        await release.future;
+      }
+
+      await super.put(key, value);
+    });
+    _tail = write;
+
+    return write;
+  }
+}
+
 /// A 401 carrying whatever headers the request actually went out with.
 MagicError _unauthorized(Map<String, dynamic> headers) => MagicError(
   request: MagicRequest(url: '/notifications', method: 'GET', headers: headers),
@@ -289,4 +334,236 @@ void main() {
       expect(await Vault.get('auth_token'), 'new-token');
     },
   );
+
+  group('a refresh across a change of session', () {
+    // A request refused under one session must never be replayed with another
+    // session's token, and a refresh started under one session must never
+    // store its token into another. Account A's 401 starts a refresh; account
+    // B signs in, or the session ends, while it is in the air.
+    late BaseGuard guard;
+    late _SerialHoldingVault vault;
+    late FakeNetworkDriver http;
+    late MagicResponse refreshAnswer;
+    late bool holdRefresh;
+    late int refreshCount;
+    late Completer<void> refreshArrived;
+    late Completer<void> refreshRelease;
+
+    setUp(() async {
+      MagicApp.reset();
+      Magic.flush();
+      Log.fake();
+      vault = _SerialHoldingVault();
+      Magic.app.setInstance('vault', vault);
+      refreshAnswer = MagicResponse(
+        data: <String, dynamic>{
+          'token': 'a2-token',
+          'refresh_token': 'a2-refresh',
+        },
+        statusCode: 200,
+      );
+      holdRefresh = false;
+      refreshCount = 0;
+      refreshArrived = Completer<void>();
+      refreshRelease = Completer<void>();
+      http = Http.fake((MagicRequest request) async {
+        if (request.url != '/refresh') {
+          return MagicResponse(data: <String, dynamic>{}, statusCode: 200);
+        }
+
+        refreshCount++;
+        if (!refreshArrived.isCompleted) refreshArrived.complete();
+        if (holdRefresh) await refreshRelease.future;
+
+        return refreshAnswer;
+      });
+      Config.set('auth', <String, dynamic>{
+        'defaults': <String, dynamic>{'guard': 'api'},
+        'guards': <String, dynamic>{
+          'api': <String, dynamic>{'driver': 'refreshing'},
+        },
+      });
+      Magic.singleton('auth', AuthManager.new);
+      Auth.manager
+        ..extend('refreshing', (_) => _RefreshingGuard())
+        ..forgetGuards();
+      guard = Auth.guard() as BaseGuard;
+
+      await guard.login(<String, dynamic>{
+        'token': 'a-token',
+        'refresh_token': 'a-refresh',
+      }, _User()..setRawAttributes({'id': 1}, sync: true));
+    });
+
+    /// Every credential the refused request was replayed with.
+    List<Object?> replays() => http.recorded
+        .where((entry) => entry.$1.url == '/notifications')
+        .map((entry) => entry.$1.headers['Authorization'])
+        .toList();
+
+    Future<void> signInB() => guard.login(<String, dynamic>{
+      'token': 'b-token',
+      'refresh_token': 'b-refresh',
+    }, _User()..setRawAttributes({'id': 2}, sync: true));
+
+    test(
+      'a refresh within one session still retries with the new token',
+      () async {
+        final result = await AuthInterceptor().onError(
+          _unauthorized(<String, dynamic>{'Authorization': 'Bearer a-token'}),
+        );
+
+        expect(result, isA<MagicResponse>());
+        expect(replays(), <Object?>['Bearer a2-token']);
+        expect(guard.cachedToken, 'a2-token');
+        expect(await Vault.get('auth_token'), 'a2-token');
+        expect(await Vault.get('refresh_token'), 'a2-refresh');
+      },
+    );
+
+    test('two 401s at once still refresh once', () async {
+      holdRefresh = true;
+      final interceptor = AuthInterceptor();
+
+      final first = interceptor.onError(
+        _unauthorized(<String, dynamic>{'Authorization': 'Bearer a-token'}),
+      );
+      final second = interceptor.onError(
+        _unauthorized(<String, dynamic>{'Authorization': 'Bearer a-token'}),
+      );
+      await refreshArrived.future;
+      refreshRelease.complete();
+      await Future.wait<dynamic>([first, second]);
+
+      expect(refreshCount, 1);
+      expect(guard.cachedToken, 'a2-token');
+    });
+
+    test(
+      'a sign-in during the refresh write is not replayed with its token',
+      () async {
+        // The refresh moves the in-memory token before its Vault write, and
+        // the interceptor used to read the credential to retry with only
+        // after the refresh returned: by then it was B's, and A's request
+        // went out under B's token, answering B's screen with A's question.
+        vault.holdValue = 'a2-token';
+
+        final refusal = AuthInterceptor().onError(
+          _unauthorized(<String, dynamic>{'Authorization': 'Bearer a-token'}),
+        );
+        await vault.holdStarted.future;
+        final signingIn = signInB();
+        vault.release.complete();
+        final result = await refusal;
+        await signingIn;
+
+        expect(result, isA<MagicError>());
+        expect(replays(), isEmpty);
+        expect(guard.id(), 2);
+        expect(guard.cachedToken, 'b-token');
+        expect(await Vault.get('auth_token'), 'b-token');
+        expect(await Vault.get('refresh_token'), 'b-refresh');
+      },
+    );
+
+    test('a sign-in during the refresh request keeps its own token', () async {
+      // The refresh stored whatever the endpoint answered, whoever had signed
+      // in since it was sent: B was left holding A's token in memory and in
+      // the Vault.
+      holdRefresh = true;
+
+      final refusal = AuthInterceptor().onError(
+        _unauthorized(<String, dynamic>{'Authorization': 'Bearer a-token'}),
+      );
+      await refreshArrived.future;
+      await signInB();
+      refreshRelease.complete();
+      final result = await refusal;
+
+      expect(guard.id(), 2);
+      expect(guard.cachedToken, 'b-token');
+      expect(await Vault.get('auth_token'), 'b-token');
+      expect(await Vault.get('refresh_token'), 'b-refresh');
+      expect(result, isA<MagicError>());
+      expect(replays(), isEmpty);
+    });
+
+    test('a sign-out during the refresh request stays signed out', () async {
+      holdRefresh = true;
+
+      final refusal = AuthInterceptor().onError(
+        _unauthorized(<String, dynamic>{'Authorization': 'Bearer a-token'}),
+      );
+      await refreshArrived.future;
+      await guard.logout();
+      refreshRelease.complete();
+      final result = await refusal;
+
+      expect(guard.check(), isFalse);
+      expect(guard.cachedToken, isNull);
+      expect(await Vault.get('auth_token'), isNull);
+      expect(await Vault.get('refresh_token'), isNull);
+      expect(result, isA<MagicError>());
+      expect(replays(), isEmpty);
+    });
+
+    test('a refused refresh does not end a session opened during it', () async {
+      // A failed refresh logs out, and that logout used to land on whoever
+      // held the guard by then.
+      holdRefresh = true;
+      refreshAnswer = MagicResponse(data: null, statusCode: 401);
+
+      final refusal = AuthInterceptor().onError(
+        _unauthorized(<String, dynamic>{'Authorization': 'Bearer a-token'}),
+      );
+      await refreshArrived.future;
+      await signInB();
+      refreshRelease.complete();
+      final result = await refusal;
+
+      expect(result, isA<MagicError>());
+      expect(guard.check(), isTrue);
+      expect(guard.id(), 2);
+      expect(guard.cachedToken, 'b-token');
+    });
+
+    test('a restore that loads another token discards the refresh', () async {
+      // Another path stored B's token, and a restore picked it up while A's
+      // refresh was in the air.
+      holdRefresh = true;
+
+      final refusal = AuthInterceptor().onError(
+        _unauthorized(<String, dynamic>{'Authorization': 'Bearer a-token'}),
+      );
+      await refreshArrived.future;
+      await Vault.put('auth_token', 'b-token');
+      await guard.restore();
+      refreshRelease.complete();
+      final result = await refusal;
+
+      expect(result, isA<MagicError>());
+      expect(replays(), isEmpty);
+      expect(guard.cachedToken, 'b-token');
+      expect(await Vault.get('auth_token'), 'b-token');
+    });
+
+    test('a restore of the same session lets the refresh land', () async {
+      // `Auth.restore()` runs after a profile save or a team switch, on the
+      // same token. Discarding a refresh for it would drop a token the
+      // server has already rotated to.
+      holdRefresh = true;
+
+      final refusal = AuthInterceptor().onError(
+        _unauthorized(<String, dynamic>{'Authorization': 'Bearer a-token'}),
+      );
+      await refreshArrived.future;
+      await guard.restore();
+      refreshRelease.complete();
+      final result = await refusal;
+
+      expect(result, isA<MagicResponse>());
+      expect(replays(), <Object?>['Bearer a2-token']);
+      expect(guard.cachedToken, 'a2-token');
+    });
+  });
 }

@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - **The pub.dev listing and the README now lead with the product pitch and keep Laravel as a secondary note.** The description, topics, README, `llms.txt` and `CLAUDE.md` say what core carries and which layers (realtime, payments, SQLite, notifications and more) are official plugins, and the Platforms row names the platforms explicitly. The installation page's introduction leads with the same pitch and moves Laravel to a "Familiar to Laravel Developers" note, and the directory-structure page's opening line names the folders first and mentions Laravel's conventions last. (`pubspec.yaml`, `README.md`, `llms.txt`, `CLAUDE.md`, `doc/getting-started/`)
 
+### Fixed
+
+- **Security: a token refresh can no longer cross accounts.** When another account signed in, or the session ended, while a refresh was in the air, the refused request was replayed with the new account's token and the refreshed token could overwrite the new session's, in memory and in `Vault`; a failed refresh could also log the new account out. A refresh now belongs to the session it started in: if that session changed, the refreshed token is discarded and the refused request is handed back without a retry or a logout. (`lib/src/auth/`)
+
 ## [1.0.0] - 2026-11-14
 
 ### BREAKING
