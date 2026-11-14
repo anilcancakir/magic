@@ -43,7 +43,10 @@ jobs:
 
           # --no-renames: a file moved out of a shipped directory then shows up
           # under its old path too, so removing shipped code still needs an entry.
-          changed="$(git diff --no-renames --name-only "origin/$BASE_REF"...HEAD)"
+          # core.quotepath=false keeps a non-ASCII file name as written; with the
+          # default Git would print it quoted and escaped and the path check
+          # below would miss it.
+          changed="$(git -c core.quotepath=false diff --no-renames --name-only "origin/$BASE_REF"...HEAD)"
 
           if ! printf '%s\n' "$changed" | grep -Eq "$CODE_PATHS"; then
             echo "No shipped code changed: nothing to record."

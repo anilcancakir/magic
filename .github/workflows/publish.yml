@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       notes: ${{ steps.notes.outputs.body }}
+      prerelease: ${{ steps.kind.outputs.prerelease }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -80,6 +81,19 @@ jobs:
           dart pub global activate pana 0.23.13
           dart pub global run pana --no-warning --exit-code-threshold 0 .
 
+      # A pre-release carries a hyphen in the version proper (`1.2.0-rc.1`); a
+      # hyphen after the `+` belongs to the build metadata and keeps the version
+      # stable (`1.2.0+build-1`).
+      - name: Classify the version
+        id: kind
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          case "${VERSION%%+*}" in
+            *-*) echo "prerelease=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "prerelease=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
       # Runs before the irreversible publish: a tag without a `## [<version>]`
       # section in CHANGELOG.md stops here instead of shipping a version with
       # no GitHub Release.
@@ -122,9 +136,10 @@ jobs:
           GH_REPO: ${{ github.repository }}
           VERSION: ${{ github.ref_name }}
           NOTES: ${{ needs.validate.outputs.notes }}
+          PRERELEASE: ${{ needs.validate.outputs.prerelease }}
         run: |
-          case "$VERSION" in
-            *-*) FLAG="--prerelease" ;;
+          case "$PRERELEASE" in
+            true) FLAG="--prerelease" ;;
             *) FLAG="--latest" ;;
           esac
           gh release create "$VERSION" \
@@ -138,8 +153,8 @@ jobs:
   # GitHub Release job, so the registry never gets a skill whose release failed.
   registry:
     name: Sync skill to registry
-    needs: github-release
-    if: ${{ !contains(github.ref_name, '-') }}
+    needs: [validate, github-release]
+    if: ${{ needs.validate.outputs.prerelease != 'true' }}
     uses: ./.github/workflows/dispatch-to-registry.yml
     secrets:
       REGISTRY_BOT_APP_ID: ${{ secrets.REGISTRY_BOT_APP_ID }}
