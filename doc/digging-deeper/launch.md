@@ -169,4 +169,4 @@ if (await Launch.canLaunch('myapp://profile/42')) {
 
 - [Service Providers](../getting-started/service-providers.md)
 - [Logging](./logging.md)
-- [Deep links (magic_deeplink)](https://anilcancakir.com/magic_deeplink/docs/getting-started/installation)
+- [Deep links (magic_deeplink)](https://anilcancakir.com/magic/docs/deeplink/getting-started/installation)

@@ -361,7 +361,7 @@ When using hybrid mode:
 <a name="local-storage"></a>
 ## Local Storage
 
-`useLocal` defaults to `false`, so a model talks to your REST API unless you opt in. The local leg is provided by the `magic_local_storage` plugin (SQLite database, query builder, migrations, seeders, factories and sync). Core only ships the `LocalModelStore` contract (container key `'local_model_store'`): a model with `useLocal => true` throws a `StateError` naming `magic_local_storage` when nothing is bound. Install it with `flutter pub add magic_local_storage`, then `dart run magic:dowel plugin:install magic_local_storage`. Its [models page](https://anilcancakir.com/magic_local_storage/docs/basics/models) covers the local leg.
+`useLocal` defaults to `false`, so a model talks to your REST API unless you opt in. The local leg is provided by the `magic_local_storage` plugin (SQLite database, query builder, migrations, seeders, factories and sync). Core only ships the `LocalModelStore` contract (container key `'local_model_store'`): a model with `useLocal => true` throws a `StateError` naming `magic_local_storage` when nothing is bound. Install it with `flutter pub add magic_local_storage`, then `dart run magic:dowel plugin:install magic_local_storage`. Its [models page](https://anilcancakir.com/magic/docs/local_storage/basics/models) covers the local leg.
 
 <a name="related-documentation"></a>
 ## Related Documentation

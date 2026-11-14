@@ -98,10 +98,10 @@ These facades live in optional plugin packages, not in core. Each plugin is inst
 
 | Facade | Package | Provides |
 |:-------|:--------|:---------|
-| `Crypt` | [`magic_encryption`](https://anilcancakir.com/magic_encryption/docs/getting-started/installation) | AES-256-CBC encryption |
-| `Echo` | [`magic_socket`](https://anilcancakir.com/magic_socket/docs/getting-started/installation) | Real-time broadcasting client |
-| `DB`, `Schema` | [`magic_local_storage`](https://anilcancakir.com/magic_local_storage/docs/getting-started/installation) | SQLite, query builder, migrations |
-| `Pick` | [`magic_picker`](https://anilcancakir.com/magic_picker/docs/getting-started/installation) | File and image picking |
+| `Crypt` | [`magic_encryption`](https://anilcancakir.com/magic/docs/encryption/getting-started/installation) | AES-256-CBC encryption |
+| `Echo` | [`magic_socket`](https://anilcancakir.com/magic/docs/socket/getting-started/installation) | Real-time broadcasting client |
+| `DB`, `Schema` | [`magic_local_storage`](https://anilcancakir.com/magic/docs/local_storage/getting-started/installation) | SQLite, query builder, migrations |
+| `Pick` | [`magic_picker`](https://anilcancakir.com/magic/docs/picker/getting-started/installation) | File and image picking |
 
 <a name="how-facades-work"></a>
 ## How Facades Work

@@ -24,7 +24,7 @@ Key features:
 - **Disk System**: Configure multiple storage locations.
 - **MagicFile Integration**: One file wrapper for stored, downloaded and picked files.
 
-Picking files (gallery, camera, file and save dialogs) and the share sheet behind `Storage.download` on mobile and desktop live in the `magic_picker` plugin: `flutter pub add magic_picker`, then `dart run magic:dowel plugin:install magic_picker`. Its `Pick` facade returns a `MagicFile` you can store with the methods below, and its service provider sets the `LocalAdapterContract.downloadHandler` seam. Without it, `Storage.download` throws `UnsupportedError` on mobile and desktop; the web download is unchanged. See the [installation guide](https://anilcancakir.com/magic_picker/docs/getting-started/installation) and the [download page](https://anilcancakir.com/magic_picker/docs/basics/download).
+Picking files (gallery, camera, file and save dialogs) and the share sheet behind `Storage.download` on mobile and desktop live in the `magic_picker` plugin: `flutter pub add magic_picker`, then `dart run magic:dowel plugin:install magic_picker`. Its `Pick` facade returns a `MagicFile` you can store with the methods below, and its service provider sets the `LocalAdapterContract.downloadHandler` seam. Without it, `Storage.download` throws `UnsupportedError` on mobile and desktop; the web download is unchanged. See the [installation guide](https://anilcancakir.com/magic/docs/picker/getting-started/installation) and the [download page](https://anilcancakir.com/magic/docs/picker/basics/download).
 
 <a name="configuration"></a>
 ## Configuration
@@ -326,4 +326,4 @@ tearDown(() {
 - [Configuration](../getting-started/configuration.md)
 - [HTTP Client](../basics/http-client.md)
 - [Helpers](./helpers.md)
-- [Pick, XFile and download (magic_picker)](https://anilcancakir.com/magic_picker/docs/basics/pick)
+- [Pick, XFile and download (magic_picker)](https://anilcancakir.com/magic/docs/picker/basics/pick)

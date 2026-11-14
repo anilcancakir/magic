@@ -257,7 +257,7 @@ flutter pub add magic_sentry
 dart run magic:dowel plugin:install magic_sentry
 ```
 
-See the [installation guide](https://anilcancakir.com/magic_sentry/docs/getting-started/installation) and [HTTP failure reporting](https://anilcancakir.com/magic_sentry/docs/basics/http-reporting).
+See the [installation guide](https://anilcancakir.com/magic/docs/sentry/getting-started/installation) and [HTTP failure reporting](https://anilcancakir.com/magic/docs/sentry/basics/http-reporting).
 
 <a name="testing"></a>
 ## Testing

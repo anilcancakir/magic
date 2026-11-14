@@ -198,7 +198,7 @@ Pass a custom error to `throwOnGet`/`throwOnPut` to assert on a specific message
 <a name="encrypting-values"></a>
 ## Encrypting Values
 
-Encrypting strings (the `Crypt` facade) is provided by the `magic_encryption` plugin, not by core. Install it with `flutter pub add magic_encryption`, then `dart run magic:dowel plugin:install magic_encryption`. Its [installation page](https://anilcancakir.com/magic_encryption/docs/getting-started/installation) covers setup and its [device key page](https://anilcancakir.com/magic_encryption/docs/basics/device-key) covers keys held in the vault.
+Encrypting strings (the `Crypt` facade) is provided by the `magic_encryption` plugin, not by core. Install it with `flutter pub add magic_encryption`, then `dart run magic:dowel plugin:install magic_encryption`. Its [installation page](https://anilcancakir.com/magic/docs/encryption/getting-started/installation) covers setup and its [device key page](https://anilcancakir.com/magic/docs/encryption/basics/device-key) covers keys held in the vault.
 
 <a name="related-documentation"></a>
 ## Related Documentation
