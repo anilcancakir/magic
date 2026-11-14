@@ -457,7 +457,7 @@ class AuthController extends MagicController with ValidatesRequests {
 ## File Uploads
 
 > [!NOTE]
-> Picking a file from the device (the `Pick` facade) belongs to the `magic_picker` plugin: `flutter pub add magic_picker`, then `dart run magic:dowel plugin:install magic_picker`. See its [Pick page](https://anilcancakir.com/magic_picker/docs/basics/pick).
+> Picking a file from the device (the `Pick` facade) belongs to the `magic_picker` plugin: `flutter pub add magic_picker`, then `dart run magic:dowel plugin:install magic_picker`. See its [Pick page](https://anilcancakir.com/magic/docs/picker/basics/pick).
 
 ### Using MagicFile (Recommended)
 
@@ -551,7 +551,7 @@ driver.configureDriver((dio) {
 });
 ```
 
-Reporting failed requests to Sentry is the job of the `magic_sentry` plugin (`flutter pub add magic_sentry`, then `dart run magic:dowel plugin:install magic_sentry`), which registers its own interceptor; see its [HTTP Reporting page](https://anilcancakir.com/magic_sentry/docs/basics/http-reporting).
+Reporting failed requests to Sentry is the job of the `magic_sentry` plugin (`flutter pub add magic_sentry`, then `dart run magic:dowel plugin:install magic_sentry`), which registers its own interceptor; see its [HTTP Reporting page](https://anilcancakir.com/magic/docs/sentry/basics/http-reporting).
 
 You can also use this hook to pin a certificate by supplying a custom `HttpClientAdapter`:
 

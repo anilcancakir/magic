@@ -210,7 +210,7 @@ void registerAppRoutes() {
 <a name="the-database-directory"></a>
 ## The Database Directory
 
-A fresh project has no `database` directory. Migrations, seeders and model factories belong to the `magic_local_storage` plugin, which creates `lib/database/` when you install it: `flutter pub add magic_local_storage`, then `dart run magic:dowel plugin:install magic_local_storage`. See [Eloquent: Local Storage](../eloquent/getting-started.md#local-storage) and the [plugin's installation page](https://anilcancakir.com/magic_local_storage/docs/getting-started/installation).
+A fresh project has no `database` directory. Migrations, seeders and model factories belong to the `magic_local_storage` plugin, which creates `lib/database/` when you install it: `flutter pub add magic_local_storage`, then `dart run magic:dowel plugin:install magic_local_storage`. See [Eloquent: Local Storage](../eloquent/getting-started.md#local-storage) and the [plugin's installation page](https://anilcancakir.com/magic/docs/local_storage/getting-started/installation).
 
 <a name="related-documentation"></a>
 ## Related Documentation

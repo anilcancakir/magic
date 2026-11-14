@@ -380,7 +380,7 @@ fake.reset();
 <a name="broadcasting-fakes"></a>
 ## Broadcasting Fakes
 
-The `Echo` facade and its `FakeBroadcastManager` live in the `magic_socket` plugin, which exports the fake from `package:magic_socket/testing.dart`. Install it with `flutter pub add magic_socket`, then `dart run magic:dowel plugin:install magic_socket`; its assertions are documented on the plugin's [testing page](https://anilcancakir.com/magic_socket/docs/guides/testing).
+The `Echo` facade and its `FakeBroadcastManager` live in the `magic_socket` plugin, which exports the fake from `package:magic_socket/testing.dart`. Install it with `flutter pub add magic_socket`, then `dart run magic:dowel plugin:install magic_socket`; its assertions are documented on the plugin's [testing page](https://anilcancakir.com/magic/docs/socket/guides/testing).
 
 <a name="full-example"></a>
 ## Full Example

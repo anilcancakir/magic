@@ -752,7 +752,7 @@ MagicRoute.page('/settings', () => SettingsPage());             // -> '/settings
 > second one reaches an observer. Anything that identifies screens depends on
 > it: analytics and breadcrumb trails.
 
-Sentry's navigator observer is registered for you by the `magic_sentry` plugin (`flutter pub add magic_sentry`, then `dart run magic:dowel plugin:install magic_sentry`); see its [Boot and Provider page](https://anilcancakir.com/magic_sentry/docs/basics/boot-and-provider).
+Sentry's navigator observer is registered for you by the `magic_sentry` plugin (`flutter pub add magic_sentry`, then `dart run magic:dowel plugin:install magic_sentry`); see its [Boot and Provider page](https://anilcancakir.com/magic/docs/sentry/basics/boot-and-provider).
 
 Pages inside a layout are named the same way and reach the same observers.
 Layouts compile to `ShellRoute`, whose children push onto the shell's own

@@ -105,10 +105,10 @@ This pulls in Magic and its dependencies, including **Wind UI** (`wind_kit`) and
 
 | Package | Provides |
 |:--------|:---------|
-| [`magic_local_storage`](https://anilcancakir.com/magic_local_storage/docs/getting-started/installation) | SQLite, query builder, migrations, seeders, factories, sync |
-| [`magic_encryption`](https://anilcancakir.com/magic_encryption/docs/getting-started/installation) | AES encryption (`Crypt`) |
-| [`magic_picker`](https://anilcancakir.com/magic_picker/docs/getting-started/installation) | File, image and video picking, share sheet |
-| [`magic_socket`](https://anilcancakir.com/magic_socket/docs/getting-started/installation) | Real-time broadcasting (`Echo`) |
+| [`magic_local_storage`](https://anilcancakir.com/magic/docs/local_storage/getting-started/installation) | SQLite, query builder, migrations, seeders, factories, sync |
+| [`magic_encryption`](https://anilcancakir.com/magic/docs/encryption/getting-started/installation) | AES encryption (`Crypt`) |
+| [`magic_picker`](https://anilcancakir.com/magic/docs/picker/getting-started/installation) | File, image and video picking, share sheet |
+| [`magic_socket`](https://anilcancakir.com/magic/docs/socket/getting-started/installation) | Real-time broadcasting (`Echo`) |
 
 ### 2. Scaffold Your Application
 

@@ -41,6 +41,26 @@ PACKAGE_SLUG = 'magic'
 SITE_ORIGIN = 'https://anilcancakir.com'
 DOC_URL_PREFIX = f'/{PACKAGE_SLUG}/docs/'
 
+# The ecosystem plugins publish under /magic/docs/<slug>/<section>/<page>, the
+# same prefix as the core pages. A URL whose first segment is one of these slugs
+# belongs to that plugin's doc tree, not to this one, so it is left unchecked.
+PLUGIN_SLUGS = frozenset(
+    {
+        'socket',
+        'picker',
+        'encryption',
+        'local_storage',
+        'payments',
+        'social_auth',
+        'deeplink',
+        'notifications',
+        'sentry',
+        'starter',
+        'devtools',
+        'device',
+    }
+)
+
 DOC_ROOT = Path('doc')
 
 # Extra files that carry links into the docs without following the doc/ page
@@ -195,6 +215,9 @@ def site_url_to_doc(url: str) -> Path | None:
         return None
 
     segments = [segment for segment in path[len(DOC_URL_PREFIX):].split('/') if segment]
+    if segments and segments[0] in PLUGIN_SLUGS:
+        return None
+
     if segments and VERSION_SEGMENT.match(segments[0]):
         segments = segments[1:]
 

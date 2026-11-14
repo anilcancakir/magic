@@ -88,18 +88,18 @@ Magic core stays small, and realtime, payments and the other layers below are of
 
 | Plugin | Adds |
 |---|---|
-| [`magic_local_storage`](https://anilcancakir.com/magic_local_storage) | SQLite for models with `useLocal`: `DB` and `Schema` facades, migrations, seeders, factories, a query builder and sync. |
-| [`magic_socket`](https://anilcancakir.com/magic_socket) | Real-time broadcasting: the `Echo` facade, Reverb and null drivers, private and presence channels. |
-| [`magic_encryption`](https://anilcancakir.com/magic_encryption) | AES-256-CBC encryption: the `Crypt` facade and `key:generate`. |
-| [`magic_picker`](https://anilcancakir.com/magic_picker) | File and image picking through the `Pick` facade, plus the share-sheet download handler. |
-| [`magic_deeplink`](https://anilcancakir.com/magic_deeplink) | Universal Links and App Links, resolved to Magic routes. |
-| [`magic_notifications`](https://anilcancakir.com/magic_notifications) | Database (in-app), push (OneSignal) and mail channels behind one `Notify` facade. |
-| [`magic_social_auth`](https://anilcancakir.com/magic_social_auth) | Social sign-in with extensible drivers, in the style of Laravel Socialite. |
-| [`magic_payments`](https://anilcancakir.com/magic_payments) | One entitlement contract over Stripe on the web and store in-app purchase on mobile. |
-| [`magic_sentry`](https://anilcancakir.com/magic_sentry) | Sentry for Magic apps: a web-safe boot, HTTP failure reports and an auth-synced user scope. |
-| [`magic_starter`](https://anilcancakir.com/magic_starter) | A starter kit: auth, profile, teams and notifications as opt-in features with overridable views. |
-| [`magic_device`](https://anilcancakir.com/magic_device) | Gate background work on mains power, viewer idle and macOS window fullscreen. |
-| [`magic_devtools`](https://anilcancakir.com/magic_devtools) | Magic adapters for the `tapir` and `crumbs` dev tools. |
+| [`magic_local_storage`](https://anilcancakir.com/magic/local_storage) | SQLite for models with `useLocal`: `DB` and `Schema` facades, migrations, seeders, factories, a query builder and sync. |
+| [`magic_socket`](https://anilcancakir.com/magic/socket) | Real-time broadcasting: the `Echo` facade, Reverb and null drivers, private and presence channels. |
+| [`magic_encryption`](https://anilcancakir.com/magic/encryption) | AES-256-CBC encryption: the `Crypt` facade and `key:generate`. |
+| [`magic_picker`](https://anilcancakir.com/magic/picker) | File and image picking through the `Pick` facade, plus the share-sheet download handler. |
+| [`magic_deeplink`](https://anilcancakir.com/magic/deeplink) | Universal Links and App Links, resolved to Magic routes. |
+| [`magic_notifications`](https://anilcancakir.com/magic/notifications) | Database (in-app), push (OneSignal) and mail channels behind one `Notify` facade. |
+| [`magic_social_auth`](https://anilcancakir.com/magic/social_auth) | Social sign-in with extensible drivers, in the style of Laravel Socialite. |
+| [`magic_payments`](https://anilcancakir.com/magic/payments) | One entitlement contract over Stripe on the web and store in-app purchase on mobile. |
+| [`magic_sentry`](https://anilcancakir.com/magic/sentry) | Sentry for Magic apps: a web-safe boot, HTTP failure reports and an auth-synced user scope. |
+| [`magic_starter`](https://anilcancakir.com/magic/starter) | A starter kit: auth, profile, teams and notifications as opt-in features with overridable views. |
+| [`magic_device`](https://anilcancakir.com/magic/device) | Gate background work on mains power, viewer idle and macOS window fullscreen. |
+| [`magic_devtools`](https://anilcancakir.com/magic/devtools) | Magic adapters for the `tapir` and `crumbs` dev tools. |
 
 ## For AI coding agents
 
