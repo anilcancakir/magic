@@ -50,7 +50,7 @@ Not-bug-worthy (documented magic behavior, not a defect):
 - Flash input lingering across more than one navigation: `Session.tick()` is not automatic (section 7). Wire it at bootstrap.
 - `Auth.guest()` failing to compile or `Http.patch(...)` not existing: `guest` is a getter and there is no `patch` verb (section 7). Use `Auth.guest` and `Http.put`/`update`.
 - `response.body` not existing: the payload is `response.data` (section 7).
-- Routes added in `boot()` not registering: the router pre-builds during `init`; register in `register()` (section 1, 7).
+- A route added after `Magic.init()` completes throwing a `StateError`: the router builds once, after every provider's `register()` and `boot()`; add routes from a provider (section 1, 5).
 - Auth session not restoring: `Auth.manager.setUserFactory(...)` was not set, or AppServiceProvider is listed after AuthServiceProvider (Core Law 5, checklist). Fix the factory and provider order.
 - A config value being null because it read `env()` under `configs:` instead of `configFactories:` (section 2, 7).
 - A Laravel-encrypted value failing to decrypt in magic: the formats differ and are intentionally not cross-compatible (see the `magic-encryption` skill).

@@ -28,7 +28,7 @@ abstract class MagicController extends ChangeNotifier
 
 | Member | Type | Purpose |
 | :--- | :--- | :--- |
-| `onInit()` | `void` | Called by the first `MagicStatefulView` that mounts the controller, not by `Magic.put` or `findOrPut` and never by a `MagicView`. Override to fetch data or init resources. `@mustCallSuper`. |
+| `onInit()` | `void` | Called by the first `MagicStatefulView` that mounts the controller, or from the constructor of a `SimpleMagicController`; not by `Magic.put` or `findOrPut` and never by a `MagicView`. A controller initialised earlier is not initialised again. Override to fetch data or init resources. `@mustCallSuper`. |
 | `onClose()` | `void` | Called before dispose. Override to clean up timers, streams, etc. `@mustCallSuper`. |
 | `refreshUI()` | `void` | Calls `notifyListeners()` safely (no-op if disposed). Every controller notification goes through it, including `ValidatesRequests`. |
 | `MagicPerfHooks.sink` | `void Function(MagicPerfEvent)?` | Static, null by default. Tooling sets it to observe every notification as a `ControllerNotified(controller, cause)`, plus repository, query, action, event, cast, timer and broadcast activity; a sink that throws is contained and cannot stop the repaint. See `doc/digging-deeper/perf-hooks.md`. |
@@ -236,7 +236,7 @@ class MonitorListView extends MagicView<MonitorController> {
 }
 ```
 
-`MagicView` runs no `onInit()`, so a controller that loads in `onInit()` stays in its initial state under it unless a `MagicStatefulView` mounted it first. It does not auto-listen to controller changes either: `renderState` handles its own `AnimatedBuilder` internally. For a controller field read outside `renderState`, wrap that section in a listener-backed widget (`MagicBuilder` over a `ValueListenable`, `MagicSelector` over a plain field), or use `MagicStatefulView`, which listens to the whole controller.
+`MagicView` runs no `onInit()`, so a controller that loads in `onInit()` stays in its initial state under it unless a `MagicStatefulView` mounted it first (or it initialised itself, as a `SimpleMagicController` does in its constructor). It does not auto-listen to controller changes either: `renderState` handles its own `AnimatedBuilder` internally. For a controller field read outside `renderState`, wrap that section in a listener-backed widget (`MagicBuilder` over a `ValueListenable`, `MagicSelector` over a plain field), or use `MagicStatefulView`, which listens to the whole controller.
 
 
 ## MagicStatefulView\<T\>

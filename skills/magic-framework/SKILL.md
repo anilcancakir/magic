@@ -297,7 +297,7 @@ Cast.intOr(Arr.get(payload, 'meta.priority'), 0);      // Arr does no type check
 ### Routing and resources
 
 ```dart
-// In RouteServiceProvider.register() (NOT boot(): the router pre-builds during init)
+// In RouteServiceProvider.register() (register() or boot() both run before the router pre-builds, so any route added after Magic.init throws)
 MagicRoute.page('/dashboard', () => const DashboardPage()).title('Dashboard').middleware(['auth']);
 MagicRoute.resource('users', UserRoutes());                 // index, create, show, edit
 MagicRoute.resource('posts', PostRoutes(), only: ['index', 'show']);
@@ -348,7 +348,6 @@ These facades fake without a mock library: `Http.fake` (`FakeNetworkDriver`: `as
 | `Http.patch(...)` | `Http.put(...)` or `Http.update(...)` | there is no `patch` verb |
 | `response.body` | `response.data` | `.body` does not exist on `MagicResponse` |
 | `configs: [appConfig]` that reads `env()` | `configFactories: [() => appConfig]` | Env is not loaded when `configs` evaluates |
-| routes in `boot()` | routes in `register()` | the router pre-builds before `boot()` |
 | `Auth.guest()` | `Auth.guest` | it is a bool getter |
 | `Http.get()` or `MagicRoute.to()` in `build()` | call it from `onInit()` or a callback | no I/O or navigation during build |
 | `user.fill(unvalidated)` | `user.fill(validated, strict: true)` | catches schema drift after validation |
