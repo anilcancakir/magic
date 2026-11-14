@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 - **The `magic-framework` agent skill covers the core package only.** Every official plugin ships its own skill now, so the twelve `references/plugin-*.md` pages are gone and the skill keeps a short table of what each plugin is and which skill to load (`npx skills add anilcancakir/<package>`). The description and body follow the skill conventions (no counts, one-line triggers), the repository links name `anilcancakir/magic`, and `references/plugins.md` carries the install steps and provider-order rules that are common to every plugin. (`skills/magic-framework/`)
 - **Every link from the README and `doc/` to an ecosystem plugin names the new location.** A plugin's package page is `https://anilcancakir.com/magic/<slug>` and its documentation sits under `https://anilcancakir.com/magic/docs/<slug>`; the core URLs do not change. (`README.md`, `doc/`)
 
+### Fixed
+
+- **The `magic-framework` agent skill teaches what the code and the installer do.** Routes are registered in `RouteServiceProvider.boot()`, as the `magic:install` stub writes them, not in `register()`; the `Session.tick` listener is wired in `main()` after `Magic.init()` through `routerConfig` (there is no `MagicRouter.instance.router`); the stored-instance sample reads `Config.repository` (there is no `Config.load()`); the ORM error sample calls `setErrorsFromMap` and says an empty error map also covers a refused write (a 500 or a 403); and the attribute rule no longer contradicts the docs: a model reads through typed getters built on `get<T>` or `getAttribute(...) as T?`, and code outside the model uses those getters. The skill gains an Install section, a shorter trigger description, recipes that compile as written, and plain statements in place of shouted rules. (`skills/magic-framework/`)
+
 ## [1.0.0] - 2026-11-14
 
 ### BREAKING

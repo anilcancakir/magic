@@ -49,7 +49,7 @@ Locale-aware casing. `String.toUpperCase()`/`toLowerCase()` get Turkish/Azerbaij
 
 ### Arr
 
-Dot-path access into a nested `Map<String, dynamic>`, mirroring Laravel's `Arr::get`/`has`/`set`/`dot`. Carries NO typed accessors; compose with `Cast`.
+Dot-path access into a nested `Map<String, dynamic>`, mirroring Laravel's `Arr::get`/`has`/`set`/`dot`. Carries no typed accessors; compose with `Cast`.
 
 | Method | Description |
 |:-------|:------------|
@@ -66,7 +66,7 @@ Total, throw-free readers for a loosely-typed wire value (a nested-map field, no
 |:-------|:-----------------|:------|
 | `Cast.stringOr(v, fallback)` / `stringOrNull(v)` | n/a | |
 | `Cast.intOr(v, fallback)` | **Parses** | The one reader that parses a numeric string (orders/durations: a silent fallback would misorder a list). |
-| `Cast.intOrNull(v)` / `numOrNull(v)` / `doubleOrNull(v)` | Does NOT parse | Checks `is num`, never `is double` (JSON `3` decodes as double on web, int on VM). |
+| `Cast.intOrNull(v)` / `numOrNull(v)` / `doubleOrNull(v)` | Does not parse | Checks `is num`, never `is double` (JSON `3` decodes as double on web, int on VM). |
 | `Cast.boolOr(v, fallback)` / `boolOrNull(v)` | n/a | |
 | `Cast.idOrNull(v)` | Stringifies a `num` | A pk can be uuid or bigint; reading an int id as null would corrupt a save-diff. |
 
@@ -78,7 +78,7 @@ Total, throw-free readers for a loosely-typed wire value (a nested-map field, no
 
 | Method | Description |
 |:-------|:------------|
-| `Env.filled(key, fallback)` | Treats absent, blank, AND quote-only the same way, all resolving to `fallback`. Strips one wrapping quote pair + surrounding whitespace from a present value (an inner apostrophe survives). Use for anything that becomes a URL, a title, or a link. |
+| `Env.filled(key, fallback)` | Treats absent, blank, and quote-only the same way, all resolving to `fallback`. Strips one wrapping quote pair + surrounding whitespace from a present value (an inner apostrophe survives). Use for anything that becomes a URL, a title, or a link. |
 | `Env.getOrFail(key)` | Throws `StateError` only when `key` is entirely absent; still returns `''` for a present-but-empty value. |
 
 ### AppLifecycle
@@ -414,9 +414,10 @@ Laravel-style flash data for form repopulation and transient messages. Two inter
 `Session.tick()` promotes `_next` → `_current`. The framework does **not** tick automatically - wire a routerDelegate listener gated on real `MagicRouter.instance.currentLocation` changes during bootstrap (GoRouter fires `routerDelegate` notifications for non-navigation rebuilds too, which would prematurely burn the flash). Each value then survives exactly one navigation hop.
 
 ```dart
-// Call once during app bootstrap (e.g. in a ServiceProvider.boot()):
+// Call once in main(), after `await Magic.init()`. Not in a ServiceProvider.boot(): reading
+// routerConfig there builds the router before RouteServiceProvider.boot() registers the routes.
 var lastLocation = MagicRouter.instance.currentLocation;
-MagicRouter.instance.router.routerDelegate.addListener(() {
+MagicRouter.instance.routerConfig.routerDelegate.addListener(() {
   final current = MagicRouter.instance.currentLocation;
   if (current != lastLocation) {
     Session.tick();
@@ -806,7 +807,7 @@ final tokyo = now.setTimezone('Asia/Tokyo');
 
 Context-free facade for opening URLs, emails, phone calls, and SMS. Built on `url_launcher`.
 
-> **Warning**: `LaunchServiceProvider` is NOT auto-registered. Add `(app) => LaunchServiceProvider(app)` to `config/app.dart`.
+> **Warning**: `LaunchServiceProvider` is not auto-registered. Add `(app) => LaunchServiceProvider(app)` to `config/app.dart`.
 
 ### Launch API
 

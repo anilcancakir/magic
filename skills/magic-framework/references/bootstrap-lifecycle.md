@@ -25,7 +25,7 @@ The bootstrap process follows a strict sequence executed via `Magic.init()`:
 7. **Boot All Providers**: Async call `boot()` on all registered `ServiceProvider`s
 8. **Pre-build Router**: Finalize `MagicRouter.instance.routerConfig` before app runs
 
-**CRITICAL**: `Magic.init()` MUST be awaited in `main()` before any facade or container access.
+Await `Magic.init()` in `main()` before any facade or container access: the providers are not booted until its future completes, so an earlier facade call resolves an unbound key.
 
 ```dart
 import 'package:magic/magic.dart';
@@ -106,8 +106,8 @@ Magic.bind('logger', () => Logger());
 // Bind a singleton: same instance every call
 Magic.singleton('database', () => DatabaseConnection());
 
-// Store an existing instance
-final config = Config.load();
+// Store an existing instance (Magic.init already stores the config repository this way)
+final ConfigRepository config = Config.repository;
 Magic.app.setInstance('config', config);
 ```
 
@@ -139,7 +139,7 @@ if (Magic.bound('cache')) {
 **Rebinding evicts.** `bind` / `singleton` on a key that already has a
 resolved instance discards that instance, so an override takes effect at
 once. This includes a value placed by `setInstance`, which is how every
-`Facade.setDriver` and fake installs itself: install fakes AFTER
+`Facade.setDriver` and fake installs itself: install fakes after
 `Magic.init()` and after provider registration, never before.
 
 **Late registration boots.** A provider registered once `boot()` has run is
@@ -211,7 +211,7 @@ Abstract class for organizing service bindings and initialization logic into mod
 
 **Phase 1: `register()`** - Synchronous, called immediately when provider is registered. Only bind services here; do not access other services.
 
-**Phase 2: `boot()`** - Asynchronous, called after ALL providers are registered. Safe to resolve other services and perform initialization.
+**Phase 2: `boot()`** - Asynchronous, called after all providers are registered. Safe to resolve other services and perform initialization.
 
 ### Example
 
@@ -286,10 +286,10 @@ final apiKey = Env.get<String>('API_KEY', '');
 final port = Env.get<int>('PORT', 5432);
 final debug = Env.get<bool>('DEBUG', false);
 
-// Type casting
-// - 'true', '1', 'yes' (case-insensitive) → bool true
-// - Numeric strings → int or double
-// - Other strings → String as-is
+// Type casting, decided by T (inferred from the default):
+// - T == bool: 'true', '1', 'yes' (case-insensitive) → true, anything else → false
+// - T == int or double: parsed, or the default when it does not parse
+// - any other T (or no default): the raw string, so 'null' stays the string 'null'
 
 // Check existence
 if (Env.has('STRIPE_KEY')) {

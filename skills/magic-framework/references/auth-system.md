@@ -101,7 +101,7 @@ class AppServiceProvider extends ServiceProvider {
 
   @override
   Future<void> boot() async {
-    // MUST be called before Auth.restore() runs
+    // Set before AuthServiceProvider.boot() calls Auth.restore(): restore rebuilds the user with it
     Auth.manager.setUserFactory((data) => User.fromMap(data));
   }
 }
@@ -383,7 +383,7 @@ if (Gate.allowsAny(['edit-post', 'delete-post'], post)) {
   showActionMenu();
 }
 
-// Pass only if ALL abilities pass (short-circuits on first failure)
+// Pass only if all abilities pass (short-circuits on first failure)
 if (Gate.allowsAll(['view-admin', 'edit-users'])) {
   showUserAdminPanel();
 }

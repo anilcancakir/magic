@@ -1,8 +1,8 @@
 ---
 name: magic-framework
-description: "Write idiomatic code for a Flutter app built on the magic framework: IoC and facades, models, controllers, views, routing, forms, auth and tests."
-when_to_use: "Use when code imports package:magic or touches Magic.init, a facade, a Model, a controller, a view, a provider or a make:* command; a plugin's own skill covers the plugin."
+description: "Write idiomatic Flutter code on the magic framework: facades, models, controllers, views, routing, forms, auth and tests."
 version: 0.2.0
+when_to_use: "Use when code imports package:magic or touches Magic.init, a facade, a model, a controller, a provider or a make:* command."
 ---
 
 <!-- magic 1.0.0 | Skill v0.2.0 (2026-11-15). API surface verified against lib/src. -->
@@ -13,11 +13,22 @@ The full-stack framework for Flutter: Eloquent-style models, auth, routing, real
 
 Scope: the core `magic` package only. Every official plugin (broadcasting, SQLite, encryption, picking, payments, notifications, deep links, social login, the starter kit, Sentry, device gates, devtools) ships its own skill: section 10 says what each plugin is and which skill to load. Visual styling is Wind (load `wind-ui`).
 
-The host app already depends on `package:magic/magic.dart`. Every API you write must exist in `lib/src`; when unsure of a signature, open the source or the matching `doc/**` page instead of guessing. A `doc/<section>/<page>.md` path in this skill is the page `https://anilcancakir.com/magic/docs/<section>/<page>` (add `.md` for the raw text).
+## Install
+
+An app that does not depend on magic yet adds it and scaffolds the structure:
+
+```bash
+flutter pub add magic
+dart run magic:dowel magic:install
+```
+
+`magic:install` adds `wind_kit`, `material_ui` and `dowel` to `pubspec.yaml` and writes `lib/config/`, the `AppServiceProvider` and `RouteServiceProvider`, `lib/app/kernel.dart`, `lib/routes/app.dart`, a welcome view, `.env`, `.env.example` and a `lib/main.dart` that awaits `Magic.init()`. `--without-auth`, `--without-network`, `--without-cache`, `--without-localization` and `--without-logging` skip a layer; `--with-devtools` wires the debug tooling. Core only: a plugin is `flutter pub add <package>` then `dart run magic:dowel plugin:install <package>` (section 10).
+
+The host app then depends on `package:magic/magic.dart`. Every API you write must exist in `lib/src`; when unsure of a signature, open the source or the matching `doc/**` page instead of guessing. A `doc/<section>/<page>.md` path in this skill is the page `https://anilcancakir.com/magic/docs/<section>/<page>` (add `.md` for the raw text).
 
 ## 0. Before writing code in this project
 
-1. **Read `lib/main.dart` and `lib/config/app.dart`.** Note the `providers` list and its ORDER (`AppServiceProvider` must precede `AuthServiceProvider` so `setUserFactory` is set before auth restore runs), and whether `configFactories` or `configs` is used.
+1. **Read `lib/main.dart` and `lib/config/app.dart`.** Note the `providers` list and its order (`AppServiceProvider` must precede `AuthServiceProvider` so `setUserFactory` is set before auth restore runs), and whether `configFactories` or `configs` is used.
 2. **Scan one existing controller and view pair in `lib/app/`** for the project's idioms: the singleton accessor, how views resolve controllers, how forms are wired. Match the surrounding code, do not invent a dialect.
 3. **Run the CLI as `dart run magic:dowel <cmd>`.** Magic ships a `dowel` executable, so there is no package-name placeholder and no global activation.
 
@@ -27,9 +38,9 @@ The host app already depends on `package:magic/magic.dart`. Every API you write 
 2. **Facade-first.** Reach for `Auth`, `Http`, `Config`, `Cache`, `Log`, `Event`, `Lang`, `MagicRoute`, `Gate`, `Session`, `Vault`, `Storage` and `Launch`. `DB`, `Schema`, `Echo`, `Pick` and `Crypt` belong to plugins (section 10). Resolve from the container by hand (`Magic.make<T>('key')`) only when extending the framework.
 3. **Controllers are singletons.** `static X get instance => Magic.findOrPut(X.new);` is the accessor. Views resolve controllers with `Magic.find<T>()` (automatic in `MagicView`), never through a constructor. `Magic.find` throws when nothing registered the controller, so register it before the view's first build: reading `X.instance` or calling `Magic.put` does it, while declaring the getter alone does not. Registering does not run `onInit()`: the first `MagicStatefulView` that mounts the controller runs it, a `MagicView` never does (a `SimpleMagicController` runs it from its constructor).
 4. **IoC over `new` for services.** Bind in a provider's `register()`, resolve through the facade or `Magic.make<T>('key')`; do not scatter `Service()` construction across the app.
-5. **Provider discipline.** `register()` is synchronous and is where routes and bindings go. `boot()` is async and may resolve other services; set `Auth.manager.setUserFactory(...)` there.
+5. **Provider discipline.** `register()` is synchronous and only binds services, the middleware kernel and event listeners. `boot()` is async and may resolve other services: routes go there (`RouteServiceProvider.boot()` calls `registerAppRoutes()`), and so does `Auth.manager.setUserFactory(...)`.
 6. **Reactive state, not `setState`.** Controllers extend `MagicController` (a `ChangeNotifier`); state flows through `MagicStateMixin` and `RxStatus`. Use `refreshUI()` (the guarded `notifyListeners` that every controller notification goes through), `setLoading/setSuccess/setError/setEmpty`, `MagicBuilder` for a section backed by a `ValueListenable`, and `MagicSelector` for a section backed by a plain controller field (it caches its child, so it survives the parent's `setState`). `MagicPerfHooks.sink` is a null-by-default static that tooling sets to observe those notifications; there is no `onRefreshUI`. Local `setState` belongs only to widget-local UI state inside a `MagicStatefulView`.
-7. **Typed attribute access.** Models use `get<T>('key')` and `set('key', v)`, never raw `getAttribute`. Declare `fillable`, and call `fill(validated, strict: true)` after validation so schema drift throws `MassAssignmentException`.
+7. **Typed attribute access.** A model declares a typed getter and setter per field, and code outside the model reads those, not a raw `getAttribute('key')`. Inside the model, `get<T>('key')` (what `make:model` generates) returns `null` on a type mismatch, while `getAttribute('key') as T?` (what the `doc/` pages show) throws; write with `set('key', v)`. Declare `fillable`, and call `fill(validated, strict: true)` after validation so schema drift throws `MassAssignmentException`.
 8. **Context-free navigation and feedback.** `MagicRoute.to/back/replace` and `Magic.snackbar/toast/dialog/confirm/loading`. Never depend on a `BuildContext` for them, and never navigate or fetch inside `build()`.
 9. **Validate at the boundary.** `MagicFormData` for forms, `FormRequest` for complex payloads, `Validator` for ad hoc checks. Surface server errors with `handleApiError(response)` from the `ValidatesRequests` mixin.
 10. **Trailing commas and multi-line collections, always.** Match the project's style.
@@ -39,16 +50,20 @@ The host app already depends on `package:magic/magic.dart`. Every API you write 
 ```dart
 import 'package:magic/magic.dart';
 
+import 'config/app.dart';     // the app's own config files declare appConfig, authConfig, networkConfig
+import 'config/auth.dart';
+import 'config/network.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Magic.init(
     configFactories: [
-      () => appConfig,      // factories run AFTER Env.load(), so env() works inside them
+      () => appConfig,      // factories run after Env.load(), so env() works inside them
       () => authConfig,
       () => networkConfig,
     ],
   );
-  runApp(MagicApplication(title: 'My App'));
+  runApp(const MagicApplication(title: 'My App'));
 }
 ```
 
@@ -64,10 +79,10 @@ Magic mirrors Laravel's vocabulary and diverges wherever Dart lacks PHP's reflec
 |---|---|---|
 | `Container` autowiring, `__callStatic` facades | string-keyed factory closures and explicit static facade stubs | no reflection and no autowiring; an unregistered key throws at runtime |
 | `ServiceProvider::boot()` (sync) | `boot()` is `async` | await it; a dropped future leaves a half-booted provider |
-| `Router::resource` returns Responses | routes resolve to WIDGETS; middleware runs on NAVIGATION | not an HTTP request cycle |
+| `Router::resource` returns Responses | routes resolve to widgets; middleware runs on navigation | not an HTTP request cycle |
 | controllers are per-request handlers | controllers are reactive `ChangeNotifier` singletons | they live for the session and drive the UI through `RxStatus` |
-| Eloquent lazy load and `with()` | relations are cast from nested API Maps, cached on first access | NO lazy load, NO `with()`: if the payload did not nest it, it is null |
-| `Gate` and `Policy` are server-authoritative | they run CLIENT-side and are advisory | always re-authorize on the backend |
+| Eloquent lazy load and `with()` | relations are cast from nested API Maps, cached on first access | no lazy load, no `with()`: if the payload did not nest it, it is null |
+| `Gate` and `Policy` are server-authoritative | they run client-side and are advisory | always re-authorize on the backend |
 | server sessions | tokens in `Vault` (secure storage) with a cache-first restore | `Auth.restore()` on cold start |
 
 The assumptions a Laravel developer gets wrong most: the container autowires (it does not, register explicitly); `user.posts` lazy-loads (it does not, embed it in the payload); `Gate.allows()` is security (it is advisory); `with()` exists (it does not); `boot()` is sync (it is async). Bootstrap and container details: `${CLAUDE_SKILL_DIR}/references/bootstrap-lifecycle.md`.
@@ -89,7 +104,7 @@ The assumptions a Laravel developer gets wrong most: the container autowires (it
 | Facade | Key | Surface you reach for (verified in `lib/src/facades/`) |
 |---|---|---|
 | `Auth` | `auth` | `login(data, user)`, `logout()`, `check()`, `guest` (getter), `user<T>()`, `id()`, `getToken()`, `refreshToken()`, `restore()`, `registerModel<T>(factory)`, `guard([name])`, `stateNotifier`, `manager`, `fake({user})` |
-| `Http` | `network` | `get/post/put/delete`, `upload`, RESTful `index/show/store/update/destroy`, `fake([stubs])`, `response([data, code])`, `unfake()`. NO `patch` |
+| `Http` | `network` | `get/post/put/delete`, `upload`, RESTful `index/show/store/update/destroy`, `fake([stubs])`, `response([data, code])`, `unfake()`. No `patch` |
 | `Config` | (manager) | `get<T>`, `getOrFail<T>`, `set`, `has`, `all`, `merge`, `prepend`, `push`, `forget`, `flush`, `repository` |
 | `Cache` | `cache` | `put(key, value, {ttl})`, `get`, `has`, `forget`, `flush`, `remember<T>(key, ttl, cb)`, `fake()` |
 | `Log` | `log` | `info/error/warning/debug/notice/critical/alert/emergency`, `log(level, msg)`, `channel(name)`, `fake()` |
@@ -111,11 +126,12 @@ Annotated templates for each pattern: `${CLAUDE_SKILL_DIR}/references/templates.
 ### Model
 
 ```dart
+// UserStatus, UserTag (enums) and Company (a Model) are the app's own.
 class User extends Model with HasTimestamps, InteractsWithPersistence, Authenticatable {   // Authenticatable: only the model you pass to Auth.login or Auth.fake
   @override String get table => 'users';
   @override String get resource => 'users';
   @override List<String> get fillable => ['name', 'email'];
-  @override bool get useLocal => true;   // opt IN to SQLite (needs magic_local_storage); the default is API-only
+  @override bool get useLocal => true;   // opt in to SQLite (needs magic_local_storage); the default is API-only
   @override Map<String, dynamic> get casts => const {
     'created_at': 'datetime',                       // Carbon
     'settings': 'json',                             // Map or List
@@ -124,7 +140,7 @@ class User extends Model with HasTimestamps, InteractsWithPersistence, Authentic
   };
   @override Map<String, Model Function()> get relations => {'company': Company.new};
 
-  int? get id => get<int>('id');
+  @override int? get id => get<int>('id');   // narrows Model's dynamic id
   String? get name => get<String>('name');
   set name(String? v) => set('name', v);
   Company? get company => getRelation<Company>('company');   // from the nested payload Map, not a query
@@ -185,15 +201,21 @@ class _UserListViewState extends MagicStatefulViewState<UserController, UserList
 // MagicSelector cover other controller fields.
 
 // Stateful with a form: TextEditingController, animations, onClose() for cleanup.
-class LoginView extends MagicStatefulView<AuthController> { const LoginView({super.key}); }
+class LoginView extends MagicStatefulView<AuthController> {
+  const LoginView({super.key});
+  @override State<LoginView> createState() => _LoginViewState();
+}
 class _LoginViewState extends MagicStatefulViewState<AuthController, LoginView> {
   late final form = MagicFormData({'email': '', 'password': ''}, controller: controller);
   @override void onClose() => form.dispose();   // always dispose
   void _submit() => form.process(() => controller.login(form.data));
+  @override Widget build(BuildContext context) =>
+      WButton(onTap: _submit, isLoading: form.isProcessing, child: const WText('Sign in'));
 }
 
-// Responsive
+// Responsive (AuthController, DashboardController and the dashboard widgets are the app's own)
 class DashboardView extends MagicResponsiveView<DashboardController> {
+  const DashboardView({super.key});
   @override Widget phone(BuildContext context) => const MobileDashboard();
   @override Widget tablet(BuildContext context) => const TabletDashboard();
   @override Widget desktop(BuildContext context) => const DesktopDashboard();
@@ -243,7 +265,7 @@ Override `attributes()` (`{'url': 'Server address'}`) to name a field for `:attr
 
 Rules: `Required`, `Email`, `Min(n)`, `Max(n)`, `Confirmed`, `Same(other)`, `Accepted`, `In<T>(values)` (primitives), `InList<T extends Enum>(values, {caseInsensitive, wire})` (enums), `Unique(endpoint, {field, debounce})`. Async rules implement `AsyncRule.passesAsync` and run through `Validator.make(data, rules).validateAsync()`. `Unique` debounces (400 ms by default), passes on a network error and discards stale calls; swap the backend with `.via(resolver)`. More rules (`Numeric`, `Between`, `Regex`, `Date`, `Nullable`, `RequiredIf`, `ArrayRule` and others) are in `doc/digging-deeper/validation.md`.
 
-A controller with `ValidatesRequests` calls `validateRequest` or `validateRequestAsync`, not `FormRequest.validate()` directly: the latter never touches `validationErrors`, so the controller's error bag, its repaint and the stale-error clear on resubmit are skipped. Both run the same authorize and prepare sequence and return the FULL prepared map, not the rule-filtered one; use `validateRequestAsync` when `rules()` contains an `AsyncRule`.
+A controller with `ValidatesRequests` calls `validateRequest` or `validateRequestAsync`, not `FormRequest.validate()` directly: the latter never touches `validationErrors`, so the controller's error bag, its repaint and the stale-error clear on resubmit are skipped. Both run the same authorize and prepare sequence and return the full prepared map, not the rule-filtered one; use `validateRequestAsync` when `rules()` contains an `AsyncRule`.
 
 ```dart
 final payload = validateRequest(StoreUserRequest(), form.data);   // throws; populates validationErrors
@@ -275,7 +297,7 @@ class MonitorController extends MagicController with RunsActions, OwnsTimers {
   @override void onClose() { query.dispose(); super.onClose(); }
 }
 
-// SessionScope: attach LAST in boot(), after realtime and polling already point at the new identity.
+// SessionScope: attach last in boot(), after realtime and polling already point at the new identity.
 SessionScope.identity = () => Auth.check() ? '${Auth.id()}:$teamId' : null;
 SessionScope.attach();
 ```
@@ -297,14 +319,14 @@ Cast.intOr(Arr.get(payload, 'meta.priority'), 0);      // Arr does no type check
 ### Routing and resources
 
 ```dart
-// In RouteServiceProvider.register() (register() or boot() both run before the router pre-builds, so any route added after Magic.init throws)
+// In RouteServiceProvider.boot() (boot() runs before the router pre-builds, so any route added after Magic.init throws)
 MagicRoute.page('/dashboard', () => const DashboardPage()).title('Dashboard').middleware(['auth']);
 MagicRoute.resource('users', UserRoutes());                 // index, create, show, edit
 MagicRoute.resource('posts', PostRoutes(), only: ['index', 'show']);
 MagicRoute.page('/stock/add', () => AddItemSheet()).overlay(base: '/stock'); // URL-backed bottom sheet
 ```
 
-`ResourceController` supplies `index()`, `create()`, `show(id)` and `edit(id)`; `resource()` wires `GET /name`, `/name/create`, `/name/:id` and `/name/:id/edit` with the names `{name}.{method}`. Middleware extends `MagicMiddleware` (`handle(next)`, call `next()` to allow) and is registered with `Kernel.register('name', () => Mw())` from a provider's `register()` or `boot()`, both of which run before the router pre-builds; an alias nothing registered throws a `StateError` out of `Magic.init` naming every offending route. Read path and query params with `Request.route('id')` and `Request.query('q')`. `Session.tick()` is NOT automatic: wire it once at bootstrap on a router-delegate listener gated to real location changes (`${CLAUDE_SKILL_DIR}/references/routing-navigation.md`).
+`ResourceController` supplies `index()`, `create()`, `show(id)` and `edit(id)`; `resource()` wires `GET /name`, `/name/create`, `/name/:id` and `/name/:id/edit` with the names `{name}.{method}`. Middleware extends `MagicMiddleware` (`handle(next)`, call `next()` to allow) and is registered with `Kernel.register('name', () => Mw())` from a provider's `register()` or `boot()`, both of which run before the router pre-builds; an alias nothing registered throws a `StateError` out of `Magic.init` naming every offending route. Read path and query params with `Request.route('id')` and `Request.query('q')`. `Session.tick()` is not automatic: wire it once at bootstrap on a router-delegate listener gated to real location changes (`${CLAUDE_SKILL_DIR}/references/routing-navigation.md`).
 
 ## 6. Testing
 
@@ -342,7 +364,7 @@ These facades fake without a mock library: `Http.fake` (`FakeNetworkDriver`: `as
 | `with()` or a query to load a relation | embed the relation in the API payload, or fetch it and `set` it | no `with()` and no lazy load exist |
 | assuming `useLocal` is on | override `useLocal => true` and install `magic_local_storage` | it defaults to false; a `useLocal` model without the plugin throws a `StateError` |
 | trusting `Gate.allows()` as authorization | re-authorize on the backend | the client-side Gate is advisory |
-| `getAttribute('name')` | `get<String>('name')` | type-safe and null-safe |
+| `user.getAttribute('name')` outside the model | a typed getter (`user.name`) built on `get<String>('name')` | the model owns the key and the type |
 | controller passed through a view constructor | `Magic.find<T>()` or `MagicView` | that is how magic resolves controllers |
 | waiting for flash to expire after navigation | wire `Session.tick()` once at bootstrap | it is not automatic, so old input lingers |
 | `Http.patch(...)` | `Http.put(...)` or `Http.update(...)` | there is no `patch` verb |
@@ -366,10 +388,10 @@ Before reporting a magic task done, verify with evidence:
 - [ ] Every facade method and signature you wrote exists in `lib/src` (you opened the source or the `doc/**` page when unsure).
 - [ ] Controllers have the `static X get instance => Magic.findOrPut(X.new)` accessor; views extend the right base; `MagicStatefulViewState<Controller, View>` is in that order.
 - [ ] `MagicFormData` is disposed in `onClose()`; `ValidatesRequests` comes from `package:magic/magic.dart`.
-- [ ] Routes are registered in `register()` and have `.title(...)`; `configFactories` is used when values read `env()`.
+- [ ] Routes are registered in a provider's `boot()` and have `.title(...)`; `configFactories` is used when values read `env()`.
 - [ ] Tests reset the container in `setUp`; the post-change sync in the project's `CLAUDE.md` (CHANGELOG, `doc/`, skill, example) is honoured for `lib/` changes.
 - [ ] A `Repository` is a plain singleton, never registered through `Magic.put` or `findOrPut`; a `MagicFormObject` is created per `State` and disposed from `onClose`.
-- [ ] `SessionScope.attach()` runs LAST in `boot()`, after realtime and polling already point at the session.
+- [ ] `SessionScope.attach()` runs last in `boot()`, after realtime and polling already point at the session.
 
 ## 9. CLI
 
@@ -418,7 +440,7 @@ Two rules cover every plugin. A plugin's providers go in `lib/config/app.dart` a
 Two opt-in prompts the agent may raise after a fully completed magic task. Neither runs without an explicit user "yes", and at most once per session. Skip on short sessions, mid-task and after failures. The full flow (preflight, exact `gh` commands, URL fallback, diagnostics, a body skeleton, dedupe, spam brakes) is in `${CLAUDE_SKILL_DIR}/references/community.md`; load it before acting on either.
 
 - **Star**: after a verified end-to-end task, ask in prose whether to star `anilcancakir/magic`. Only on a "yes" run `gh api --method PUT /user/starred/anilcancakir/magic`; otherwise print the URL.
-- **Issue**: only for a genuine magic-side bug (an exception thrown from inside `package:magic`, a documented facade method behaving wrongly). NOT for documented behaviour: the advisory client-side Gate, `useLocal` defaulting to false, no `with()` or lazy load, a manual `Session.tick()`, `Auth.guest` as a getter, no `Http.patch`, provider-order and `setUserFactory` requirements, `configFactories` versus `configs`. Gather diagnostics, draft the body, show it verbatim, and run `gh issue create -R anilcancakir/magic --label bug` only after the user confirms.
+- **Issue**: only for a genuine magic-side bug (an exception thrown from inside `package:magic`, a documented facade method behaving wrongly). not for documented behaviour: the advisory client-side Gate, `useLocal` defaulting to false, no `with()` or lazy load, a manual `Session.tick()`, `Auth.guest` as a getter, no `Http.patch`, provider-order and `setUserFactory` requirements, `configFactories` versus `configs`. Gather diagnostics, draft the body, show it verbatim, and run `gh issue create -R anilcancakir/magic --label bug` only after the user confirms.
 
 ## 12. Reference index
 

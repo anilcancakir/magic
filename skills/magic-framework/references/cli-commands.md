@@ -488,7 +488,7 @@ dart run magic:dowel make:component Avatar --variants=intent,size
 dart run magic:dowel make:component Panel --slots
 ```
 
-**Output** (for `Avatar`): `lib/ui/components/avatar/avatar.dart` (`class Avatar`, unprefixed PascalCase), `avatar.recipe.dart` (a `WindRecipe`, or a `WindSlotRecipe` under `--slots`, seeded with the requested `--variants` axes), `index.dart` (re-exports the component + recipe, NOT the preview), and conditionally `avatar.preview.dart` (a single public `AvatarPreview` matrix).
+**Output** (for `Avatar`): `lib/ui/components/avatar/avatar.dart` (`class Avatar`, unprefixed PascalCase), `avatar.recipe.dart` (a `WindRecipe`, or a `WindSlotRecipe` under `--slots`, seeded with the requested `--variants` axes), `index.dart` (re-exports the component + recipe, not the preview), and conditionally `avatar.preview.dart` (a single public `AvatarPreview` matrix).
 
 The preview file (`avatar.preview.dart`) and the chained `previews:refresh` are only scaffolded when the target project already maintains a preview catalogue: any `*.preview.dart` file or a `_previews.g.dart` index anywhere under `lib/`. `--preview`/`--no-preview` override the auto-detection in either direction.
 

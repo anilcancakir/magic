@@ -505,7 +505,7 @@ MagicPaginator<Invoice>.fetcher(
 )
 ```
 
-`MagicPage` carries the rows plus either `nextCursor` (paged by token) or `hasMore` (paged by something the paginator never sees). The request carries `cursor` AND `isFirst`; a source keeping its own page number MUST branch on `isFirst`, or a `refresh()` is indistinguishable from a `loadMore()` and renders whatever page it was up to as the whole list. A fetcher signals failure by THROWING: an `Exception` becomes `error` with the rows kept and `hasMore` untouched, an `Error` propagates because it is the fetcher being wrong. `mode` reports `PaginationMode.fetcher`.
+`MagicPage` carries the rows plus either `nextCursor` (paged by token) or `hasMore` (paged by something the paginator never sees). The request carries `cursor` and `isFirst`; a source keeping its own page number must branch on `isFirst`, or a `refresh()` is indistinguishable from a `loadMore()` and renders whatever page it was up to as the whole list. A fetcher signals failure by throwing: an `Exception` becomes `error` with the rows kept and `hasMore` untouched, an `Error` propagates because it is the fetcher being wrong. `mode` reports `PaginationMode.fetcher`.
 
 ### Mode is read, not configured
 
