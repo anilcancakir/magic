@@ -75,7 +75,7 @@ class WelcomeView extends StatelessWidget {
                       title: 'Documentation',
                       description:
                           'Read the Magic Framework docs to get started.',
-                      url: 'https://magic.fluttersdk.com',
+                      url: 'https://anilcancakir.com/magic',
                     ),
                     _buildLinkCard(
                       icon: Icons.code,
@@ -87,9 +87,8 @@ class WelcomeView extends StatelessWidget {
                     _buildLinkCard(
                       icon: Icons.terminal,
                       title: 'CLI Commands',
-                      description:
-                          'Run `magic --help` to see all available commands.',
-                      url: 'https://magic.fluttersdk.com/packages/magic-cli',
+                      description: 'Run `dart run magic:dowel list` to see all available commands.',
+                      url: 'https://anilcancakir.com/magic/docs/packages/magic-cli',
                     ),
                   ],
                 ),
