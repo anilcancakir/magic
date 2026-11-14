@@ -75,7 +75,9 @@ class UserController extends MagicController with MagicStateMixin<List<User>> {
 }
 
 // lib/routes/app.dart
-MagicRoute.page('/users', () => UserController.instance.index());
+void registerAppRoutes() {
+  MagicRoute.page('/users', () => UserController.instance.index());
+}
 ```
 
 `fetchList` drives loading, success, error and empty for you, and navigation, auth and validation work from anywhere without a `BuildContext`: `MagicRoute.toNamed('user.show', params: {'id': '1'})`, `Auth.check()`, `Validator.make(data, rules).passes()`.
