@@ -13,6 +13,8 @@ Views extend `MagicView` or `MagicStatefulView` to give each screen a typed cont
 - [Guarding a Submit Against a Double Tap](#submits-once)
 - [Responsive Views](#responsive-views)
 - [Generating Views](#generating-views)
+- [Gotchas](#gotchas)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -24,12 +26,12 @@ Magic Views provide a structured way to separate your UI from your business logi
 - **Auto-Injection**: The controller is automatically available via `controller` property
 - **Type Safety**: The controller is fully typed (`MagicView<UserController>`)
 - **Consistency**: Matches Laravel's MVC structure
-- **Wind UI Integration**: Build UIs with utility-first classes
+- **`wind_kit` Integration**: Build UIs with utility-first classes
 
 <a name="creating-views"></a>
 ## Creating Views
 
-To generate a new view, use the Magic CLI:
+To generate a new view, use dowel:
 
 ```bash
 dart run magic:dowel make:view Dashboard
@@ -164,7 +166,8 @@ form.value<bool>('active');    // Typed value
 form['email'];                 // TextEditingController
 
 // Set values
-form.setValue('name', 'John');
+form.set('name', 'John');       // text field
+form.setValue('active', false); // any other type
 
 // Validation
 final data = form.validated(); // Returns {} if invalid
@@ -197,7 +200,7 @@ WFormInput(
 <a name="rendering-async-state"></a>
 ## Rendering Async State
 
-Use `controller.renderState()` to elegantly handle loading, error, and success states:
+Use `controller.renderState()` to handle loading, error, empty and success states:
 
 ```dart
 @override
@@ -205,13 +208,13 @@ Widget build(BuildContext context) {
   return controller.renderState(
     (users) => UserList(users: users),
     onLoading: Center(child: CircularProgressIndicator()),
-    onError: (msg) => ErrorWidget(message: msg),
-    onEmpty: EmptyState(message: trans('users.empty')),
+    onError: (msg) => WText(msg, className: 'text-red-500'),
+    onEmpty: WText(trans('users.empty')),
   );
 }
 ```
 
-Each callback is optional. Magic provides sensible defaults if omitted.
+`onLoading`, `onError` and `onEmpty` are optional; Magic renders a default widget for any you omit.
 
 <a name="refetching-on-mount"></a>
 ## Refetching Data on Mount
@@ -260,7 +263,7 @@ Feeding `isSubmitting` to the button's `isLoading` is what actually blocks the s
 <a name="responsive-views"></a>
 ## Responsive Views
 
-For layouts that adapt to screen size, use `LayoutBuilder` with Wind's responsive helpers:
+For layouts that adapt to screen size, use `LayoutBuilder` with the `wind_kit` responsive helpers:
 
 ```dart
 class DashboardView extends MagicView {
@@ -280,7 +283,7 @@ class DashboardView extends MagicView {
 }
 ```
 
-Or use Wind's responsive prefixes:
+Or use the `wind_kit` responsive prefixes:
 
 ```dart
 WDiv(
@@ -296,23 +299,51 @@ WDiv(
 <a name="generating-views"></a>
 ## Generating Views
 
-The Magic CLI can generate different types of views:
+Dowel can generate different types of views:
 
 ```bash
 # Basic stateless view
 dart run magic:dowel make:view Dashboard
 
-# Stateful view with form support
+# Stateful view wired to LoginController
 dart run magic:dowel make:view Auth/Login --stateful
 
 # Nested in subfolder
 dart run magic:dowel make:view Admin/Users/Index
+
+# List view that refetches on every mount, with a form object
+dart run magic:dowel make:view Monitors/List --controller=Monitor --list --form=MonitorFormObject
 ```
 
 ### Command Options
 
 | Option | Description |
 |--------|-------------|
-| `--stateful` | Create stateful view with `MagicFormData` support |
+| `--stateful` | Create a stateful view bound to a controller (derived from the view's name) |
+| `--controller` | Bind the view to this controller (suffix optional); implies `--stateful` |
+| `--list` | Add `RefetchesOnMount`, which calls the controller's `ensureFresh()` (a controller made with `make:controller --resource` has one); implies `--stateful` |
+| `--form` | Add a form object field owned by the state and disposed in `onClose`; implies `--stateful` |
+| `--test` | Also scaffold the matching test |
+| `--force` | Overwrite an existing file |
 
-**Output:** Creates `lib/resources/views/<name>_view.dart`
+**Output:** Creates `lib/resources/views/<name>_view.dart`; the `View` suffix is appended when omitted.
+
+<a name="gotchas"></a>
+## Gotchas
+
+| Mistake | Fix |
+|---------|-----|
+| Keeping a `TextEditingController` or `MagicFormData` in a `MagicView` | `MagicView` is stateless and has no lifecycle; use `MagicStatefulView` with a `MagicStatefulViewState` and dispose the form from `onClose` |
+| A view whose controller was never registered | `controller` is `Magic.find<T>()` and throws when nothing is registered; reach the controller through its `Magic.findOrPut` accessor first |
+| Loading data in `onInit` and expecting a refetch when the screen is revisited | `onInit` runs once per controller instance; mix `RefetchesOnMount` into the state |
+| Wrapping a visible view in `TickerMode(enabled: false)` | Its controller rebuilds freeze with the tickers; the view only defers rebuilds while a route covers it |
+| Passing `_onSubmit` straight to `onTap` | Route it through `submitOnce` and feed `isSubmitting` to `isLoading`, or a double tap writes twice |
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Controllers](./controllers.md)
+- [Forms](./forms.md)
+- [UI Helpers](./ui-helpers.md)
+- [Routing](./routing.md)
+- [Magic CLI](../packages/magic-cli.md): `make:view` and its options.

@@ -13,50 +13,50 @@ The `Log` facade provides a Laravel-style logging API with configurable channels
 - [Creating Custom Channels](#creating-custom-channels)
     - [Implementing a Custom Driver](#implementing-a-custom-driver)
     - [Registering the Custom Driver](#registering-the-custom-driver)
+- [Error Reporting](#error-reporting)
 - [Testing](#testing)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
 
-Magic provides a robust, Laravel-style logging system based on RFC 5424 severity levels. The `Log` facade provides a simple interface for writing log messages to various destinations (console, files, remote services).
+Magic provides a Laravel-style logging system based on RFC 5424 severity levels. The `Log` facade provides a simple interface for writing log messages to the configured channels.
 
 The logging system is:
 - **Channel-Based**: Route logs to specific destinations using named channels.
-- **Extensible**: Create custom drivers to send logs anywhere (Sentry, Slack, Firebase, etc.).
+- **Extensible**: Create custom drivers to send logs anywhere (a webhook, a file, a remote service).
 - **Level-Aware**: Filter messages based on severity threshold.
+
+The `log` binding is registered by the framework itself, so `Log` works without a service provider.
 
 <a name="configuration"></a>
 ## Configuration
 
-Configure logging in `lib/config/logging.dart`:
+The defaults log to the console through a `stack` channel. To customise them, create `lib/config/logging.dart`:
 
 ```dart
 // lib/config/logging.dart
-final Map<String, dynamic> logging = {
-  // Default channel used by Log facade
-  'default': 'console',
+Map<String, dynamic> get loggingConfig => {
+  'logging': {
+    // Default channel used by the Log facade
+    'default': 'stack',
 
-  // Channel configurations
-  'channels': {
-    'console': {
-      'driver': 'console',
-      'level': 'debug',
-    },
+    // Channel configurations
+    'channels': {
+      'console': {
+        'driver': 'console',
+        'level': 'debug',
+      },
 
-    'production': {
-      'driver': 'console',
-      'level': 'warning',  // Only warning and above in production
-    },
+      'production': {
+        'driver': 'console',
+        'level': 'warning', // Only warning and above
+      },
 
-    'stack': {
-      'driver': 'stack',
-      'channels': ['console', 'sentry'],
-    },
-
-    'sentry': {
-      'driver': 'sentry',
-      'dsn': Config.get('SENTRY_DSN'),
-      'level': 'error',
+      'stack': {
+        'driver': 'stack',
+        'channels': ['console'],
+      },
     },
   },
 };
@@ -69,24 +69,27 @@ Magic includes these built-in drivers:
 
 | Driver | Description |
 |--------|-------------|
-| `console` | Pretty-prints to debug console with colors and emojis |
+| `console` | Pretty-prints to the debug console with colors and emojis |
 | `stack` | Broadcasts to multiple channels simultaneously |
+
+A channel with an unknown `driver` name falls back to `console`, unless a custom driver is registered under that name (see [Creating Custom Channels](#creating-custom-channels)).
 
 <a name="minimum-log-level"></a>
 ### Minimum Log Level
 
-Each channel can specify a minimum `level`. Messages below this threshold are ignored:
+The `console` channel can specify a minimum `level`. Messages below this threshold are ignored:
 
 ```dart
 'channels': {
   'production': {
     'driver': 'console',
-    'level': 'warning',  // Ignores debug, info, notice
+    'level': 'warning', // Ignores debug, info, notice
   },
 }
 ```
 
 **Levels by priority** (RFC 5424):
+
 | Level | Priority | Description |
 |-------|----------|-------------|
 | `emergency` | 0 | System is unusable |
@@ -106,11 +109,11 @@ Use the `stack` driver to send logs to multiple channels at once:
 ```dart
 'stack': {
   'driver': 'stack',
-  'channels': ['console', 'sentry', 'slack'],
+  'channels': ['console', 'slack'],
 }
 ```
 
-When you log to the `stack` channel, the message is forwarded to `console`, `sentry`, and `slack` simultaneously.
+When you log to the `stack` channel, the message is forwarded to every channel listed in `channels`.
 
 <a name="writing-log-messages"></a>
 ## Writing Log Messages
@@ -151,70 +154,54 @@ Log.error('Payment failed', {
 });
 ```
 
-This context is formatted and displayed alongside the message.
+The console driver prints the context below the message.
 
 <a name="creating-custom-channels"></a>
 ## Creating Custom Channels
 
-Magic's logging system is fully extensible. You can create custom drivers to send logs to any destination.
+Magic's logging system is extensible. You can create custom drivers to send logs to any destination.
 
 <a name="implementing-a-custom-driver"></a>
 ### Implementing a Custom Driver
 
-Create a class that extends `LoggerDriver`:
+Create a class that extends `LoggerDriver` and implements `log()`. The level helpers (`error()`, `info()` and so on) are inherited and call `log()`:
 
 ```dart
-// lib/app/logging/sentry_logger_driver.dart
+// lib/app/logging/slack_logger_driver.dart
 import 'package:magic/magic.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
-class SentryLoggerDriver extends LoggerDriver {
-  final String dsn;
+class SlackLoggerDriver extends LoggerDriver {
+  final String webhookUrl;
+  final String channel;
   final String minLevel;
 
-  SentryLoggerDriver({
-    required this.dsn,
+  SlackLoggerDriver({
+    required this.webhookUrl,
+    this.channel = '#alerts',
     this.minLevel = 'error',
   });
 
+  static const _levels = [
+    'emergency',
+    'alert',
+    'critical',
+    'error',
+    'warning',
+    'notice',
+    'info',
+    'debug',
+  ];
+
   @override
   void log(String level, String message, [dynamic context]) {
-    // Only log if level is at or above minLevel
-    if (!_shouldLog(level)) return;
+    // Only send when the level is at or above minLevel.
+    if (_levels.indexOf(level) > _levels.indexOf(minLevel)) return;
 
-    Sentry.captureMessage(
-      message,
-      level: _sentryLevel(level),
-      withScope: (scope) {
-        if (context is Map) {
-          context.forEach((key, value) {
-            scope.setExtra(key.toString(), value);
-          });
-        }
-      },
-    );
-  }
-
-  bool _shouldLog(String level) {
-    const levels = ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'];
-    final levelIndex = levels.indexOf(level);
-    final minIndex = levels.indexOf(minLevel);
-    return levelIndex <= minIndex;
-  }
-
-  SentryLevel _sentryLevel(String level) {
-    switch (level) {
-      case 'emergency':
-      case 'alert':
-      case 'critical':
-        return SentryLevel.fatal;
-      case 'error':
-        return SentryLevel.error;
-      case 'warning':
-        return SentryLevel.warning;
-      default:
-        return SentryLevel.info;
-    }
+    Http.post(webhookUrl, data: {
+      'channel': channel,
+      'text': '[$level] $message',
+      'attachments': context != null ? [{'text': context.toString()}] : null,
+    });
   }
 }
 ```
@@ -222,7 +209,7 @@ class SentryLoggerDriver extends LoggerDriver {
 <a name="registering-the-custom-driver"></a>
 ### Registering the Custom Driver
 
-Register your driver via `LogManager.extend()` in a Service Provider's `boot()` phase:
+Register your driver via `LogManager.extend()` in a Service Provider's `register()` phase, not `boot()`. `LogManager` caches the default driver on the first `Log` call that names no channel, a channel whose driver name is not yet registered resolves to `console` at that moment, and `extend()` does not clear the cache. A `Log` call that runs before your `boot()` therefore leaves a default `stack` containing `slack` writing those logs to the console for the rest of the process:
 
 ```dart
 // lib/app/providers/logging_service_provider.dart
@@ -230,24 +217,23 @@ class LoggingServiceProvider extends ServiceProvider {
   LoggingServiceProvider(super.app);
 
   @override
-  Future<void> boot() async {
-    LogManager.extend('sentry', (config) => SentryLoggerDriver(
-      dsn: config['dsn'] ?? '',
+  void register() {
+    LogManager.extend('slack', (config) => SlackLoggerDriver(
+      webhookUrl: config['webhook_url'],
+      channel: config['channel'] ?? '#alerts',
       minLevel: config['level'] ?? 'error',
     ));
   }
 }
 ```
 
-This follows the same `extend()` pattern as `Auth.manager.extend(...)` for custom auth guards. The factory receives the channel's config map and returns a `LoggerDriver` instance.
-
-Then use it in your config:
+The factory receives the channel's config map and returns a `LoggerDriver` instance. Then use it in your config:
 
 ```dart
 'channels': {
-  'sentry': {
-    'driver': 'sentry',
-    'dsn': 'https://your-sentry-dsn',
+  'slack': {
+    'driver': 'slack',
+    'webhook_url': 'https://hooks.example.com/your-webhook',
     'level': 'error',
   },
 }
@@ -256,10 +242,22 @@ Then use it in your config:
 And log to it:
 
 ```dart
-Log.channel('sentry').error('Something went wrong', {
+Log.channel('slack').error('Something went wrong', {
   'user_id': user.id,
 });
 ```
+
+<a name="error-reporting"></a>
+## Error Reporting
+
+Sentry error and performance monitoring is not part of core. It ships as the `magic_sentry` plugin:
+
+```bash
+flutter pub add magic_sentry
+dart run magic:dowel plugin:install magic_sentry
+```
+
+See the [installation guide](https://anilcancakir.com/magic_sentry/docs/getting-started/installation) and [HTTP failure reporting](https://anilcancakir.com/magic_sentry/docs/basics/http-reporting).
 
 <a name="testing"></a>
 ## Testing
@@ -294,50 +292,10 @@ The `FakeLogManager` exposes:
 
 Call `Log.unfake()` at the end of the test (or in `tearDown`) to restore the real binding.
 
----
+<a name="related-documentation"></a>
+## Related Documentation
 
-## Example: Slack Notifications
-
-Register the driver, then use it via config:
-
-```dart
-// In ServiceProvider boot()
-LogManager.extend('slack', (config) => SlackLoggerDriver(
-  webhookUrl: config['webhook_url'],
-  channel: config['channel'] ?? '#alerts',
-));
-```
-
-Here's the driver implementation:
-
-```dart
-class SlackLoggerDriver extends LoggerDriver {
-  final String webhookUrl;
-  final String channel;
-  
-  SlackLoggerDriver({required this.webhookUrl, this.channel = '#alerts'});
-  
-  @override
-  void log(String level, String message, [dynamic context]) {
-    final payload = {
-      'channel': channel,
-      'username': 'Magic Bot',
-      'icon_emoji': _emoji(level),
-      'text': '[$level] $message',
-      'attachments': context != null ? [{'text': context.toString()}] : null,
-    };
-    
-    Http.post(webhookUrl, data: payload);
-  }
-  
-  String _emoji(String level) {
-    switch (level) {
-      case 'emergency':
-      case 'critical': return ':fire:';
-      case 'error': return ':x:';
-      case 'warning': return ':warning:';
-      default: return ':information_source:';
-    }
-  }
-}
-```
+- [Events](./events.md)
+- [Cache](./cache.md)
+- [Service Providers](../getting-started/service-providers.md)
+- [Testing Facades](../testing/facades.md)

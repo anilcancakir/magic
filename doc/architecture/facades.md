@@ -7,6 +7,7 @@ Facades provide a clean, static interface to the services bound in Magic's IoC c
 - [Available Facades](#available-facades)
 - [How Facades Work](#how-facades-work)
 - [Facade Class Reference](#facade-class-reference)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -93,14 +94,14 @@ Magic provides the following facades:
 
 ### Plugin Facades
 
-These facades moved out of core into optional plugin packages. Each plugin is installed with `flutter pub add <package>` then `dart run magic:dowel plugin:install <package>`.
+These facades live in optional plugin packages, not in core. Each plugin is installed with `flutter pub add <package>` then `dart run magic:dowel plugin:install <package>`, and its own documentation covers the facade.
 
-| Facade | Package |
-|--------|---------|
-| `Crypt` | `magic_encryption` |
-| `Echo` | `magic_socket` |
-| `DB`, `Schema` | `magic_local_storage` |
-| `Pick` | `magic_picker` |
+| Facade | Package | Provides |
+|:-------|:--------|:---------|
+| `Crypt` | [`magic_encryption`](https://anilcancakir.com/magic_encryption/docs/getting-started/installation) | AES-256-CBC encryption |
+| `Echo` | [`magic_socket`](https://anilcancakir.com/magic_socket/docs/getting-started/installation) | Real-time broadcasting client |
+| `DB`, `Schema` | [`magic_local_storage`](https://anilcancakir.com/magic_local_storage/docs/getting-started/installation) | SQLite, query builder, migrations |
+| `Pick` | [`magic_picker`](https://anilcancakir.com/magic_picker/docs/getting-started/installation) | File and image picking |
 
 <a name="how-facades-work"></a>
 ## How Facades Work
@@ -131,8 +132,6 @@ Magic.findOrPut(Controller.new);
 // UI Helpers
 Magic.success('Title', 'Message');
 Magic.error('Title', 'Message');
-Magic.info('Title', 'Message');
-Magic.warning('Title', 'Message');
 Magic.toast('Message');
 Magic.loading(message: 'Please wait...');
 Magic.closeLoading();
@@ -155,13 +154,13 @@ Config.merge({'key': 'value'});
 
 ```dart
 Auth.check();                    // Is authenticated?
-Auth.guest();                    // Is guest?
-Auth.user<User>();              // Get typed user
+Auth.guest;                      // Is guest?
+Auth.user<User>();               // Get typed user
 Auth.id();                       // Get user ID
-await Auth.login(data, user);   // Login
-await Auth.logout();            // Logout
-await Auth.restore();           // Restore from cache
-await Auth.refreshToken();      // Refresh token
+await Auth.login(data, user);    // Login
+await Auth.logout();             // Logout
+await Auth.restore();            // Restore from cache
+await Auth.refreshToken();       // Refresh token
 ```
 
 ### MagicRoute
@@ -200,7 +199,7 @@ await Http.destroy('users', '1');
 ### Cache
 
 ```dart
-await Cache.get('key', defaultValue: 'default');
+Cache.get('key', defaultValue: 'default');
 await Cache.put('key', 'value', ttl: Duration(minutes: 5));
 await Cache.remember('key', duration, () async => compute());
 await Cache.forget('key');
@@ -220,9 +219,9 @@ Gate.denies('ability', model);
 
 ```dart
 trans('key', {'param': 'value'});  // Global helper
-Lang.locale;                        // Current locale
+Lang.current;                       // Current locale
 await Lang.setLocale(Locale('tr'));
-Lang.isSupported(Locale('en'));
+Lang.supportedLocales;              // Locales the app declares
 ```
 
 ### Launch
@@ -260,8 +259,15 @@ carbon.isFuture();
 await Vault.put('api_key', 'secret');
 await Vault.get('api_key');
 await Vault.delete('api_key');
-await Vault.has('api_key');
+await Vault.flush();
 ```
 
 > [!TIP]
 > When in doubt, check the facade source file in `/lib/src/facades/` for all available methods.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Service Container](./service-container.md): the bindings a facade resolves.
+- [Service Providers](../getting-started/service-providers.md): where those bindings are registered.
+- [Testing Facades](../testing/facades.md): swapping a facade for a fake in a test.

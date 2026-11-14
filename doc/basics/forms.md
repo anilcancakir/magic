@@ -1,6 +1,6 @@
 # Forms
 
-Magic provides a complete form handling system: `MagicFormData` for centralized form state, Wind form widgets for UI, `FormRequest` classes for structured validation and authorization, and the `ValidatesRequests` mixin for controller-side error management.
+Magic provides a complete form handling system: `MagicFormData` for centralized form state, `wind_kit` form widgets for UI, `FormRequest` classes for structured validation and authorization, and the `ValidatesRequests` mixin for controller-side error management.
 
 - [Introduction](#introduction)
 - [MagicFormData](#magicformdata)
@@ -21,6 +21,8 @@ Magic provides a complete form handling system: `MagicFormData` for centralized 
 - [Form Introspection](#form-introspection)
 - [MagicFormObject](#magicformobject)
 - [Complete Example](#complete-example)
+- [Gotchas](#gotchas)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -28,7 +30,7 @@ Magic provides a complete form handling system: `MagicFormData` for centralized 
 Magic provides a powerful form handling system that combines the simplicity of Laravel's request handling with Flutter's form widgets. Forms are managed through `MagicFormData`, which centralizes form state, validation, and data extraction.
 
 > [!TIP]
-> You can generate a validated form request stub using the Magic CLI: `dart run magic:dowel make:request` (e.g., `dart run magic:dowel make:request StoreOrder`). The generated file at `lib/app/requests/store_order_request.dart` provides a structured place for your validation rules.
+> You can generate a validated form request stub using dowel: `dart run magic:dowel make:request StoreOrder`. The generated file at `lib/app/validation/requests/store_order_request.dart` provides a structured place for your validation rules.
 
 <a name="magicformdata"></a>
 ## MagicFormData
@@ -138,7 +140,7 @@ Widget build(BuildContext context) {
 <a name="wforminput"></a>
 ### WFormInput
 
-The primary text input widget with Wind UI styling:
+The primary text input widget, styled with `wind_kit` class names:
 
 ```dart
 WFormInput(
@@ -165,7 +167,6 @@ WFormInput(
 | `InputType.password` | Obscured password input |
 | `InputType.email` | Email keyboard |
 | `InputType.number` | Numeric keyboard |
-| `InputType.phone` | Phone number keyboard |
 | `InputType.multiline` | Multi-line text area |
 
 <a name="wformcheckbox"></a>
@@ -186,11 +187,11 @@ WFormCheckbox(
 <a name="wformselect"></a>
 ### WFormSelect
 
-Dropdown select with search support:
+Dropdown select with search support. Its value is not text, so declare it as a non-text field (`'country': null as String?`) and read it with `value<T>`:
 
 ```dart
 WFormSelect<String>(
-  value: form.get('country'),
+  value: form.value<String?>('country'),
   options: [
     SelectOption(value: 'us', label: 'United States'),
     SelectOption(value: 'gb', label: 'United Kingdom'),
@@ -210,7 +211,7 @@ WFormSelect<String>(
 
 ### Client-Side Validation
 
-Use the `rules()` helper for client-side validation:
+Use the `rules()` helper for client-side validation. It is a method of `MagicStatefulViewState` that wraps `FormValidator.rules` and passes the view's controller along, so a server-side error for the field wins over the client-side rules:
 
 ```dart
 WFormInput(
@@ -302,8 +303,7 @@ class OrderController extends MagicController with MagicStateMixin<Order>, Valid
     } on AuthorizationException {
       setError('You are not authorized to create orders.');
     } on ValidationException catch (e) {
-      validationErrors = Map.from(e.errors);
-      notifyListeners();
+      setErrorsFromMap(e.errors.map((field, message) => MapEntry(field, [message])));
       setEmpty();
     }
   }
@@ -324,10 +324,7 @@ Map<String, String> attributes() => {'product_id': 'Product'};
 <a name="validating-requests-in-controllers"></a>
 ### Validating Requests in Controllers
 
-The `ValidatesRequests` mixin adds Laravel-style validation directly to a controller. Import it from the public barrel `package:magic/magic.dart`; its implementation lives under `lib/src/concerns/` (not `lib/src/http/`), but app code never imports from `lib/src/` directly.
-
-> [!IMPORTANT]
-> Import `ValidatesRequests` from `package:magic/magic.dart`. The mixin lives in `lib/src/concerns/validates_requests.dart`. Do not import from `lib/src/http/`; the mixin is not there.
+The `ValidatesRequests` mixin adds Laravel-style validation directly to a controller. Import it from the public barrel `package:magic/magic.dart`.
 
 Apply the mixin with the `with` keyword on any `MagicController` subclass:
 
@@ -373,6 +370,7 @@ When the controller bound to a `MagicFormData` instance implements `ValidatesReq
 | Member | Description |
 |--------|-------------|
 | `validate(data, rules)` | Run rules; returns validated data or throws `ValidationException` |
+| `validateRequest(request, data)` | Run a `FormRequest` (authorize, prepare, rules); returns the prepared data or throws |
 | `setErrorsFromResponse(response)` | Populate field errors from a 422 `MagicResponse` |
 | `handleApiError(response, {fallback})` | Combined handler: sets field errors for 422, generic error otherwise |
 | `clearErrors()` | Remove all validation errors and notify listeners |
@@ -585,11 +583,12 @@ class _MonitorFormViewState extends MagicStatefulViewState<MonitorFormController
 }
 ```
 
-`submit()` clears stale errors, validates the current `data` against `request` (painting a failing client rule onto `data`'s fields and stopping before `persist` ever runs), then routes `persist` through `data.process` so `data.isProcessing` covers the write and a server-side `ValidationException` from `persist` is caught the same way a client-side failure is. Never register a `MagicFormObject` via `Magic.put`/`findOrPut`: it is scoped to a single screen's lifetime, and `onClose` asserts (in debug) that it never ended up in the container. See `doc/basics/actions.md` for the `RunsActions` half of the mix.
+`submit()` clears stale errors, validates the current `data` against `request` (painting a failing client rule onto `data`'s fields and stopping before `persist` ever runs), then routes `persist` through `data.process` so `data.isProcessing` covers the write and a server-side `ValidationException` from `persist` is caught the same way a client-side failure is. Never register a `MagicFormObject` via `Magic.put`/`findOrPut`: it is scoped to a single screen's lifetime, and `onClose` asserts (in debug) that it never ended up in the container. See [Actions](./actions.md) for the `RunsActions` half of the mix.
 
 ```bash
 dart run magic:dowel make:form Monitor                          # -> MonitorFormObject
 dart run magic:dowel make:form Monitor --request=StoreMonitorRequest
+dart run magic:dowel make:form Monitor --resource=Monitor       # full create and edit contract
 ```
 
 <a name="complete-example"></a>
@@ -702,3 +701,24 @@ class _RegisterViewState extends MagicStatefulViewState<AuthController, Register
   }
 }
 ```
+
+<a name="gotchas"></a>
+## Gotchas
+
+| Mistake | Fix |
+|---------|-----|
+| Reading a `bool` or list field with `form['x']`, or a text field with `value<T>('x')` | Strings become `TextEditingController`s (`form['x']`, `get`, `set`); every other type is a `ValueNotifier` (`value<T>`, `setValue`). The wrong accessor fails an assert |
+| Not calling `form.dispose()` from the state's `onClose` | `MagicFormData` owns every controller and notifier it created; `dispose()` releases them all |
+| Passing a controller to `MagicFormData` that does not mix in `ValidatesRequests` | Server-side errors never reach the form and field errors are not cleared as the user types; add the mixin to the controller |
+| Calling `form.process(...)` again while a submit is running | It throws a `StateError`; guard the button with `isProcessing` (or `isLoading: form.isProcessing`) |
+| Assuming `form.validated()` always returns data | It returns an empty map when validation fails; check `isNotEmpty` before submitting |
+| Registering a `MagicFormObject` with `Magic.put` or `findOrPut` | Create one per `State` (`late final form = MyForm();`) and dispose it from `onClose`; it asserts in debug when it finds itself in the container |
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Controllers](./controllers.md)
+- [Actions](./actions.md)
+- [Views](./views.md)
+- [Validation](../digging-deeper/validation.md)
+- [Magic CLI](../packages/magic-cli.md): `make:form` and `make:request`.

@@ -11,6 +11,7 @@ Magic provides an expressive, unified API for various caching backends, with bui
 - [Custom Cache Drivers](#custom-cache-drivers)
 - [Cache Events and Listeners](#cache-events-and-listeners)
 - [Testing](#testing)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -55,16 +56,18 @@ Use the `Cache` facade to retrieve items from the cache:
 
 ```dart
 // Basic retrieval
-final value = await Cache.get('key');
+final value = Cache.get('key');
 
 // With default value
-final username = await Cache.get('username', defaultValue: 'Guest');
+final username = Cache.get('username', defaultValue: 'Guest');
 
 // Check existence
-if (await Cache.has('user_settings')) {
-  final settings = await Cache.get('user_settings');
+if (Cache.has('user_settings')) {
+  final settings = Cache.get('user_settings');
 }
 ```
+
+`Cache.get()` and `Cache.has()` are synchronous. The write methods (`put`, `forget`, `flush`) and `remember` return a `Future`.
 
 <a name="storing-items"></a>
 ## Storing Items
@@ -84,21 +87,20 @@ await Cache.put('user', {
   'name': 'John',
   'email': 'john@example.com',
 });
-
-
 ```
 
 <a name="the-remember-method"></a>
 ## The Remember Method
 
-The most powerful caching pattern—retrieve from cache or compute and store:
+`Cache.remember()` retrieves an item from the cache, or computes and stores it:
 
 ```dart
 final users = await Cache.remember(
-  'users', 
-  Duration(minutes: 5), 
+  'users',
+  Duration(minutes: 5),
   () async {
-    return await Http.get('/users');
+    final response = await Http.get('/users');
+    return response.data;
   },
 );
 ```
@@ -115,7 +117,7 @@ class UserController extends MagicController {
   Future<List<User>> getUsers() async {
     return await Cache.remember('all_users', Duration(minutes: 10), () async {
       final response = await Http.get('/users');
-      return (response.body as List).map((u) => User.fromMap(u)).toList();
+      return (response.data as List).map((u) => User.fromMap(u)).toList();
     });
   }
 }
@@ -125,11 +127,8 @@ class UserController extends MagicController {
 
 ```dart
 final dashboardStats = await Cache.remember('dashboard_stats', Duration(hours: 1), () async {
-  return {
-    'total_users': await User.count(),
-    'active_monitors': await Monitor.where('is_active', true).count(),
-    'incidents_today': await Incident.whereDate('created_at', Carbon.today()).count(),
-  };
+  final response = await Http.get('/dashboard/stats');
+  return response.data;
 });
 ```
 
@@ -150,7 +149,7 @@ await Cache.flush();
 class UserController extends MagicController {
   Future<void> updateUser(Map<String, dynamic> data) async {
     final response = await Http.put('/users/${data['id']}', data: data);
-    
+
     if (response.successful) {
       // Invalidate related caches
       await Cache.forget('all_users');
@@ -164,49 +163,55 @@ class UserController extends MagicController {
 <a name="custom-cache-drivers"></a>
 ## Custom Cache Drivers
 
-Implement `CacheStore` for custom backends:
+Implement `CacheStore` for custom backends. `get()` and `has()` are synchronous in the contract, so a driver that talks to a remote backend keeps a local copy and loads it in `init()`, as `FileStore` does:
 
 ```dart
-class RedisStore implements CacheStore {
-  final RedisClient _client;
-  
-  RedisStore(this._client);
+class MemoryStore implements CacheStore {
+  final Map<String, dynamic> _items = {};
+  final Map<String, DateTime> _expiresAt = {};
 
   @override
-  Future<void> init() async {
-    await _client.connect();
-  }
+  Future<void> init() async {}
 
   @override
-  Future<dynamic> get(String key, {dynamic defaultValue}) async {
-    final value = await _client.get(key);
-    if (value == null) return defaultValue;
-    return jsonDecode(value);
+  dynamic get(String key, {dynamic defaultValue}) {
+    return has(key) ? _items[key] : defaultValue;
   }
 
   @override
   Future<void> put(String key, dynamic value, {Duration? ttl}) async {
-    final encoded = jsonEncode(value);
-    if (ttl != null) {
-      await _client.setex(key, ttl.inSeconds, encoded);
+    _items[key] = value;
+
+    // A null ttl means the item never expires.
+    if (ttl == null) {
+      _expiresAt.remove(key);
     } else {
-      await _client.set(key, encoded);
+      _expiresAt[key] = DateTime.now().add(ttl);
     }
   }
 
   @override
-  Future<bool> has(String key) async {
-    return await _client.exists(key) > 0;
+  bool has(String key) {
+    final expiresAt = _expiresAt[key];
+
+    if (expiresAt != null && !DateTime.now().isBefore(expiresAt)) {
+      _items.remove(key);
+      _expiresAt.remove(key);
+    }
+
+    return _items.containsKey(key);
   }
 
   @override
   Future<void> forget(String key) async {
-    await _client.del(key);
+    _items.remove(key);
+    _expiresAt.remove(key);
   }
 
   @override
   Future<void> flush() async {
-    await _client.flushdb();
+    _items.clear();
+    _expiresAt.clear();
   }
 }
 ```
@@ -215,7 +220,7 @@ Use your custom driver in config:
 
 ```dart
 'cache': {
-  'driver': RedisStore(RedisClient()),
+  'driver': MemoryStore(),
 },
 ```
 
@@ -266,7 +271,7 @@ Then wire them in your event service provider:
 ```dart
 import 'package:magic/magic.dart';
 
-class AppEventServiceProvider extends EventServiceProvider {
+class AppEventServiceProvider extends BaseEventServiceProvider {
   AppEventServiceProvider(super.app);
 
   @override
@@ -280,11 +285,7 @@ class AppEventServiceProvider extends EventServiceProvider {
 }
 ```
 
-### Telescope Integration
-
-When `magic_devtools` is installed, the `MagicCacheWatcher` registers listeners for all five cache events automatically and streams them into Telescope's ring buffer, where they appear as cache entries readable by AI agents and the `telescope:tail` command. No configuration is required on your side; Telescope observes passively without a write path.
-
-See [Magic DevTools](../packages/magic-devtools.md) for installation and setup.
+The separate `magic_devtools` package can observe these events during development; core does not depend on it.
 
 <a name="testing"></a>
 ## Testing
@@ -326,3 +327,10 @@ void main() {
 - `assertPut(key)`: asserts the key was stored at least once via `put`.
 - `recorded`: the full chronological list of cache operations for manual inspection.
 - `reset()`: clears the store and the recorded list between assertions.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Events](./events.md)
+- [Logging](./logging.md)
+- [Service Providers](../getting-started/service-providers.md)

@@ -16,11 +16,12 @@ Magic provides a client-side validation system that integrates with Flutter form
 - [Custom Rules](#custom-rules)
 - [Error Styling](#error-styling)
 - [Localization](#localization)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
 
-Magic provides a powerful validation system that integrates seamlessly with Flutter forms. Define your validation rules in the View using the `rules()` helper, and your Controller receives only clean, pre-validated data.
+Magic provides a validation system that integrates with Flutter forms. Define your validation rules in the View using the `rules()` helper, and your Controller receives only clean, pre-validated data.
 
 ### Key Features
 
@@ -302,20 +303,23 @@ class StoreMonitorRequest extends FormRequest {
   };
 }
 
-// In the controller:
+// In a controller with the ValidatesRequests mixin:
 try {
   final payload = StoreMonitorRequest(Auth.user()!).validate(form.data);
   await Http.post('/monitors', data: payload);
 } on AuthorizationException {
-  Magic.toast.error('You do not have permission to create monitors.');
+  Magic.error('Error', 'You do not have permission to create monitors.');
 } on ValidationException catch (e) {
-  setFieldErrors(e.errors); // ValidatesRequests mixin
+  // e.errors maps each failing field to its message; put them on the form
+  setErrorsFromMap(
+    e.errors.map((field, message) => MapEntry(field, [message])),
+  );
 }
 ```
 
 - `authorize()` runs first and throws `AuthorizationException` on `false`.
 - `prepared()` normalizes the payload before rules see it (trim, slugify, merge defaults).
-- `validate()` returns the prepared payload filtered to the keys declared in `rules()` — same contract as `Validator.validate`.
+- `validate()` returns the prepared payload filtered to the keys declared in `rules()`, the same contract as `Validator.validate`.
 - `attributes()` names fields for `:attribute` in this request's messages (see below). Default is an empty map.
 
 ### Naming Fields Per Request
@@ -422,9 +426,8 @@ The `handleApiError()` method handles different error types:
 
 | Error Type | Behavior |
 |------------|----------|
-| 422 Validation | Sets field-level errors, form shows errors |
-| 401 Unauthorized | Shows unauthorized message |
-| 500+ Server Error | Shows fallback error message |
+| 422 Validation | Sets field-level errors; with `MagicStateMixin`, sets the response's error message, or empty when it has none |
+| Any other failure | With `MagicStateMixin`, sets the first error from the response, else `fallback`, else `'An error occurred'` |
 
 ### ValidatesRequests Methods
 
@@ -490,7 +493,7 @@ final validator = Validator.make(data, {
 try {
   final validated = await validator.validateAsync();
 } on ValidationException catch (e) {
-  setFieldErrors(e.errors);
+  // e.errors maps each failing field to its message
 }
 ```
 
@@ -612,3 +615,12 @@ Define user-friendly field names:
 ```
 
 The `:attribute` placeholder is replaced with the localized field name.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Forms](../basics/forms.md)
+- [Controllers](../basics/controllers.md)
+- [Localization](./localization.md)
+- [Session](./session.md)
+- [HTTP Client](../basics/http-client.md)

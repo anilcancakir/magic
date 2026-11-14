@@ -9,6 +9,7 @@
 - [SessionScoped](#sessionscoped)
 - [Registering a Non-Controller Holder](#registering-a-non-controller-holder)
 - [Failure Modes](#failure-modes)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -102,3 +103,11 @@ class SearchIndex implements SessionScoped {
 | A controller is also a registered holder (both a `SessionScoped` controller and separately `register`ed) | Resets exactly once: the snapshot is a `Set` |
 | `attach()` called twice | The second call is a no-op; only one subscription is ever active |
 | A logout | Recorded, never triggers a reset (would only 401) |
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Session](./session.md)
+- [Authentication](../security/authentication.md)
+- [Controllers](../basics/controllers.md)
+- [Repositories](../eloquent/repositories.md)

@@ -9,6 +9,7 @@ The `Session` facade provides flash data that survives exactly one navigation ho
 - [Automatic Flash in MagicFormData](#automatic-flash-in-magicformdata)
 - [Advancing the Flash Bucket](#advancing-the-flash-bucket)
 - [Testing](#testing)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -103,3 +104,11 @@ setUp(() {
 ```
 
 Swap the backing store with a custom `SessionStore` via `Session.setStore(store)` if you need isolated buckets per test group.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Session Scope](./session-scope.md)
+- [Validation](./validation.md)
+- [Forms](../basics/forms.md)
+- [Routing](../basics/routing.md)

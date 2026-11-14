@@ -1,6 +1,6 @@
 # HTTP Client
 
-Magic provides a powerful HTTP client through the `Http` facade, built on top of Dio, with a clean API for making requests and handling responses.
+The `Http` facade is Magic's HTTP client, built on top of Dio, with one API for making requests and handling responses.
 
 - [Introduction](#introduction)
 - [Configuration](#configuration)
@@ -23,11 +23,21 @@ Magic provides a powerful HTTP client through the `Http` facade, built on top of
 - [Interceptors](#interceptors)
     - [Configuring the Underlying Driver](#configuring-the-underlying-driver)
 - [Testing HTTP](#testing-http)
+- [Gotchas](#gotchas)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
 
-Magic provides a powerful HTTP client through the `Http` facade. Built on top of Dio, it offers a clean, expressive API for making HTTP requests and handling responses, just like you would expect from Laravel.
+Every request method on the `Http` facade returns a `MagicResponse` and never throws: a failed request is a value you read, including a transport failure, which arrives as status code `0`. The one exception is `Http.upload()`, which reads the files before it sends anything: a path in `files` that cannot be read throws a `FileSystemException`, and an unsupported file value throws an `ArgumentError` (see [File Uploads](#file-uploads)).
+
+```dart
+final response = await Http.get('/users');
+
+if (response.successful) {
+  final users = response.data;
+}
+```
 
 <a name="configuration"></a>
 ## Configuration
@@ -358,7 +368,7 @@ WDiv(
     paginator: controller.checks,
     itemBuilder: (_, CheckRow row, _) => CheckHistoryRow(row: row),
     separatorBuilder: (_, _) => const WDiv(className: 'h-px bg-gray-200'),
-    emptyState: const MSEmptyState(title: 'No checks yet'),
+    emptyState: const WText('No checks yet'),
     loadingFooter: const WDiv(className: 'p-4', child: WText('Loading...')),
   ),
 )
@@ -398,7 +408,7 @@ response.dataAs<List>()  // Typed access
 <a name="validation-errors"></a>
 ### Validation Errors
 
-Magic handles Laravel-style 422 validation errors elegantly:
+A Laravel-style 422 response is parsed into field errors:
 
 ```dart
 final response = await Http.post('/register', data: formData);
@@ -446,10 +456,13 @@ class AuthController extends MagicController with ValidatesRequests {
 <a name="file-uploads"></a>
 ## File Uploads
 
+> [!NOTE]
+> Picking a file from the device (the `Pick` facade) belongs to the `magic_picker` plugin: `flutter pub add magic_picker`, then `dart run magic:dowel plugin:install magic_picker`. See its [Pick page](https://anilcancakir.com/magic_picker/docs/basics/pick).
+
 ### Using MagicFile (Recommended)
 
 ```dart
-// Upload a stored file (the magic_picker plugin's Pick facade returns a MagicFile too)
+// Upload a stored file
 final image = await Storage.getFile('avatars/1.jpg');
 
 if (image != null) {
@@ -480,59 +493,65 @@ final response = await Http.upload(
 );
 ```
 
+The Dio driver catches only `DioException`, so a string path in `files` that cannot be read raises a `FileSystemException` out of the call instead of a status `0` response. A value that is not a path, a `MagicFile`, a `MultipartFile`, a `Uint8List` or a `List<int>` raises an `ArgumentError`. Wrap an upload that takes user-chosen paths in `try`/`catch`.
+
 <a name="interceptors"></a>
 ## Interceptors
 
-Create interceptors to modify requests or handle responses globally:
+Extend `MagicNetworkInterceptor` to modify requests or handle responses and errors globally. Each hook receives a driver-agnostic type (`MagicRequest`, `MagicResponse`, `MagicError`) and returns it, possibly changed:
 
 ```dart
-class AuthInterceptor extends Interceptor {
+class RequestHeaderInterceptor extends MagicNetworkInterceptor {
   @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
-    // Add auth token to every request
-    final token = await Auth.getToken();
-    if (token != null) {
-      options.headers['Authorization'] = 'Bearer $token';
+  dynamic onRequest(MagicRequest request) {
+    request.headers['X-Client'] = 'my-app';
+    return request;
+  }
+
+  @override
+  dynamic onResponse(MagicResponse response) {
+    Log.debug('Response ${response.statusCode}');
+    return response;
+  }
+
+  @override
+  dynamic onError(MagicError error) {
+    if (error.isUnauthorized) {
+      // React to a 401 here
     }
-    handler.next(options);
-  }
-
-  @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
-    // Log or transform successful responses
-    handler.next(response);
-  }
-
-  @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
-    // Handle errors globally
-    if (err.response?.statusCode == 401)
-```
-
-Register interceptors in your `NetworkServiceProvider`:
-
-```dart
-class NetworkServiceProvider extends ServiceProvider {
-  @override
-  void boot() {
-    Http.addInterceptor(AuthInterceptor());
-    Http.addInterceptor(LoggingInterceptor());
+    return error;
   }
 }
 ```
 
+Register an interceptor on the network driver from a service provider's `boot()`:
+
+```dart
+class HttpServiceProvider extends ServiceProvider {
+  HttpServiceProvider(super.app);
+
+  @override
+  Future<void> boot() async {
+    Magic.make<NetworkDriver>('network').addInterceptor(RequestHeaderInterceptor());
+  }
+}
+```
+
+`AuthServiceProvider` already registers an `AuthInterceptor` that attaches the guard's token to each request and refreshes it on a 401, so you do not write one for that. To work with Dio's own `Interceptor` type, use `configureDriver` below.
+
 <a name="configuring-the-underlying-driver"></a>
 ### Configuring the Underlying Driver
 
-For SDK integrations that need direct Dio access (such as `sentry_dio` for performance tracing or certificate pinning), resolve the `DioNetworkDriver` from the IoC container and call `configureDriver()`:
+For integrations that need direct Dio access (a Dio package that attaches its own interceptor, or certificate pinning), resolve the `DioNetworkDriver` from the IoC container and call `configureDriver()`:
 
 ```dart
 final driver = Magic.make<DioNetworkDriver>('network');
 driver.configureDriver((dio) {
-  // Attach a Sentry performance tracing interceptor
-  dio.addSentry();
+  dio.interceptors.add(LogInterceptor());
 });
 ```
+
+Reporting failed requests to Sentry is the job of the `magic_sentry` plugin (`flutter pub add magic_sentry`, then `dart run magic:dowel plugin:install magic_sentry`), which registers its own interceptor; see its [HTTP Reporting page](https://anilcancakir.com/magic_sentry/docs/basics/http-reporting).
 
 You can also use this hook to pin a certificate by supplying a custom `HttpClientAdapter`:
 
@@ -568,3 +587,25 @@ Http.fake({
 // Restore the real driver when done
 Http.unfake();
 ```
+
+<a name="gotchas"></a>
+## Gotchas
+
+| Mistake | Fix |
+|---------|-----|
+| Wrapping `Http` calls in `try`/`catch` for a failed request | The request methods never throw: read `response.successful`. A timeout or dead link is a `MagicResponse` with status code `0`, not an exception |
+| Passing a file path to `Http.upload()` without a `try`/`catch` | The files are read before the request, outside the driver's `DioException` handling, so an unreadable path throws a `FileSystemException`. Catch it around `upload()` |
+| Looking for `Http.addInterceptor` or passing a Dio `Interceptor` to the driver | Extend `MagicNetworkInterceptor` and call `addInterceptor` on `Magic.make<NetworkDriver>('network')`; reach Dio's own types through `DioNetworkDriver.configureDriver` |
+| Relying on header name casing on the web | Casing is preserved on mobile and desktop only; the browser lowercases names, so do not build a web feature on a case-sensitive header |
+| Reading a response header with its original casing | `MagicResponse.headers` keys are always lowercase |
+| A fetcher-backed `MagicPaginator` that keeps its own page counter | Branch on `request.isFirst`: the cursor is null for every page of such a source, so a `refresh()` is otherwise indistinguishable from a `loadMore()` |
+| `MagicPaginatedListView` inside an unbounded-height parent | Give it a bounded height; `shrinkWrap` builds every row and defeats the lazy list |
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [HTTP Tests](../testing/http-tests.md)
+- [Controllers](./controllers.md)
+- [Forms](./forms.md)
+- [Authentication](../security/authentication.md)
+- [Configuration](../getting-started/configuration.md)

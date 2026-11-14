@@ -22,14 +22,15 @@ Magic provides a Laravel-style localization system that lets you retrieve and sw
 - [Automatic HTTP Headers](#automatic-http-headers)
 - [CLI Commands](#cli-commands)
 - [Development: Hot Restart](#development-hot-restart)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
 
-Magic provides a Laravel-style localization system that allows you to easily retrieve strings in various languages **without needing BuildContext**. This is a game-changer for Flutter developers who are tired of passing context everywhere.
+Magic provides a Laravel-style localization system that allows you to retrieve strings in various languages **without needing BuildContext**.
 
 ```dart
-// Anywhere in your code - no context needed!
+// Anywhere in your code, no context needed
 Text(trans('welcome', {'name': 'Magic'}))  // "Welcome, Magic!"
 Text(trans('auth.failed'))                  // "Authentication failed."
 ```
@@ -224,11 +225,13 @@ This is the part that surprises people, and it is why the count is not simply co
 
 | Language | Forms | Rule |
 |---|---|---|
-| `tr`, `ja`, `ko`, `zh`, `id`, `vi` and nine more | 1 | every count takes segment 0 |
-| `en`, `de`, `es`, `nl`, `pt`, `sv` and 43 more | 2 | `n == 1` takes segment 0 |
-| `fr`, `hi`, `fil`, `am` and nine more | 2 | `n == 0 \|\| n == 1` takes segment 0 |
+| `tr`, `ja`, `ko`, `zh`, `id`, `vi` and others | 1 | every count takes segment 0 |
+| `en`, `de`, `es`, `nl`, `pt`, `sv` and others | 2 | `n == 1` takes segment 0 |
+| `fr`, `hi`, `fil`, `am` and others | 2 | `n == 0 \|\| n == 1` takes segment 0 |
 | `ru`, `uk`, `hr`, `sr`, `bs`, `be` | 3 | by the last digit |
 | `ar` | 6 | zero, one, two, few, many, other |
+
+Other languages (for example `cs`, `pl` and `ro`) carry rules of their own.
 
 Turkish has no plural agreement after a number, so a Turkish line's second segment is never reached. If your app's first locale is Turkish, Japanese or Chinese, a two-segment English line will look correct throughout development and be wrong the first time the second locale renders.
 
@@ -449,41 +452,13 @@ dart run magic:dowel make:lang de
 dart run magic:dowel make:lang tr
 ```
 
-This command:
-1. Creates `assets/lang/<code>.json` with a starter template
-2. Automatically registers the asset in `pubspec.yaml`
+This command creates `assets/lang/<code>.json`. When `assets/lang/en.json` exists, the new file gets a copy of its key tree with every value copied verbatim, ready for a translator; otherwise the file is an empty `{}`. Use `--from=<code>` to copy another catalogue and `--force` to overwrite an existing file:
 
-### Starter Template
-
-The generated file includes common translation keys:
-
-```json
-{
-  "welcome": "Welcome, :name!",
-  "common": {
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "success": "Success",
-    "error": "Error"
-  },
-  "auth": {
-    "login": "Login",
-    "register": "Register",
-    "logout": "Logout",
-    "failed": "Authentication failed.",
-    "throttle": "Too many attempts. Please try again in :seconds seconds."
-  },
-  "validation": {
-    "required": "The :attribute field is required.",
-    "email": "The :attribute must be a valid email address."
-  },
-  "attributes": {
-    "email": "email",
-    "password": "password"
-  }
-}
+```bash
+dart run magic:dowel make:lang tr --from=en
 ```
+
+The command does not edit `pubspec.yaml`: add the new file under `flutter: assets:` yourself (see Register Assets under [Configuration](#configuration)).
 
 > [!TIP]
 > Keep your translation keys organized by feature (auth, validation, users, etc.) for easier maintenance.
@@ -502,4 +477,12 @@ During development, Magic attempts to bypass Flutter's asset bundle cache so tha
 This behavior is **debug-mode only** (`kDebugMode`). Release builds use Flutter's standard `rootBundle` with full caching for optimal performance.
 
 > [!NOTE]
-> Hot **reload** (lowercase `r`) only reloads Dart code — it cannot pick up asset changes. Use hot **restart** (`Shift+R`) to see translation updates.
+> Hot **reload** (lowercase `r`) only reloads Dart code and cannot pick up asset changes. Use hot **restart** (`Shift+R`) to see translation updates.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Validation](./validation.md)
+- [Carbon](./carbon.md)
+- [Configuration](../getting-started/configuration.md)
+- [HTTP Client](../basics/http-client.md)

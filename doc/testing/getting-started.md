@@ -1,6 +1,6 @@
 # Testing: Getting Started
 
-Magic is built with testing in mind: it integrates with Dart's `test` package and provides helpers for resetting the IoC container, faking facades, and asserting controller and model behavior.
+`MagicTest` and the fakes in `package:magic/testing.dart` reset the IoC container between tests, fake facades and HTTP, and keep controller and model behaviour assertable with `flutter_test`.
 
 - [Introduction](#introduction)
 - [Setting Up Tests](#setting-up-tests)
@@ -9,32 +9,41 @@ Magic is built with testing in mind: it integrates with Dart's `test` package an
 - [Model Testing](#model-testing)
 - [Mock HTTP Responses](#mock-http-responses)
 - [Running Tests](#running-tests)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
 
-Magic is built with testing in mind from the ground up. The framework provides a testing foundation that works seamlessly with Dart's built-in `test` package, along with helpers for testing controllers, models, and HTTP interactions.
+Magic tests run on `flutter_test`. `MagicTest.init()` clears the container and facade caches around every test, `Http.fake()` and the facade fakes replace the real network and storage, and mocks are written by implementing the contract (an abstract class) directly, never with code generation.
 
 <a name="setting-up-tests"></a>
 ## Setting Up Tests
 
 ### Directory Structure
 
+The `test/` tree mirrors where the `make:*` generators write their classes, and `make:test` scaffolds a matching test there:
+
 ```
 test/
-├── unit/
-│   ├── models/
-│   │   └── user_test.dart
-│   └── controllers/
-│       └── auth_controller_test.dart
-├── feature/
-│   └── authentication_test.dart
-└── test_helper.dart
+├── app/
+│   ├── actions/
+│   ├── controllers/
+│   ├── forms/
+│   ├── repositories/
+│   └── validation/requests/
+├── resources/views/
+└── unit/
 ```
+
+```bash
+dart run magic:dowel make:test Monitor --kind=controller   # -> test/app/controllers/monitor_controller_test.dart
+```
+
+`--kind` is one of `controller`, `action`, `form`, `repository`, `request`, `view` or `unit`.
 
 ### Test Helper
 
-Magic provides a `MagicTest` bootstrap helper via `package:magic/testing.dart`. Call `MagicTest.init()` once at the top of `main()` — it registers `setUpAll`, `setUp`, and `tearDown` automatically:
+Magic provides a `MagicTest` bootstrap helper via `package:magic/testing.dart`. Call `MagicTest.init()` once at the top of `main()`; it registers `setUpAll`, `setUp` and `tearDown` for you:
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
@@ -117,30 +126,30 @@ Point `directory` at a temp directory with a small fixture json to test one key 
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
+import 'package:magic/magic.dart';
 import 'package:magic/testing.dart';
 
 void main() {
   MagicTest.init();
 
-  group('User', () {
-    test('can create a user', () async {
-      final user = User()
-        ..fill({
-          'name': 'John Doe',
-          'email': 'john@example.com',
-        });
-      
-      await user.save();
-      
-      expect(user.id, isNotNull);
-      expect(user.name, equals('John Doe'));
+  group('Validator', () {
+    test('rejects an invalid email', () {
+      final validator = Validator.make(
+        {'email': 'invalid-email'},
+        {'email': [Required(), Email()]},
+      );
+
+      expect(validator.fails(), isTrue);
+      expect(validator.errors().containsKey('email'), isTrue);
     });
 
-    test('validates email format', () {
-      final validator = EmailValidator();
-      
-      expect(validator.passes('john@example.com'), isTrue);
-      expect(validator.passes('invalid-email'), isFalse);
+    test('accepts a valid email', () {
+      final validator = Validator.make(
+        {'email': 'john@example.com'},
+        {'email': [Required(), Email()]},
+      );
+
+      expect(validator.passes(), isTrue);
     });
   });
 }
@@ -149,66 +158,7 @@ void main() {
 <a name="controller-testing"></a>
 ## Controller Testing
 
-Test controllers by creating instances and calling methods:
-
-```dart
-import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
-
-void main() {
-  late AuthController controller;
-  
-  setUp(() {
-    controller = AuthController();
-  });
-
-  tearDown(() {
-    controller.dispose();
-  });
-
-  group('AuthController', () {
-    test('login sets loading state', () async {
-      expect(controller.isLoading, isFalse);
-      
-      // Start login (will fail due to no mock, but tests state)
-      controller.login({'email': 'test@test.com', 'password': 'password'});
-      
-      expect(controller.isLoading, isTrue);
-    });
-
-    test('clearErrors removes all validation errors', () {
-      controller.setError('email', 'Invalid email');
-      expect(controller.hasError('email'), isTrue);
-      
-      controller.clearErrors();
-      expect(controller.hasError('email'), isFalse);
-    });
-  });
-}
-```
-
-### Testing State Changes
-
-```dart
-test('setSuccess updates state correctly', () {
-  final controller = TaskController();
-  
-  expect(controller.isLoading, isFalse);
-  expect(controller.isSuccess, isFalse);
-  
-  controller.setLoading();
-  expect(controller.isLoading, isTrue);
-  
-  controller.setSuccess([Task(name: 'Test')]);
-  expect(controller.isSuccess, isTrue);
-  expect(controller.data, isNotEmpty);
-});
-```
-
-<a name="model-testing"></a>
-## Model Testing
-
-Models are API-first, so fake the network with `Http.fake()` and assert on the model:
+Register the controller with `Magic.put`, fake the network, call a method, and assert the state transitions:
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
@@ -218,18 +168,91 @@ import 'package:magic/testing.dart';
 void main() {
   MagicTest.init();
 
-  tearDown(Http.unfake);
+  late TaskController controller;
+
+  setUp(() {
+    Http.fake({
+      'tasks': Http.response({
+        'data': [
+          {'id': 1, 'name': 'Write docs'},
+        ],
+      }),
+    });
+
+    controller = TaskController();
+    Magic.put<TaskController>(controller);
+  });
+
+  tearDown(() {
+    controller.dispose();
+    Http.unfake();
+  });
+
+  test('loadTasks moves from loading to success', () async {
+    expect(controller.isLoading, isFalse);
+
+    final loading = controller.loadTasks();
+    expect(controller.isLoading, isTrue);
+
+    await loading;
+    expect(controller.isSuccess, isTrue);
+    expect(controller.rxState, hasLength(1));
+  });
+}
+```
+
+### Testing State Changes
+
+```dart
+test('setSuccess updates state correctly', () {
+  final controller = TaskController();
+
+  expect(controller.isLoading, isFalse);
+  expect(controller.isSuccess, isFalse);
+
+  controller.setLoading();
+  expect(controller.isLoading, isTrue);
+
+  controller.setSuccess([Task(name: 'Test')]);
+  expect(controller.isSuccess, isTrue);
+  expect(controller.rxState, isNotEmpty);
+});
+```
+
+### Testing Validation Errors
+
+A controller that mixes in `ValidatesRequests` keeps field errors you can assert on directly:
+
+```dart
+test('clearErrors removes all validation errors', () {
+  final controller = AuthController();
+
+  controller.setErrorsFromMap({'email': ['Invalid email']});
+  expect(controller.hasError('email'), isTrue);
+
+  controller.clearErrors();
+  expect(controller.hasError('email'), isFalse);
+});
+```
+
+<a name="model-testing"></a>
+## Model Testing
+
+Attribute behaviour (mass assignment, casts, dirty tracking) needs no fake; a model that talks to the backend is tested against `Http.fake()` (see [HTTP Tests](./http-tests.md)):
+
+```dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:magic/magic.dart';
+import 'package:magic/testing.dart';
+
+void main() {
+  MagicTest.init();
 
   group('User Model', () {
-    test('finds user by id', () async {
-      Http.fake({
-        '/users/1': Http.response({'data': {'id': 1, 'name': 'John', 'email': 'john@example.com'}}),
-      });
+    test('fills attributes and exports them', () {
+      final user = User()..fill({'name': 'John', 'email': 'john@example.com'});
 
-      final found = await User.find(1);
-
-      expect(found, isNotNull);
-      expect(found!.email, equals('john@example.com'));
+      expect(user.toMap()['email'], equals('john@example.com'));
     });
 
     test('tracks dirty attributes', () {
@@ -249,52 +272,31 @@ A model with `useLocal => true` also needs the `magic_local_storage` plugin; its
 <a name="mock-http-responses"></a>
 ## Mock HTTP Responses
 
-Use mock HTTP responses for testing API interactions:
+`Http.fake()` swaps the network driver for an in-memory one that answers from the stubs you give it and records every request:
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
-
-class MockHttpClient extends Mock implements HttpClient {}
+import 'package:magic/magic.dart';
+import 'package:magic/testing.dart';
 
 void main() {
-  late MockHttpClient mockHttp;
+  MagicTest.init();
+
   late AuthController controller;
 
   setUp(() {
-    mockHttp = MockHttpClient();
-    // Inject mock into Http facade
-    Http.setTestClient(mockHttp);
     controller = AuthController();
   });
 
-  test('login success redirects to dashboard', () async {
-    // Arrange
-    when(() => mockHttp.post('/login', data: any(named: 'data')))
-        .thenAnswer((_) async => MagicResponse(
-          statusCode: 200,
-          body: {
-            'token': 'test-token',
-            'user': {'id': 1, 'name': 'John'},
-          },
-        ));
-
-    // Act
-    await controller.login({
-      'email': 'john@example.com',
-      'password': 'password',
-    });
-
-    // Assert
-    expect(Auth.check(), isTrue);
+  tearDown(() {
+    controller.dispose();
+    Http.unfake();
   });
 
-  test('login failure shows error', () async {
-    when(() => mockHttp.post('/login', data: any(named: 'data')))
-        .thenAnswer((_) async => MagicResponse(
-          statusCode: 401,
-          body: {'message': 'Invalid credentials'},
-        ));
+  test('login failure sets the error state', () async {
+    final fake = Http.fake({
+      'auth/login': Http.response({'message': 'Invalid credentials'}, 401),
+    });
 
     await controller.login({
       'email': 'john@example.com',
@@ -302,9 +304,12 @@ void main() {
     });
 
     expect(controller.isError, isTrue);
+    fake.assertSent((r) => r.method == 'POST' && r.url.contains('auth/login'));
   });
 }
 ```
+
+[HTTP Tests](./http-tests.md) covers URL patterns, callback stubs, request assertions and stray-request protection; [Facade Testing](./facades.md) covers the `Auth`, `Cache`, `Vault` and `Log` fakes.
 
 <a name="running-tests"></a>
 ## Running Tests
@@ -318,7 +323,7 @@ flutter test
 ### Run Specific Test File
 
 ```bash
-flutter test test/unit/models/user_test.dart
+flutter test test/app/controllers/task_controller_test.dart
 ```
 
 ### Run With Coverage
@@ -332,3 +337,12 @@ flutter test --coverage
 ```bash
 flutter test --reporter=expanded
 ```
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [HTTP Tests](./http-tests.md)
+- [Facade Testing](./facades.md)
+- [Controllers](../basics/controllers.md)
+- [Actions](../basics/actions.md)
+- [Magic CLI](../packages/magic-cli.md): `make:test`.

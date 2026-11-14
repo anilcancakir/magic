@@ -9,11 +9,12 @@ The `Launch` facade provides a context-free static API for opening URLs, composi
 - [Phone](#phone)
 - [SMS](#sms)
 - [Checking Availability](#checking-availability)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
 
-The `Launch` facade provides a context-free, static API for opening URLs, triggering email clients, initiating phone calls, and composing SMS messages. It wraps the `url_launcher` package and adds consistent error handling — all methods return `false` on failure and log errors via `Log`. They never throw.
+The `Launch` facade provides a context-free, static API for opening URLs, triggering email clients, initiating phone calls, and composing SMS messages. It wraps the `url_launcher` package and adds consistent error handling: all methods return `false` on failure and log errors via `Log`. They never throw.
 
 <a name="configuration"></a>
 ## Configuration
@@ -46,7 +47,7 @@ The optional `mode` parameter controls how the URL is opened. It maps directly t
 
 | Mode | Behavior |
 |------|----------|
-| `LaunchMode.externalApplication` | Opens in the default external app (browser, app, etc.) — **default** |
+| `LaunchMode.externalApplication` | Opens in the default external app (browser, app, etc.), **default** |
 | `LaunchMode.inAppWebView` | Opens inside a WebView within the app |
 | `LaunchMode.inAppBrowserView` | Opens in an in-app browser with browser chrome |
 | `LaunchMode.externalNonBrowserApplication` | Opens in an external non-browser app |
@@ -94,7 +95,7 @@ await Launch.url(link, webOnlyWindowName: '_self');
 Open the device's email client pre-addressed to a recipient:
 
 ```dart
-// Basic — address only
+// Address only
 await Launch.email('hello@example.com');
 
 // With subject and body
@@ -149,7 +150,7 @@ if (await Launch.canLaunch('tel:+1234567890')) {
 }
 ```
 
-This works for any URL scheme — `https://`, `mailto:`, `tel:`, `sms:`, or custom deep-link schemes:
+This works for any URL scheme: `https://`, `mailto:`, `tel:`, `sms:`, or custom deep-link schemes:
 
 ```dart
 // Check before opening a deep link
@@ -162,3 +163,10 @@ if (await Launch.canLaunch('myapp://profile/42')) {
 
 > [!TIP]
 > On **iOS 9+** and **Android 11+**, querying URL scheme availability requires declaring the relevant schemes in the native app manifest. See the [`url_launcher` documentation](https://pub.dev/packages/url_launcher) for platform-specific setup instructions.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Service Providers](../getting-started/service-providers.md)
+- [Logging](./logging.md)
+- [Deep links (magic_deeplink)](https://anilcancakir.com/magic_deeplink/docs/getting-started/installation)

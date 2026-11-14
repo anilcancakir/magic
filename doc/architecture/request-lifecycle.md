@@ -10,6 +10,7 @@ Understanding the Magic request lifecycle helps you know exactly where your serv
 - [Middleware](#middleware)
 - [Controller Dispatch](#controller-dispatch)
 - [View Rendering](#view-rendering)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -143,7 +144,7 @@ line can wait for it:
 
 ```dart
 // A plugin installing itself lazily, after the app is running.
-await Magic.app.register(NotificationsServiceProvider(Magic.app));
+await Magic.app.register(NotificationServiceProvider(Magic.app));
 Notify.startPolling(); // the provider has finished booting
 ```
 
@@ -253,18 +254,16 @@ class TaskController extends MagicController {
 Views render using controller state:
 
 ```dart
-class TaskListView extends MagicView {
+class TaskListView extends MagicView<TaskController> {
   const TaskListView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = TaskController.instance;
-    
     return controller.renderState(
       (tasks) => _buildList(tasks),
-      onLoading: CircularProgressIndicator(),
-      onError: (msg) => ErrorWidget(message: msg),
-      onEmpty: EmptyState(),
+      onLoading: WText('Loading...'),
+      onError: (msg) => WText('Error: $msg'),
+      onEmpty: WText('No tasks'),
     );
   }
 }
@@ -279,3 +278,13 @@ class TaskListView extends MagicView {
 
 > [!TIP]
 > Understanding this lifecycle helps you place logic in the right location: configuration in providers, authorization in middleware, business logic in controllers, and UI in views.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Service Container](./service-container.md): the bindings `Magic.init()` builds.
+- [Service Providers](../getting-started/service-providers.md): `register()` and `boot()` in depth.
+- [Routing](../basics/routing.md): groups, layouts and `MagicRoute.page()`.
+- [Middleware](../basics/middleware.md): `MagicMiddleware` and the `Kernel`.
+- [Controllers](../basics/controllers.md): `MagicController` and `renderState`.
+- [Views](../basics/views.md): `MagicView` and its controller.

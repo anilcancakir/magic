@@ -15,6 +15,7 @@ Magic provides a frontend-focused authentication system with secure token storag
 - [Login & Logout](#login--logout)
 - [Auth Events](#auth-events)
 - [Testing](#testing)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -26,7 +27,7 @@ Magic provides a simple, frontend-focused authentication system with user cachin
 | Feature | Description |
 |---------|-------------|
 | **User Caching** | Instant restore from secure cache, then sync from API |
-| **Auto Token Refresh** | 401 response → refresh token → retry original request |
+| **Auto Token Refresh** | 401 response → refresh token → retry original request (for guards built with a refresh endpoint) |
 | **Multiple Guards** | Support for Bearer, Basic, API Key, or custom guards |
 | **Secure Storage** | Tokens stored in platform secure storage (Keychain/Keystore) |
 
@@ -47,7 +48,6 @@ if (response.successful) {
   final user = User.fromMap(response['data']['user']);
   await Auth.login({
     'token': response['data']['token'],
-    'refresh_token': response['data']['refresh_token'],
   }, user);
   
   MagicRoute.to('/dashboard');
@@ -100,7 +100,6 @@ Map<String, dynamic> get authConfig => {
     },
     'endpoints': {
       'user': '/api/user',
-      'refresh': '/api/auth/refresh',
     },
     'token': {
       'key': 'auth_token',
@@ -131,7 +130,7 @@ The `Auth` facade provides convenient access to authentication functionality:
 Auth.check()              // bool
 
 // Check if user is a guest (not authenticated)
-Auth.guest()              // bool
+Auth.guest                // bool (a getter)
 
 // Get the authenticated user
 Auth.user<User>()         // User?
@@ -173,8 +172,8 @@ abstract class Guard {
   Future<void> login(Map<String, dynamic> data, Authenticatable user);
   Future<void> logout();
   bool check();
-  bool get guest;
-  T? user<T>();
+  bool get guest => !check();
+  T? user<T extends Model>();
   dynamic id();
   void setUser(Authenticatable user);
   Future<bool> hasToken();
@@ -190,11 +189,11 @@ abstract class Guard {
 <a name="built-in-guards"></a>
 ### Built-in Guards
 
-| Guard | Login Data | Use Case |
-|-------|-----------|----------|
-| `BearerTokenGuard` | `token`, `refresh_token` | JWT/OAuth APIs |
-| `BasicAuthGuard` | `username`, `password` | Basic HTTP Auth |
-| `ApiKeyGuard` | `api_key` | API Key authentication |
+| Guard | `driver` | Login Data | Use Case |
+|-------|----------|-----------|----------|
+| `BearerTokenGuard` | `bearer` (or `sanctum`) | `token` | JWT/OAuth APIs |
+| `BasicAuthGuard` | `basic` | `username`, `password` | Basic HTTP Auth |
+| `ApiKeyGuard` | `api_key` | `api_key` | API Key authentication |
 
 <a name="custom-guards"></a>
 ### Custom Guards
@@ -206,6 +205,7 @@ class MyGuard extends BaseGuard {
   MyGuard() : super(
     userEndpoint: '/api/me',
     refreshEndpoint: '/api/refresh',
+    refreshTokenKey: 'refresh_token',
     userFactory: (data) => User.fromMap(data),
   );
 
@@ -219,7 +219,7 @@ class MyGuard extends BaseGuard {
   }
 }
 
-// Register in your auth config
+// Register the driver, then name it in a guard's `driver` config key
 Auth.manager.extend('myguard', (config) => MyGuard());
 ```
 
@@ -276,7 +276,7 @@ Every guard exposes a `ValueNotifier<int> stateNotifier` that increments on ever
 ```dart
 // Using ListenableBuilder (Flutter built-in)
 ListenableBuilder(
-  listenable: Auth.guard.stateNotifier,
+  listenable: Auth.stateNotifier,
   builder: (context, _) {
     if (Auth.check()) {
       return Text('Hello, ${Auth.user<User>()?.name}');
@@ -290,7 +290,7 @@ With `MagicBuilder` the pattern is identical; pass `stateNotifier` as the listen
 
 ```dart
 MagicBuilder(
-  listenable: Auth.guard.stateNotifier,
+  listenable: Auth.stateNotifier,
   builder: (context, _) => Auth.check()
       ? const DashboardView()
       : const LoginView(),
@@ -302,14 +302,14 @@ MagicBuilder(
 <a name="auto-token-refresh"></a>
 ## Auto Token Refresh
 
-When `auto_refresh` is enabled, Magic automatically handles 401 responses:
+`AuthServiceProvider` registers an `AuthInterceptor` on the network driver, which handles 401 responses:
 
 1. Original request fails with 401, **having presented the token**
 2. Interceptor calls `Auth.refreshToken()`
 3. If refresh succeeds, original request is retried with new token
 4. If refresh fails, user is logged out
 
-The auth interceptor is built into `AuthServiceProvider` and works automatically when configured.
+`BaseGuard.refreshToken()` returns `false` unless the guard was built with both `refreshEndpoint` and `refreshTokenKey`. The built-in guards resolved from the `auth` config are built with neither, so for them step 4 follows any 401 on a presented credential. To refresh tokens, register a custom guard that passes both (see [Custom Guards](#custom-guards)). The refresh posts `{'refresh_token': ...}` to `refreshEndpoint` and reads `token` or `access_token` (at the top level or under `data`) and an optional `refresh_token` from the response.
 
 **A 401 on a request that carried no auth header, or an older token, is ignored.** The ladder above runs only when the refused request actually presented the header `auth.token.header` names, matched without regard to case, carrying the token the guard holds now. A request dispatched before a sign-in completed goes out anonymous, and its refusal arrives once the session exists; treating that as a rejection would end a session the server was never shown. Only a credential the server actually saw and refused ends a session.
 
@@ -329,9 +329,19 @@ if (!success) {
 <a name="protecting-routes"></a>
 ## Protecting Routes
 
-Use the `auth` middleware to protect routes:
+Core ships no `auth` middleware: write one that checks `Auth.check()`, register it in the `Kernel` under an alias (see [Middleware](../basics/middleware.md)), and name the alias on the route:
 
 ```dart
+class EnsureAuthenticated extends MagicMiddleware {
+  @override
+  String? redirectTarget(String location) {
+    if (!Auth.check() && location != '/login') return '/login';
+    return null;
+  }
+}
+
+Kernel.register('auth', () => EnsureAuthenticated());
+
 // Single route
 MagicRoute.page('/dashboard', () => DashboardView())
     .middleware(['auth']);
@@ -347,7 +357,7 @@ MagicRoute.group(
 );
 ```
 
-Create a `guest` middleware to redirect authenticated users:
+Write a `guest` middleware the same way to redirect authenticated users:
 
 ```dart
 class RedirectIfAuthenticated extends MagicMiddleware {
@@ -376,7 +386,6 @@ class AuthController extends MagicController with ValidatesRequests {
       
       await Auth.login({
         'token': response['data']['token'],
-        'refresh_token': response['data']['refresh_token'],
       }, user);
       
       Magic.success('Success', 'Welcome back!');
@@ -398,14 +407,16 @@ Future<void> logout() async {
   // Clear local auth state
   await Auth.logout();
   
-  Magic.info('Logged Out', 'See you next time!');
+  Magic.snackbar('Logged Out', 'See you next time!');
   MagicRoute.to('/login');
 }
 ```
 
 ### Restoring Session on App Start
 
-In your `main.dart`:
+`AuthServiceProvider.boot()` restores the session during `Magic.init`: when a user factory is registered (`Auth.registerModel` or `Auth.manager.setUserFactory`) and `auto_refresh` is not `false`, it calls `Auth.restore()`. Register the factory in a provider listed before `AuthServiceProvider`; a stored session with no factory is not restored and logs a warning.
+
+With `auto_refresh` set to `false` the provider skips the restore, so call it yourself in `main.dart`:
 
 ```dart
 void main() async {
@@ -418,7 +429,7 @@ void main() async {
 }
 ```
 
-This instantly restores the cached user for a fast startup, then syncs with the API in the background.
+A restore loads the cached user for a fast startup, then syncs with the API in the background.
 
 A sign-in or a sign-out that completes while the sync is in the air wins: a late 401 about the restored token does not log out the new session, and a late 200 does not put the previous account back. A token refresh is not a new session, so a 200 that arrives under a refreshed token is still applied, and a 401 or 403 about a token that has since been refreshed is re-checked once under the current token, whose answer decides.
 
@@ -492,3 +503,12 @@ void main() {
 | `fake.reset()` | Clears user, token, and login-attempt history. |
 
 Call `Auth.unfake()` in `tearDown()` to restore normal auth resolution after each test.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Authorization](./authorization.md)
+- [Vault](./vault.md)
+- [Middleware](../basics/middleware.md)
+- [HTTP Client](../basics/http-client.md)
+- [Events](../digging-deeper/events.md)

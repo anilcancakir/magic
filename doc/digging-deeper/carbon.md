@@ -12,11 +12,12 @@ Carbon is Magic's date and time utility, inspired by PHP's Carbon library, offer
 - [Timezone Support](#timezone-support)
 - [Testing](#testing)
 - [Model Integration](#model-integration)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
 
-Magic includes Carbon, a powerful date/time utility inspired by PHP's Carbon library. Carbon provides an expressive, fluent API for creating, formatting, and manipulating dates and times.
+Magic includes Carbon, a date/time utility inspired by PHP's Carbon library. Carbon provides a fluent API for creating, formatting, and manipulating dates and times.
 
 ```dart
 // Create, manipulate, and format dates fluently
@@ -41,10 +42,16 @@ final iso = Carbon.parse('2024-01-15T14:30:00Z');
 // From DateTime
 final fromDart = Carbon.fromDateTime(DateTime.now());
 
-// Specific dates
-final today = Carbon.today();       // Today at 00:00:00
-final tomorrow = Carbon.tomorrow();
-final yesterday = Carbon.yesterday();
+// From explicit parts (unset parts default to 1970-01-01 00:00:00)
+final created = Carbon.create(year: 2024, month: 1, day: 15, hour: 14, minute: 30);
+
+// Relative dates
+final today = Carbon.now().startOfDay();   // Today at 00:00:00
+final tomorrow = Carbon.now().addDay();
+final yesterday = Carbon.now().subDay();
+
+// From a DateTime, through the extension
+final converted = DateTime.now().toCarbon();
 ```
 
 <a name="formatting"></a>
@@ -159,10 +166,13 @@ date.isBetween(startDate, endDate);
 final start = Carbon.parse('2024-01-15');
 final end = Carbon.parse('2024-01-20');
 
-start.diff(end).inDays;      // 5
-start.diff(end).inHours;     // 120
-start.diff(end).inMinutes;   // 7200
+start.diffInDays(end);      // -5
+end.diffInDays(start);      // 5
+start.diffInHours(end);     // -120
+start.diffInMinutes(end);   // -7200
 ```
+
+`diffInSeconds`, `diffInMonths` and `diffInYears` follow the same shape. Each answers `this` minus `other`, truncated to whole units, so the result is negative when `this` is the earlier date.
 
 <a name="human-readable"></a>
 ## Human Readable
@@ -172,13 +182,15 @@ The `diffForHumans()` method returns a human-readable string:
 ```dart
 Carbon.now().subMinutes(5).diffForHumans();   // "5 minutes ago"
 Carbon.now().subHours(2).diffForHumans();     // "2 hours ago"
-Carbon.now().subDays(1).diffForHumans();      // "1 day ago"
+Carbon.now().subDays(1).diffForHumans();      // "a day ago"
 Carbon.now().subMonths(3).diffForHumans();    // "3 months ago"
 
 // Future dates
 Carbon.now().addDays(3).diffForHumans();      // "in 3 days"
-Carbon.now().addHours(1).diffForHumans();     // "in 1 hour"
+Carbon.now().addHours(1).diffForHumans();     // "in an hour"
 ```
+
+The wording and the singular forms ("a day", "an hour") come from the `jiffy` package's English locale.
 
 ### Relative To Another Date
 
@@ -186,8 +198,8 @@ Carbon.now().addHours(1).diffForHumans();     // "in 1 hour"
 final date1 = Carbon.parse('2024-01-15');
 final date2 = Carbon.parse('2024-01-20');
 
-date1.diffForHumans(date2);  // "5 days before"
-date2.diffForHumans(date1);  // "5 days after"
+date1.diffForHumans(date2);  // "5 days ago"
+date2.diffForHumans(date1);  // "in 5 days"
 ```
 
 <a name="short-human-readable"></a>
@@ -270,7 +282,7 @@ the frozen instant into the requested zone. Constructors that take an explicit m
 <a name="model-integration"></a>
 ## Model Integration
 
-Carbon integrates seamlessly with Eloquent models through attribute casting:
+Carbon integrates with Eloquent models through attribute casting:
 
 ```dart
 class Post extends Model with HasTimestamps {
@@ -318,3 +330,11 @@ WText('Member since ${user.createdAt?.format('MMM yyyy')}');
 
 > [!TIP]
 > Use `diffForHumans()` in your UI for relative timestamps that are easier for users to understand.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Localization](./localization.md)
+- [Helpers](./helpers.md)
+- [Eloquent Getting Started](../eloquent/getting-started.md)
+- [Mutators and Casts](../eloquent/mutators.md)

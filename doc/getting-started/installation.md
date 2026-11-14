@@ -1,6 +1,6 @@
 # Installation
 
-Magic is a Laravel-inspired Flutter framework: add the package, call `Magic.init()`, and your app gains an IoC container, 13 facades, Eloquent ORM, routing, auth, and more.
+Add the `magic` package, scaffold the app with `dart run magic:dowel magic:install`, and call `Magic.init()` to get the IoC container, facades, Eloquent-style models, routing and auth.
 
 - [Meet Magic](#meet-magic)
 - [Why Magic?](#why-magic)
@@ -9,58 +9,50 @@ Magic is a Laravel-inspired Flutter framework: add the package, call `Magic.init
 - [Bootstrapping Your Application](#bootstrapping-your-application)
 - [Wind UI Plugin](#wind-ui-plugin)
 - [Upgrading from 0.0.x](#upgrading-from-0-0-x)
-- [Next Steps](#next-steps)
+- [Related Documentation](#related-documentation)
 
 <a name="meet-magic"></a>
 ## Meet Magic
 
-Magic is **Laravel for Flutter**. It's a framework built on the belief that mobile app development should be a joy, not a chore. Like Laravel revolutionized PHP development, Magic brings the same elegance and developer happiness to Flutter.
+Magic is a Laravel-inspired framework for Flutter. If you have used Laravel, the vocabulary carries over. Magic provides:
 
-If you've ever used Laravel, you'll feel right at home. Magic provides:
-
-- **Eloquent ORM** - Beautiful, active-record style models over your REST API (and local storage with a plugin) with the same syntax you love.
-- **Expressive Routing** - Define your app's navigation with clean, fluent route definitions.
-- **Service Container** - Powerful dependency injection and service management.
-- **Facades** - Simple, static-like access to core services without the complexity.
-- **Magic CLI** - Laravel-style scaffolding (a `dowel` plugin) for controllers, models, views, actions, and more.
-- **Wind UI** - Tailwind CSS-like styling directly in Flutter. No more widget tree nightmares.
-
-Magic strives to provide an amazing developer experience while taking care of the complex infrastructure concerns, so you can focus on building something extraordinary.
+- **Eloquent-style models**: active-record models over your REST API (and over local storage with a plugin).
+- **Expressive routing**: the app's navigation defined with fluent route definitions.
+- **Service container**: dependency injection and service management.
+- **Facades**: static-style access to core services.
+- **CLI**: Laravel-style scaffolding, a `dowel` plugin, for controllers, models, views, actions and more.
+- **Wind UI**: Tailwind-style utility classes for Flutter widgets.
 
 <a name="why-magic"></a>
 ## Why Magic?
 
-There are many ways to build Flutter apps. So why choose Magic?
-
-Magic is a **progressive framework**, meaning you can start simple and adopt more features as your application grows. Whether you're building a quick MVP or an enterprise-grade application, Magic scales with you.
+Magic is progressive: start with the container, routing and a controller, and adopt the rest as the app grows.
 
 ### The Laravel Developer Experience
 
-If you're coming from Laravel, you already know how to use Magic:
-
 ```dart
-// Routing - Feels like home, right?
+// Routing
 MagicRoute.get('/users', () => UserController().index());
 MagicRoute.get('/users/:id', (id) => UserController().show(id));
 
-// Eloquent - Same beautiful syntax
+// Eloquent
 final users = await User.all();
 final user = await User.find(1);
 await user.delete();
 
-// HTTP - Clean and simple
+// HTTP
 final response = await Http.get('/api/users');
 if (response.successful) {
   // Handle data
 }
 ```
 
-### No BuildContext Nightmare
+### No BuildContext Needed
 
-One of Flutter's most frustrating aspects is passing `BuildContext` everywhere. Magic eliminates this entirely:
+Dialogs and navigation work from controllers, services and plain Dart classes:
 
 ```dart
-// Show dialogs from anywhere - controllers, services, even pure Dart!
+// Show dialogs from anywhere
 Magic.success('Done!', 'Profile updated successfully');
 Magic.dialog(ConfirmationDialog());
 Magic.loading();
@@ -70,9 +62,9 @@ MagicRoute.to('/dashboard');
 MagicRoute.back();
 ```
 
-### Wind UI - Tailwind for Flutter
+### Wind UI
 
-Stop wrestling with nested widgets. Build UIs with utility-first classes:
+Build UIs with utility-first classes instead of nested widgets:
 
 ```dart
 WDiv(
@@ -107,7 +99,14 @@ Add `magic` to your Flutter project:
 flutter pub add magic
 ```
 
-This pulls in Magic and its dependencies, including **Wind UI** (`wind_kit`) and the **Magic CLI**. Optional layers are separate plugin packages: `magic_local_storage` (SQLite, migrations, seeders, sync), `magic_encryption` (AES encryption), `magic_picker` (file, image and video picking, share sheet) and `magic_socket` (real-time broadcasting). Add one with `flutter pub add <package>` then `dart run magic:dowel plugin:install <package>`.
+This pulls in Magic and its dependencies, including **Wind UI** (`wind_kit`) and the CLI. Layers beyond the core are separate plugin packages. Add one with `flutter pub add <package>` then `dart run magic:dowel plugin:install <package>`:
+
+| Package | Provides |
+|:--------|:---------|
+| [`magic_local_storage`](https://anilcancakir.com/magic_local_storage/docs/getting-started/installation) | SQLite, query builder, migrations, seeders, factories, sync |
+| [`magic_encryption`](https://anilcancakir.com/magic_encryption/docs/getting-started/installation) | AES encryption (`Crypt`) |
+| [`magic_picker`](https://anilcancakir.com/magic_picker/docs/getting-started/installation) | File, image and video picking, share sheet |
+| [`magic_socket`](https://anilcancakir.com/magic_socket/docs/getting-started/installation) | Real-time broadcasting (`Echo`) |
 
 ### 2. Scaffold Your Application
 
@@ -120,12 +119,13 @@ dart run magic:dowel magic:install
 No global activation or package-name substitution is needed: `dart run magic:dowel` resolves magic's bundled executable directly.
 
 The installer adds `wind_kit`, `material_ui` and `dowel` to your `pubspec.yaml` and scaffolds `bin/dispatcher.dart` (plus the fast wrapper `bin/dowel`) through dowel's `install`. This command creates everything you need:
+
 - `lib/config/`: Configuration files (app, auth, cache, network, logging, routing, view)
-- `lib/app/` — Controllers, models, providers, middleware, policies
-- `lib/routes/` — Route definitions
-- `lib/resources/views/` — UI view classes
-- `lib/main.dart` — Bootstrapped entry point with `Magic.init()`
-- `.env` / `.env.example` — Environment configuration
+- `lib/app/`: Controllers, models, providers, middleware, policies
+- `lib/routes/`: Route definitions
+- `lib/resources/views/`: UI view classes
+- `lib/main.dart`: Bootstrapped entry point with `Magic.init()`
+- `.env` / `.env.example`: Environment configuration
 
 You can exclude features you don't need:
 
@@ -133,8 +133,7 @@ You can exclude features you don't need:
 dart run magic:dowel magic:install --without-auth --without-cache
 ```
 
-Available flags: `--without-auth`, `--without-network`, `--without-cache`, `--without-localization`, `--without-logging`. See [Magic CLI](../packages/magic-cli.md#install) for details.
-
+Available flags: `--without-auth`, `--without-network`, `--without-cache`, `--without-localization`, `--without-logging`.
 <a name="bootstrapping-your-application"></a>
 ## Bootstrapping Your Application
 
@@ -241,33 +240,33 @@ To keep a widget on screen across every page, such as a floating player, pass a 
 <a name="wind-ui-plugin"></a>
 ## Wind UI Plugin
 
-Magic includes **Wind UI** (`wind_kit`), a utility-first styling engine inspired by Tailwind CSS. Instead of nesting widgets, you compose UIs with className strings like `flex flex-col p-4 bg-white rounded-xl shadow-md`.
+Magic includes **Wind UI** (`wind_kit`), a utility-first styling engine with Tailwind-style syntax. Instead of nesting widgets, you compose UIs with className strings like `flex flex-col p-4 bg-white rounded-xl shadow-md`.
 
 > [!TIP]
-> For the complete widget reference, utility classes, and advanced patterns, see the [Wind UI Documentation](https://wind.fluttersdk.com/getting-started/installation).
+> For the complete widget reference, utility classes, and advanced patterns, see the [Wind UI Documentation](https://anilcancakir.com/wind_kit/docs/getting-started/installation).
 
 <a name="upgrading-from-0-0-x"></a>
 ## Upgrading from 0.0.x
 
-The CLI, the styling package and the SDK floor changed in 0.1.0. See the changelog for the full list; the steps an app needs are:
+The CLI, the styling package, the SDK floor and four layers changed in 1.0.0. See the changelog for the full list; the steps an app needs are:
 
-1. Raise the SDK floor to Dart 3.13 and Flutter 3.47, then swap the packages: `dart pub remove fluttersdk_artisan fluttersdk_wind` and `dart pub add dowel wind_kit material_ui`. Magic itself resolves to 0.1.x.
+1. Raise the SDK floor to Dart 3.13 and Flutter 3.47, then swap the packages: `dart pub remove fluttersdk_artisan fluttersdk_wind` and `dart pub add dowel wind_kit material_ui`. Run `flutter pub add magic` so the `magic` constraint moves to the 1.x line (a `^0.0.x` constraint does not admit it).
 2. `fluttersdk_wind` is now `wind_kit`: change `package:fluttersdk_wind/fluttersdk_wind.dart` to `package:wind_kit/wind_kit.dart`. `MaterialApp`, `ThemeData` and `Colors` come from `package:material_ui/material_ui.dart`, because wind_kit builds on it and the two sets of types do not mix: run `dart fix --apply --code=deprecated_member_use` to swap the imports.
 3. Move the project state from `.artisan/` to `.dowel/`, so the install records and their file hashes survive. Delete `.dowel/plugins.json` and the records under `.dowel/installed/` that belong to renamed packages (`fluttersdk_*`). Delete the generated `bin/dispatcher.dart`, `bin/fsa`, a leftover `bin/artisan.dart`, `lib/app/_plugins.g.dart` and `lib/app/commands/_index.g.dart`. In your own commands and providers replace `package:fluttersdk_artisan/artisan.dart` with `package:dowel/dowel.dart` and `Artisan*` classes with `Dowel*`.
 4. Run `dart run dowel install`, which scaffolds `bin/dispatcher.dart` and `bin/dowel`, then `dart run dowel commands:refresh`. Register magic and each plugin again so they land in `.dowel/plugins.json`: `dart run dowel plugin:install magic`, then `dart run dowel plugin:install <package>`. A file a renamed plugin published earlier is reported as an `unmanaged-file` conflict: review it, then re-run with `--force`.
 5. From then on run the CLI as `dart run magic:dowel <command>`. It hands over to your `bin/dispatcher.dart`, so plugin commands resolve. If `dart run dowel install` ran before `magic` was in the project, the dispatcher has no magic provider: run `dart run dowel plugin:install magic`.
+6. Add the plugin for each layer your app used that left core, with `flutter pub add <package>` then `dart run magic:dowel plugin:install <package>`: `Crypt` is in `magic_encryption`; `Pick` and the `MagicFile.toXFile()` and `XFile.toMagicFile()` conversions are in `magic_picker`; `Echo`, the broadcasting manager and `ListensToBroadcasts` are in `magic_socket`; `DB`, `Schema`, `Model.query()`, migrations, seeders, factories, `SyncFeed` and `SyncLedger` are in `magic_local_storage`. An app installed on 0.0.41 has `lib/config/database.dart` and `lib/config/broadcasting.dart`: back up any customised settings in them and move those settings into the matching plugin configuration, then delete them before `plugin:install magic_local_storage` or `plugin:install magic_socket`, because the plugins export `databaseConfig` and `broadcastingConfig` and the import becomes ambiguous otherwise.
+7. Replace what no longer exists in core: `Magic.seed` becomes `Seeding.run(List<Seeder>)` from `magic_local_storage`; `make:controller --broadcasts` is gone, so mix `ListensToBroadcasts` into the controller by hand; `--without-database` and `--without-broadcasting` are gone from `magic:install`. A model with `useLocal => true` throws a `StateError` naming `magic_local_storage` until that plugin is installed, and `Storage.download` on IO throws `UnsupportedError` until `magic_picker` is installed.
 
 The dowel changelog for 0.0.21 carries the full recipe, including the `.mcp.json` cleanup.
 
-<a name="next-steps"></a>
-## Next Steps
+<a name="related-documentation"></a>
+## Related Documentation
 
-Now that you've installed Magic, you may be wondering what to learn next. Here are some recommendations:
-
-- **[Configuration](./configuration.md)** - Learn how Magic's configuration system works.
-- **[Directory Structure](./directory-structure.md)** - Understand the recommended project layout.
-- **[Routing](../basics/routing.md)** - Define your application's navigation.
-- **[Controllers](../basics/controllers.md)** - Handle user interactions and business logic.
-- **[Eloquent ORM](../eloquent/getting-started.md)** - Work with your models the beautiful way.
-
-Welcome to the Magic community. We're excited to see what you'll build!
+- [Configuration](./configuration.md): how Magic's configuration system works.
+- [Directory Structure](./directory-structure.md): the recommended project layout.
+- [Service Providers](./service-providers.md): registering and booting services.
+- [Routing](../basics/routing.md): defining your application's navigation.
+- [Controllers](../basics/controllers.md): handling user interactions and business logic.
+- [Eloquent ORM](../eloquent/getting-started.md): working with your models.
+- [Magic CLI](../packages/magic-cli.md): `magic:install` and the `make:*` generators.

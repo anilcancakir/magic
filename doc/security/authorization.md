@@ -13,6 +13,7 @@ Magic's authorization system lets you define and check user abilities via the `G
     - [MagicCannot Widget](#magiccannot-widget)
 - [GateServiceProvider](#gateserviceprovider)
 - [Generating Policies](#generating-policies)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -69,13 +70,15 @@ Gate.define('manage-team', (user, team) {
 class PostController extends MagicController {
   Future<void> update(String id, Map<String, dynamic> data) async {
     final post = await Post.find(id);
+    if (post == null) return;
     
     if (Gate.denies('update-post', post)) {
       Magic.error('Forbidden', 'You cannot edit this post.');
       return;
     }
     
-    await post.fill(data).save();
+    post.fill(data);
+    await post.save();
     Magic.success('Success', 'Post updated!');
   }
 }
@@ -110,6 +113,8 @@ if (Gate.allowsAll(['update', 'publish'], post)) {
 }
 ```
 
+A check is denied, never thrown, when nobody is signed in, when the ability was never defined, and when its callback throws.
+
 ### Inside Controllers
 
 `MagicController` exposes an `authorize()` helper that delegates to the Gate and throws `AuthorizationException` when access is denied. This mirrors Laravel's `$this->authorize()` inside controller actions:
@@ -134,12 +139,14 @@ Use `Gate.before()` to register a global check that runs before all ability chec
 ```dart
 Gate.before((user, ability) {
   // Super admins bypass all checks
-  if (user.role == 'super_admin') return true;
+  if ((user as User).role == 'super_admin') return true;
   
   // Continue with normal ability check
   return null;
 });
 ```
+
+The callback receives the user as a `Model`, so cast it to your user class to read its own getters.
 
 Return values:
 - `true` → Allow immediately, skip ability check
@@ -329,7 +336,7 @@ Register in `config/app.dart`:
 <a name="generating-policies"></a>
 ## Generating Policies
 
-Use Magic CLI to generate policy classes:
+Use the [Magic CLI](../packages/magic-cli.md) to generate policy classes:
 
 ```bash
 dart run magic:dowel make:policy Post
@@ -343,40 +350,45 @@ dart run magic:dowel make:policy Comment --model=Comment
 |--------|----------|-------------|
 | `--model` | `-m` | The model that the policy applies to |
 
-**Output:** Creates `lib/app/policies/<name>_policy.dart` with CRUD method stubs.
+**Output:** Creates `lib/app/policies/<name>_policy.dart` with `view`, `create`, `update` and `delete` stubs, each returning `true` until you fill it in.
 
 ### Generated Policy Template
 
 ```dart
 import 'package:magic/magic.dart';
-import '../models/post.dart';
 
+// TODO: Import your model
+// import '../models/post.dart';
+
+/// PostPolicy
+///
+/// Defines authorization rules for [Post] resources.
 class PostPolicy extends Policy {
   @override
   void register() {
-    Gate.define('view-post', view);
-    Gate.define('create-post', create);
-    Gate.define('update-post', update);
-    Gate.define('delete-post', delete);
+    Gate.define('view-post', _view);
+    Gate.define('create-post', _create);
+    Gate.define('update-post', _update);
+    Gate.define('delete-post', _delete);
   }
 
-  bool view(Authenticatable user, Post post) {
+  /// Determine if the user can view the [Post].
+  bool _view(Authenticatable user, dynamic arguments) {
+    // TODO: Implement your authorization logic.
     return true;
   }
 
-  bool create(Authenticatable user, Post? post) {
-    return true;
-  }
-
-  bool update(Authenticatable user, Post post) {
-    return user.id == post.userId;
-  }
-
-  bool delete(Authenticatable user, Post post) {
-    return user.id == post.userId;
-  }
+  // _create, _update and _delete follow the same shape.
 }
 ```
 
 > [!TIP]
 > Use policies for model-specific authorization and simple `Gate.define()` calls for general abilities like "view-dashboard" or "access-admin".
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Authentication](./authentication.md)
+- [Middleware](../basics/middleware.md)
+- [Controllers](../basics/controllers.md)
+- [Magic CLI](../packages/magic-cli.md)

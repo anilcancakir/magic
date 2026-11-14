@@ -8,6 +8,8 @@
 - [Failure Modes](#failure-modes)
 - [Swapping an Action in Tests](#swapping-an-action-in-tests)
 - [Generating an Action](#generating-an-action)
+- [Gotchas](#gotchas)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -126,7 +128,7 @@ throw ActionRequestFailed.refusalOf(
 <a name="swapping-an-action-in-tests"></a>
 ## Swapping an Action in Tests
 
-`MagicAction.bind<A>(factory)` registers the implementation `MagicAction.resolve` returns for `A`; `MagicAction.flush()` clears every override and belongs in `tearDown` (or is covered by `MagicTest.init()`'s own reset):
+`MagicAction.bind<A>(factory)` registers the implementation `MagicAction.resolve` returns for `A`; `MagicAction.flush()` clears every override and belongs in `tearDown`, because the bindings are a static map that `MagicTest.init()` does not reset:
 
 ```dart
 setUp(() {
@@ -146,3 +148,23 @@ dart run magic:dowel make:action PauseMonitor            # -> lib/app/actions/pa
 dart run magic:dowel make:action Monitors/PauseMonitor   # Nested path support
 dart run magic:dowel make:action PauseMonitor --force    # Overwrite existing file
 ```
+
+<a name="gotchas"></a>
+## Gotchas
+
+| Mistake | Fix |
+|---|---|
+| `MagicAction.bind(() => FakePauseMonitor())` with no type argument | Name the type: `MagicAction.bind<PauseMonitor>(...)`. Dart infers the fake's own type from the closure, so `resolve` never finds the binding and the override silently never applies |
+| Constructing the action directly at the call site | Go through `MagicAction.resolve(PauseMonitor.new)`, otherwise a test cannot swap it |
+| Treating a non-`null` result as success | `runAction` answers `ActionRefused` for a same-key re-entry: check `outcome.succeeded` |
+| Two buttons calling `runAction` with no `key` | Unkeyed calls share one slot and refuse each other; pass a `key` per target |
+| A `ValidationException` produces a toast instead of field errors | The controller must also mix in `ValidatesRequests`; without it the error bag does not exist and the generic-failure feedback runs |
+| Bindings from one test leak into the next | Call `MagicAction.flush()` in `tearDown`; `MagicTest.init()` does not clear them |
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Controllers](./controllers.md)
+- [Validation](../digging-deeper/validation.md)
+- [Testing Getting Started](../testing/getting-started.md)
+- [Magic CLI](../packages/magic-cli.md): `make:action`.

@@ -12,6 +12,7 @@ The `Storage` facade provides a unified API for reading, writing, and deleting f
 - [Multiple Disks](#multiple-disks)
 - [MagicFile Reference](#magicfile-reference)
 - [Testing](#testing)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -23,7 +24,7 @@ Key features:
 - **Disk System**: Configure multiple storage locations.
 - **MagicFile Integration**: One file wrapper for stored, downloaded and picked files.
 
-Picking files (gallery, camera, file and save dialogs) and the share sheet behind `Storage.download` on mobile and desktop live in the `magic_picker` plugin: `flutter pub add magic_picker`, then `dart run magic:dowel plugin:install magic_picker`. Its `Pick` facade returns a `MagicFile` you can store with the methods below, and its service provider sets the `LocalAdapterContract.downloadHandler` seam. Without it, `Storage.download` throws `UnsupportedError` on mobile and desktop; the web download is unchanged.
+Picking files (gallery, camera, file and save dialogs) and the share sheet behind `Storage.download` on mobile and desktop live in the `magic_picker` plugin: `flutter pub add magic_picker`, then `dart run magic:dowel plugin:install magic_picker`. Its `Pick` facade returns a `MagicFile` you can store with the methods below, and its service provider sets the `LocalAdapterContract.downloadHandler` seam. Without it, `Storage.download` throws `UnsupportedError` on mobile and desktop; the web download is unchanged. See the [installation guide](https://anilcancakir.com/magic_picker/docs/getting-started/installation) and the [download page](https://anilcancakir.com/magic_picker/docs/basics/download).
 
 <a name="configuration"></a>
 ## Configuration
@@ -32,33 +33,37 @@ Configure storage disks in `lib/config/filesystems.dart`:
 
 ```dart
 // lib/config/filesystems.dart
-final Map<String, dynamic> filesystems = {
-  'default': 'local',
-  
-  'disks': {
-    'local': {
-      'driver': 'local',
-      'root': 'storage/app',
-    },
-    
-    'public': {
-      'driver': 'local',
-      'root': 'storage/app/public',
-    },
-    
-    'temp': {
-      'driver': 'local',
-      'root': 'storage/temp',
-    },
+Map<String, dynamic> get filesystemsConfig => {
+  'filesystems': {
+    'default': 'local',
 
-    'downloads': {
-      'driver': 'local',
-      'root': 'downloads',
-      'exclude_from_backup': true,
+    'disks': {
+      'local': {
+        'driver': 'local',
+        'root': 'storage/app',
+      },
+
+      'public': {
+        'driver': 'local',
+        'root': 'storage/app/public',
+      },
+
+      'temp': {
+        'driver': 'local',
+        'root': 'storage/temp',
+      },
+
+      'downloads': {
+        'driver': 'local',
+        'root': 'downloads',
+        'exclude_from_backup': true,
+      },
     },
   },
 };
 ```
+
+Pass it to `Magic.init(configFactories: [...])` with your other config files. `local` is the only driver; a disk with any other `driver` throws when it is first resolved.
 
 A local disk writes under the app's documents directory, which iOS backs up to iCloud and macOS to Time Machine. Set `exclude_from_backup` to `true` on a disk holding large files the app can fetch again, such as downloaded media. On iOS and macOS the disk's root directory is then marked with `kCFURLIsExcludedFromBackupKey` the first time the disk resolves a path, and everything stored under it is left out of the backup. If the platform refuses the mark, that first call throws a `FileSystemException` and the next one tries again. The key defaults to `false` and has no effect on Android, Windows, Linux or the web.
 
@@ -314,3 +319,11 @@ tearDown(() {
 ```
 
 `flush()` sets the internal manager to `null` and calls `flush()` on it first (clearing any cached disk instances), so the next call to any `Storage` method initialises a fresh manager from config.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Configuration](../getting-started/configuration.md)
+- [HTTP Client](../basics/http-client.md)
+- [Helpers](./helpers.md)
+- [Pick, XFile and download (magic_picker)](https://anilcancakir.com/magic_picker/docs/basics/pick)

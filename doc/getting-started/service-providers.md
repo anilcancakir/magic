@@ -8,8 +8,9 @@ Service providers are the central bootstrapping point for Magic applications: ea
     - [The Register Method](#the-register-method)
     - [The Boot Method](#the-boot-method)
 - [Registering Providers](#registering-providers)
-- [Deferred Providers](#deferred-providers)
+- [Providers Without Boot Logic](#providers-without-boot-logic)
 - [Built-in Providers](#built-in-providers)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -34,7 +35,7 @@ This creates `lib/app/providers/payment_service_provider.dart` with a `ServicePr
 <a name="writing-service-providers"></a>
 ## Writing Service Providers
 
-All service providers extend the `ServiceProvider` class. Most service providers contain a `register` and a `boot` method. Within the `register` method, you should **only bind things into the service container**. Within the `boot` method, you may do anything else—register routes, event listeners, or any other functionality.
+All service providers extend the `ServiceProvider` class. Most service providers contain a `register` and a `boot` method. Within the `register` method, you should **only bind things into the service container and register event listeners**. Within the `boot` method, you may do anything else: register routes, or any other functionality.
 
 ```dart
 import 'package:magic/magic.dart';
@@ -61,9 +62,9 @@ class PaymentServiceProvider extends ServiceProvider {
 <a name="the-register-method"></a>
 ### The Register Method
 
-Within the `register` method, you should only bind things into the service container. You should never attempt to register any event listeners, routes, or any other piece of functionality within the `register` method.
+Within the `register` method, you should only bind things into the service container and register event listeners. You should never attempt to register routes, or any other piece of functionality within the `register` method.
 
-This is because you may accidentally use a service from another provider that has not been loaded yet.
+This is because you may accidentally use a service from another provider that has not been loaded yet. Listeners are the exception: `BaseEventServiceProvider` registers them here, so they are in place before any provider's `boot` dispatches an event.
 
 ```dart
 @override
@@ -73,7 +74,7 @@ void register() {
   app.bind('report', () => ReportGenerator());
   
   // ❌ Bad: Don't use other services here
-  // final auth = Auth.instance; // May not be ready!
+  // final auth = Auth.manager; // May not be ready!
 }
 ```
 
@@ -104,7 +105,7 @@ The `boot` method is called after **all** other service providers have been regi
 Future<void> boot() async {
   // ✅ Safe to access any registered service
   final config = Config.get('payment');
-  final auth = Auth.instance;
+  final auth = Auth.manager;
 
   // Event listeners belong in register(), not here: the auth guard can
   // dispatch AuthLogin during AuthServiceProvider.boot, before this runs.
@@ -152,10 +153,10 @@ Providers are loaded in the order they are listed:
 > [!TIP]
 > Place framework providers first, then your custom providers. If Provider B depends on Provider A, ensure A comes before B in the list.
 
-<a name="deferred-providers"></a>
-## Deferred Providers
+<a name="providers-without-boot-logic"></a>
+## Providers Without Boot Logic
 
-If your provider is **only** registering bindings in the service container without any boot logic, you can make it simpler by returning early from boot:
+Magic has no deferred providers: every registered provider is registered and booted at startup. `boot()` is optional, though. Its default implementation does nothing, so a provider that only binds services overrides `register()` alone:
 
 ```dart
 class SimpleServiceProvider extends ServiceProvider {
@@ -164,11 +165,6 @@ class SimpleServiceProvider extends ServiceProvider {
   @override
   void register() {
     app.singleton('simple', () => SimpleService());
-  }
-
-  @override
-  Future<void> boot() async {
-    // No boot logic needed
   }
 }
 ```
@@ -185,7 +181,18 @@ Magic includes several built-in service providers for core functionality:
 | `AuthServiceProvider` | Authentication guards and state |
 | `LocalizationServiceProvider` | Language and locale support |
 | `VaultServiceProvider` | Secure storage |
-| `EventServiceProvider` | Event dispatching |
-| `GateServiceProvider` | Authorization gates and policies |
+| `BaseEventServiceProvider` | Event listeners; subclass it to map events to listeners |
+| `GateServiceProvider` | Authorization gates and policies; subclass it to define abilities |
+| `LaunchServiceProvider` | Opening URLs, email, phone and SMS; not registered by default |
 
-These providers are typically registered in your `config/app.dart` to enable framework features.
+These providers are registered in your `config/app.dart` to enable framework features. Providers from plugin packages, such as `magic_encryption` or `magic_socket`, are added to the same list by `dart run magic:dowel plugin:install <package>`.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Service Container](../architecture/service-container.md): `bind`, `singleton` and `make`.
+- [Request Lifecycle](../architecture/request-lifecycle.md): when `register()` and `boot()` run.
+- [Configuration](./configuration.md): the `app.providers` list.
+- [Events](../digging-deeper/events.md): listeners and `BaseEventServiceProvider`.
+- [Authorization](../security/authorization.md): `GateServiceProvider`.
+- [Installation](./installation.md): the plugins that add their own providers.
