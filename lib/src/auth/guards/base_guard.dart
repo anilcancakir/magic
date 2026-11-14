@@ -136,13 +136,22 @@ abstract class BaseGuard implements Guard {
   /// with is still the one held, and with the writes first a 401 about the
   /// old token landing between them read as a verdict on the current session:
   /// its logout deleted the token just written. A sign-in goes through
-  /// [startSession] instead, which also marks the session as changed.
+  /// [startSession] instead.
+  ///
+  /// Marks a new session, as [startSession] does: a token stored from outside
+  /// is taken to be a sign-in, so a refresh or a boot sync in the air is
+  /// discarded rather than written over it. A guard that rotates its own
+  /// token through this pays that: its in-flight boot sync is discarded and
+  /// the interceptor hands the refused request back instead of retrying it.
+  /// [refreshToken]'s rotation path, which keeps the session, is the one that
+  /// keeps both.
   Future<void> storeToken(String token, [String? refreshToken]) =>
-      _holdThenPersist(token, refreshToken);
+      _holdThenPersist(token, refreshToken, epoch: ++_sessionEpoch);
 
   /// Open a session: mark it opened and move the in-memory token, persist
-  /// [token] (when given) and its [refreshToken] (or delete the stored one when
-  /// none is given), then set [user] and cache it.
+  /// [token] and its [refreshToken] (deleting the stored one of each that is
+  /// not given), then set [user] and cache it, unless a newer sign-in or a
+  /// sign-out began in the meantime.
   ///
   /// Everything an in-flight boot sync reads moves before the first await.
   /// The sync ignores its answer once [_sessionEpoch] has moved, so neither of
@@ -167,16 +176,11 @@ abstract class BaseGuard implements Guard {
   }) async {
     final epoch = ++_sessionEpoch;
 
-    if (token != null) await _holdThenPersist(token, refreshToken);
+    await _holdThenPersist(token, refreshToken, epoch: epoch, newSession: true);
 
-    // A session with no refresh token of its own must not keep the previous
-    // one's: its next 401 would trade it for the previous account's token.
-    // Skipped once a newer sign-in has begun, whose own write must stand.
-    if (refreshToken == null &&
-        refreshTokenKey != null &&
-        _sessionEpoch == epoch) {
-      await Vault.delete(refreshTokenKey!);
-    }
+    // A newer sign-in or a sign-out began during the writes, and the user is
+    // theirs to set.
+    if (_sessionEpoch != epoch) return;
 
     setUser(user);
 
@@ -217,27 +221,45 @@ abstract class BaseGuard implements Guard {
   /// rotated the old one away, so reverting would sign requests with a token
   /// nobody accepts while the Vault holds the one that works.
   ///
-  /// With [epoch] given (a refresh), the refresh token is written only while
-  /// the session is still that one: a session opened during the access-token
-  /// write may have no refresh token of its own, and must not inherit this
-  /// one.
+  /// The tokens belong to the session [epoch] names. A sign-in ([newSession])
+  /// keeps nothing of the previous session it has no replacement for: a null
+  /// [token] deletes the stored access token and a null [refreshToken] the
+  /// stored refresh token, both before the access-token write, so a failed
+  /// delete (a locked keychain) moves the in-memory token back with the Vault
+  /// still as the previous session left it. A refresh that answers no new
+  /// refresh token keeps the stored one.
+  ///
+  /// The refresh token is written only while the session is still [epoch]: a
+  /// session opened during the access-token write may have no refresh token
+  /// of its own, and must not inherit this one.
   Future<void> _holdThenPersist(
-    String token,
+    String? token,
     String? refreshToken, {
-    int? epoch,
+    required int epoch,
+    bool newSession = false,
   }) async {
     final previous = _cachedToken;
     _cachedToken = token;
 
     try {
-      await Vault.put(tokenKey, token);
+      if (newSession && refreshToken == null && refreshTokenKey != null) {
+        await Vault.delete(refreshTokenKey!);
+      }
+
+      if (token == null) {
+        await Vault.delete(tokenKey);
+      } else {
+        await Vault.put(tokenKey, token);
+      }
     } catch (_) {
-      if (_cachedToken == token) _cachedToken = previous;
+      if (_sessionEpoch == epoch && _cachedToken == token) {
+        _cachedToken = previous;
+      }
 
       rethrow;
     }
 
-    if (epoch != null && _sessionEpoch != epoch) return;
+    if (_sessionEpoch != epoch) return;
 
     if (refreshToken != null && refreshTokenKey != null) {
       await Vault.put(refreshTokenKey!, refreshToken);
@@ -260,13 +282,17 @@ abstract class BaseGuard implements Guard {
   /// When the in-memory token moved while the read was in the air (a refresh,
   /// a sign-in), memory is newer than what the read saw, so nothing changes:
   /// putting the read back would undo a refresh the server already rotated.
-  Future<void> loadTokenToCache() async {
+  ///
+  /// Returns false when it yielded that way, true when it loaded the read.
+  Future<bool> loadTokenToCache() async {
     final held = _cachedToken;
     final token = await Vault.get(tokenKey);
-    if (_cachedToken != held) return;
+    if (_cachedToken != held) return false;
 
     if (token != held) _sessionEpoch++;
     _cachedToken = token;
+
+    return true;
   }
 
   /// Clear all tokens.
@@ -474,7 +500,13 @@ abstract class BaseGuard implements Guard {
     Log.debug(
       'Auth: Restoring session (tokenKey=$tokenKey, hasFactory=${userFactory != null})',
     );
-    await loadTokenToCache();
+    // A sign-in or a sign-out landing during either read owns the session
+    // from then on, and what the reads saw belongs to the one before it. A
+    // refresh moves the token without changing the session, so a token read
+    // that yielded to one still restores.
+    final before = _sessionEpoch;
+    final loaded = await loadTokenToCache();
+    if (!loaded && _sessionEpoch != before) return;
 
     if (cachedToken == null) {
       Log.debug('Auth: No token found in storage');
@@ -484,7 +516,10 @@ abstract class BaseGuard implements Guard {
     Log.debug('Auth: Token loaded from storage');
 
     // 1. Load from cache first (instant)
+    final epoch = _sessionEpoch;
     final cachedUser = await loadCachedUser();
+    if (_sessionEpoch != epoch) return;
+
     if (cachedUser != null) {
       setUser(cachedUser);
       Log.debug('Auth: Cached user restored');

@@ -31,22 +31,15 @@ class _HeldRefreshVault extends FakeVaultService {
   }
 }
 
-/// A guard whose refresh always succeeds, rotating the stored token.
-class _RotatingGuard extends BaseGuard {
-  @override
-  Future<void> login(Map<String, dynamic> data, Authenticatable user) async {}
-
-  @override
-  Future<bool> refreshToken() async {
-    await storeToken('rotated-token');
-
-    return true;
-  }
-}
+/// The refresh endpoint's answer, rotating the access token.
+final MagicResponse _rotated = MagicResponse(
+  data: <String, dynamic>{'token': 'rotated-token'},
+  statusCode: 200,
+);
 
 /// A guard with a refresh endpoint, so [BaseGuard.refreshToken] runs for real.
 class _RefreshingGuard extends BaseGuard {
-  _RefreshingGuard()
+  _RefreshingGuard({super.userFactory})
     : super(refreshEndpoint: '/refresh', refreshTokenKey: 'refresh_token');
 
   @override
@@ -58,8 +51,9 @@ class _RefreshingGuard extends BaseGuard {
       );
 }
 
-/// A vault whose writes land one at a time, in the order they were issued,
-/// as a platform keystore's do, and which holds the write of [holdValue]
+/// A vault whose writes and deletes land one at a time, in the order they
+/// were issued, as `MagicVaultService`'s do, and which holds the write of
+/// [holdValue]
 /// until [release] completes, and the answer of a read of [holdReadKey]
 /// until [readRelease] completes.
 class _SerialHoldingVault extends FakeVaultService {
@@ -97,18 +91,25 @@ class _SerialHoldingVault extends FakeVaultService {
   Future<void> _tail = Future<void>.value();
 
   @override
-  Future<void> put(String key, String value) {
-    final write = _tail.then((_) async {
-      if (value == holdValue) {
-        holdStarted.complete();
-        await release.future;
-      }
+  Future<void> put(String key, String value) => _inOrder(() async {
+    if (value == holdValue) {
+      holdStarted.complete();
+      await release.future;
+    }
 
-      await super.put(key, value);
-    });
-    _tail = write;
+    await super.put(key, value);
+  });
 
-    return write;
+  @override
+  Future<void> remove(String key) => _inOrder(() => super.remove(key));
+
+  /// Runs [operation] after every one issued before it. A failure reaches
+  /// the caller and does not stop the ones issued after it.
+  Future<void> _inOrder(Future<void> Function() operation) {
+    final result = _tail.then((_) => operation());
+    _tail = result.then<void>((_) {}, onError: (Object _) {});
+
+    return result;
   }
 }
 
@@ -253,24 +254,32 @@ void main() {
     Magic.flush();
     Log.fake();
     Vault.fake();
-    final http = Http.fake();
+    final http = Http.fake(
+      (MagicRequest request) => request.url == '/refresh'
+          ? _rotated
+          : MagicResponse(data: <String, dynamic>{}, statusCode: 200),
+    );
     Config.set('auth', <String, dynamic>{
       'defaults': <String, dynamic>{'guard': 'api'},
       'guards': <String, dynamic>{
-        'api': <String, dynamic>{'driver': 'rotating'},
+        'api': <String, dynamic>{'driver': 'refreshing'},
       },
     });
     Magic.singleton('auth', AuthManager.new);
     Auth.manager
-      ..extend('rotating', (_) => _RotatingGuard())
+      ..extend('refreshing', (_) => _RefreshingGuard())
       ..forgetGuards();
-    await (Auth.guard() as BaseGuard).storeToken('old-token');
+    await (Auth.guard() as BaseGuard).storeToken('old-token', 'old-refresh');
 
     await AuthInterceptor().onError(
       _unauthorized(<String, dynamic>{'authorization': 'Bearer old-token'}),
     );
 
-    final sent = http.recorded.single.$1.headers.entries
+    final sent = http.recorded
+        .singleWhere((entry) => entry.$1.url == '/notifications')
+        .$1
+        .headers
+        .entries
         .where((entry) => entry.key.toLowerCase() == 'authorization')
         .map((entry) => entry.value)
         .toList();
@@ -287,18 +296,21 @@ void main() {
       Magic.flush();
       Log.fake();
       Vault.fake();
-      Http.fake((MagicRequest _) => throw StateError('offline'));
+      Http.fake(
+        (MagicRequest request) =>
+            request.url == '/refresh' ? _rotated : throw StateError('offline'),
+      );
       Config.set('auth', <String, dynamic>{
         'defaults': <String, dynamic>{'guard': 'api'},
         'guards': <String, dynamic>{
-          'api': <String, dynamic>{'driver': 'rotating'},
+          'api': <String, dynamic>{'driver': 'refreshing'},
         },
       });
       Magic.singleton('auth', AuthManager.new);
       Auth.manager
-        ..extend('rotating', (_) => _RotatingGuard())
+        ..extend('refreshing', (_) => _RefreshingGuard())
         ..forgetGuards();
-      await (Auth.guard() as BaseGuard).storeToken('old-token');
+      await (Auth.guard() as BaseGuard).storeToken('old-token', 'old-refresh');
 
       final result = await AuthInterceptor().onError(
         _unauthorized(<String, dynamic>{'Authorization': 'Bearer old-token'}),
@@ -309,6 +321,7 @@ void main() {
         (result as MagicError).request!.headers['Authorization'],
         'Bearer old-token',
       );
+      expect((Auth.guard() as BaseGuard).cachedToken, 'rotated-token');
     },
   );
 
@@ -659,6 +672,147 @@ void main() {
         await signingIn;
 
         expect(guard.cachedToken, 'b-token');
+        expect(await Vault.get('refresh_token'), isNull);
+      },
+    );
+
+    test(
+      'a sign-in that carries no token does not keep the previous one',
+      () async {
+        // A login whose data names the token under another key (`access_token`)
+        // reaches `startSession` with none, and B went on sending A's token, in
+        // memory and again after a restart.
+        await guard.login(<String, dynamic>{
+          'access_token': 'b-token',
+        }, _User()..setRawAttributes({'id': 2}, sync: true));
+
+        expect(guard.cachedToken, isNull);
+        expect(await Vault.get('auth_token'), isNull);
+        expect(await Vault.get('refresh_token'), isNull);
+      },
+    );
+
+    test(
+      'a sign-in through storeToken during the refresh request keeps its token',
+      () async {
+        // A custom guard whose login is `storeToken` then `setUser` opened no
+        // new session, so A's refresh answer was written over B's tokens.
+        holdRefresh = true;
+
+        final refreshing = guard.refreshToken();
+        await refreshArrived.future;
+        await guard.storeToken('b-token', 'b-refresh');
+        guard.setUser(_User()..setRawAttributes({'id': 2}, sync: true));
+        refreshRelease.complete();
+
+        expect(await refreshing, isFalse);
+        expect(guard.cachedToken, 'b-token');
+        expect(await Vault.get('auth_token'), 'b-token');
+        expect(await Vault.get('refresh_token'), 'b-refresh');
+      },
+    );
+
+    test(
+      'a sign-in whose stale refresh-token delete fails keeps the old session',
+      () async {
+        // The delete ran after B's token was held and stored, so a locked
+        // keychain failed the login with B's token in memory and on disk
+        // under A's user.
+        vault.throwOnRemove();
+
+        await expectLater(
+          guard.login(<String, dynamic>{
+            'token': 'b-token',
+          }, _User()..setRawAttributes({'id': 2}, sync: true)),
+          throwsA(isA<MagicVaultException>()),
+        );
+
+        expect(guard.cachedToken, 'a-token');
+        expect(guard.id(), 1);
+        expect(await Vault.get('auth_token'), 'a-token');
+        expect(await Vault.get('refresh_token'), 'a-refresh');
+      },
+    );
+
+    test(
+      'a restore that yields its token read to a sign-in stops there',
+      () async {
+        // The token read stepped aside for the sign-in, but the restore went
+        // on to apply the cached user from disk over the one just signed in.
+        final restoring = _RefreshingGuard(
+          userFactory: (data) => _User()..setRawAttributes(data, sync: true),
+        );
+        await restoring.login(<String, dynamic>{
+          'token': 'a-token',
+          'refresh_token': 'a-refresh',
+        }, _User()..setRawAttributes({'id': 1}, sync: true));
+        vault.holdReadKey = 'auth_token';
+        final userB = _User()..setRawAttributes({'id': 2}, sync: true);
+
+        final restored = restoring.restore();
+        await vault.readTaken.future;
+        await restoring.login(<String, dynamic>{
+          'token': 'b-token',
+          'refresh_token': 'b-refresh',
+        }, userB);
+        vault.readRelease.complete();
+        await restored;
+
+        expect(identical(restoring.user(), userB), isTrue);
+        expect(restoring.cachedToken, 'b-token');
+      },
+    );
+
+    test(
+      'a restore does not apply a cached user read before a sign-in',
+      () async {
+        // The cached-user read is an await too: A's user, read from disk
+        // before B signed in, was set over B while B's token stayed.
+        final restoring = _RefreshingGuard(
+          userFactory: (data) => _User()..setRawAttributes(data, sync: true),
+        );
+        await restoring.login(<String, dynamic>{
+          'token': 'a-token',
+          'refresh_token': 'a-refresh',
+        }, _User()..setRawAttributes({'id': 1}, sync: true));
+        vault.holdReadKey = 'auth_user';
+
+        final restored = restoring.restore();
+        await vault.readTaken.future;
+        await restoring.login(<String, dynamic>{
+          'token': 'b-token',
+          'refresh_token': 'b-refresh',
+        }, _User()..setRawAttributes({'id': 2}, sync: true));
+        vault.readRelease.complete();
+        await restored;
+
+        expect(restoring.id(), 2);
+        expect(restoring.cachedToken, 'b-token');
+      },
+    );
+
+    test(
+      'an older sign-in does not write its refresh token into a newer one',
+      () async {
+        // C signs in with a refresh token, and B, with none, signs in while
+        // C's access-token write is still landing. C's refresh-token write
+        // came after B's delete and handed B C's refresh token.
+        vault.holdValue = 'c-token';
+
+        final signingInC = guard.login(<String, dynamic>{
+          'token': 'c-token',
+          'refresh_token': 'c-refresh',
+        }, _User()..setRawAttributes({'id': 3}, sync: true));
+        await vault.holdStarted.future;
+        final signingInB = guard.login(<String, dynamic>{
+          'token': 'b-token',
+        }, _User()..setRawAttributes({'id': 2}, sync: true));
+        vault.release.complete();
+        await Future.wait<void>([signingInC, signingInB]);
+
+        expect(guard.id(), 2);
+        expect(guard.cachedToken, 'b-token');
+        expect(await Vault.get('auth_token'), 'b-token');
         expect(await Vault.get('refresh_token'), isNull);
       },
     );

@@ -13,19 +13,6 @@ class _User extends Model with Authenticatable {
   String get resource => 'users';
 }
 
-/// A guard whose refresh always succeeds, rotating the stored token.
-class _RotatingGuard extends BaseGuard {
-  @override
-  Future<void> login(Map<String, dynamic> data, Authenticatable user) async {}
-
-  @override
-  Future<bool> refreshToken() async {
-    await storeToken('rotated-token');
-
-    return true;
-  }
-}
-
 /// A guard with a refresh endpoint and no cached user, so its boot sync is
 /// awaited and the interceptor's refresh-and-retry answers it.
 class _RefreshingGuard extends BaseGuard {
@@ -238,15 +225,22 @@ void main() {
     Config.set('auth', <String, dynamic>{
       'defaults': <String, dynamic>{'guard': 'api'},
       'guards': <String, dynamic>{
-        'api': <String, dynamic>{'driver': 'rotating'},
+        'api': <String, dynamic>{'driver': 'refreshing'},
       },
     });
     Auth.manager
-      ..extend('rotating', (_) => _RotatingGuard())
+      ..extend('refreshing', (_) => _RefreshingGuard())
       ..forgetGuards();
     guard = Auth.guard() as BaseGuard;
-    await signIn('old-token', 1);
-    panel.statusFor['Bearer rotated-token'] = 200;
+    await guard.login(<String, dynamic>{
+      'token': 'old-token',
+      'refresh_token': 'old-refresh',
+    }, _User()..setRawAttributes({'id': 1}, sync: true));
+    panel.answerWith = (path, authorization) => switch ((path, authorization)) {
+      ('/refresh', _) => (200, '{"token": "rotated-token"}'),
+      (_, 'Bearer rotated-token') => (200, '{}'),
+      _ => null,
+    };
 
     final response = await Http.upload(
       '/avatar',
@@ -259,7 +253,11 @@ void main() {
       },
     );
 
-    expect(panel.presented, ['Bearer old-token', 'Bearer rotated-token']);
+    expect(panel.presented, [
+      'Bearer old-token',
+      'Bearer old-token',
+      'Bearer rotated-token',
+    ]);
     expect(response.statusCode, 200);
     expect(panel.bodies.last, contains('avatar-bytes'));
     expect(panel.bodies.last, contains('hello'));
