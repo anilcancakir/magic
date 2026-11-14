@@ -25,7 +25,7 @@ The host app already depends on `package:magic/magic.dart`. Every API you write 
 
 1. **`await Magic.init()` first.** Await it in `main()` before any facade call and before `runApp()`. Never `.then()`: providers are not booted until the future completes.
 2. **Facade-first.** Reach for `Auth`, `Http`, `Config`, `Cache`, `Log`, `Event`, `Lang`, `MagicRoute`, `Gate`, `Session`, `Vault`, `Storage` and `Launch`. `DB`, `Schema`, `Echo`, `Pick` and `Crypt` belong to plugins (section 10). Resolve from the container by hand (`Magic.make<T>('key')`) only when extending the framework.
-3. **Controllers are singletons.** `static X get instance => Magic.findOrPut(X.new);` is the accessor. Views resolve controllers with `Magic.find<T>()` (automatic in `MagicView`), never through a constructor. `Magic.find` throws when nothing registered the controller, so register it before the view's first build: reading `X.instance` or calling `Magic.put` does it, while declaring the getter alone does not.
+3. **Controllers are singletons.** `static X get instance => Magic.findOrPut(X.new);` is the accessor. Views resolve controllers with `Magic.find<T>()` (automatic in `MagicView`), never through a constructor. `Magic.find` throws when nothing registered the controller, so register it before the view's first build: reading `X.instance` or calling `Magic.put` does it, while declaring the getter alone does not. Registering does not run `onInit()`: the first `MagicStatefulView` that mounts the controller runs it, a `MagicView` never does (a `SimpleMagicController` runs it from its constructor).
 4. **IoC over `new` for services.** Bind in a provider's `register()`, resolve through the facade or `Magic.make<T>('key')`; do not scatter `Service()` construction across the app.
 5. **Provider discipline.** `register()` is synchronous and is where routes and bindings go. `boot()` is async and may resolve other services; set `Auth.manager.setUserFactory(...)` there.
 6. **Reactive state, not `setState`.** Controllers extend `MagicController` (a `ChangeNotifier`); state flows through `MagicStateMixin` and `RxStatus`. Use `refreshUI()` (the guarded `notifyListeners` that every controller notification goes through), `setLoading/setSuccess/setError/setEmpty`, `MagicBuilder` for a section backed by a `ValueListenable`, and `MagicSelector` for a section backed by a plain controller field (it caches its child, so it survives the parent's `setState`). `MagicPerfHooks.sink` is a null-by-default static that tooling sets to observe those notifications; there is no `onRefreshUI`. Local `setState` belongs only to widget-local UI state inside a `MagicStatefulView`.
@@ -166,10 +166,13 @@ class UserController extends MagicController
 ### Views
 
 ```dart
-// Stateless: resolves its controller with Magic.find<T>() and does not listen to it. renderState listens on its own;
-// for other controller fields use MagicBuilder or MagicSelector, or a MagicStatefulView.
-class UserListView extends MagicView<UserController> {
+// Stateful: its state runs the controller's onInit() once per controller (so load() fires) and listens to it.
+// The type parameters run <Controller, View>.
+class UserListView extends MagicStatefulView<UserController> {
   const UserListView({super.key});
+  @override State<UserListView> createState() => _UserListViewState();
+}
+class _UserListViewState extends MagicStatefulViewState<UserController, UserListView> {
   @override Widget build(BuildContext context) => controller.renderState(
     (users) => ListView(children: [for (final u in users) Text(u.name ?? '')]),
     onLoading: const Center(child: CircularProgressIndicator()),
@@ -177,7 +180,11 @@ class UserListView extends MagicView<UserController> {
   );
 }
 
-// Stateful: forms, TextEditingController, animations. The type parameters run <Controller, View>.
+// MagicView is stateless: it resolves its controller with Magic.find<T>(), runs no onInit() and does not listen.
+// Use it over a controller something else already loaded; renderState listens on its own, and MagicBuilder or
+// MagicSelector cover other controller fields.
+
+// Stateful with a form: TextEditingController, animations, onClose() for cleanup.
 class LoginView extends MagicStatefulView<AuthController> { const LoginView({super.key}); }
 class _LoginViewState extends MagicStatefulViewState<AuthController, LoginView> {
   late final form = MagicFormData({'email': '', 'password': ''}, controller: controller);
@@ -303,7 +310,9 @@ MagicRoute.page('/stock/add', () => AddItemSheet()).overlay(base: '/stock'); // 
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
+import 'package:magic/magic.dart';     // the facades: Auth, Http, Gate
 import 'package:magic/testing.dart';   // a separate barrel: fakes and MagicTest
+// plus the app's own imports for User and UserController
 
 void main() {
   MagicTest.init();   // registers setUpAll, setUp (MagicApp.reset and Magic.flush) and tearDown
