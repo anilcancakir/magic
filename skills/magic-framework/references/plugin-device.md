@@ -1,4 +1,4 @@
-<!-- magic_device v0.0.1 | Updated: 2026-10-29 -->
+<!-- magic_device v1.0.0 | Updated: 2026-11-14 -->
 
 # magic_device Plugin
 
@@ -18,7 +18,7 @@ Unlike the other plugins on this list it has no service provider, no config file
 
 ```yaml
 dependencies:
-  magic_device: ^0.0.1
+  magic_device: ^1.0.0
 ```
 
 Requires Dart `>=3.6.0` and Flutter `>=3.27.0`. It pulls `battery_plus ^7.1.2` (battery state) and `flutter_inactive_timer ^4.0.0` (the desktop idle clock, through `dart:ffi`). There is no `plugin:install` step and nothing to inject into `lib/config/app.dart`.

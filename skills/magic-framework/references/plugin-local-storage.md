@@ -1,4 +1,4 @@
-<!-- magic_local_storage v0.0.1 | Updated: 2026-11-14 -->
+<!-- magic_local_storage v1.0.0 | Updated: 2026-11-14 -->
 
 # magic_local_storage Plugin
 
@@ -21,10 +21,10 @@ The SQLite layer of a Magic app: the `DB` and `Schema` facades, the query builde
 
 ```yaml
 dependencies:
-  magic_local_storage: ^0.0.1
+  magic_local_storage: ^1.0.0
 ```
 
-Requires Dart >=3.13, Flutter >=3.47 and `magic ^0.1.0`.
+Requires Dart >=3.13, Flutter >=3.47 and `magic ^1.0.0`.
 
 ```bash
 flutter pub add magic_local_storage
