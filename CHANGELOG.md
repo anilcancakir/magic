@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- **Security: a token refresh can no longer cross accounts.** When another account signed in, or the session ended, while a refresh was in the air, the refused request was replayed with the new account's token and the refreshed token could overwrite the new session's, in memory and in `Vault`; a failed refresh could also log the new account out. A refresh now belongs to the session it started in: if that session changed, the refreshed token is discarded and the refused request is handed back without a retry or a logout. (`lib/src/auth/`)
+- **Security: a token refresh can no longer cross accounts.** When another account signed in, or the session ended, while a refresh was in the air, the refused request was replayed with the new account's token and the refreshed token could overwrite the new session's, in memory and in `Vault`; a failed refresh could also log the new account out. A refresh now belongs to the session it started in: if that session changed, the refreshed token is discarded and the refused request is handed back without a retry or a logout, and a retry already on its way keeps the refreshed token instead of picking up the new session's. A sign-in without a refresh token no longer inherits the previous account's. (`lib/src/auth/`, `doc/security/authentication.md`)
 
 ## [1.0.0] - 2026-11-14
 

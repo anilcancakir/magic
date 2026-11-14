@@ -15,6 +15,14 @@ import 'guards/base_guard.dart';
 class AuthInterceptor extends MagicNetworkInterceptor {
   bool _isRefreshing = false;
 
+  /// The credential a retry was sent with, which [onRequest] leaves in place.
+  ///
+  /// Dio runs the retry's interceptor chain on a later turn, and a sign-in
+  /// landing in that turn would otherwise have [onRequest] send this session's
+  /// request under the new session's token. One at a time: [_isRefreshing]
+  /// serialises the refreshes that set it.
+  String? _pinnedCredential;
+
   /// The header carrying the token, as `auth.token.header` names it.
   String get _header {
     final authConfig = Config.get<Map<String, dynamic>>('auth', {});
@@ -34,6 +42,11 @@ class AuthInterceptor extends MagicNetworkInterceptor {
   @override
   dynamic onRequest(MagicRequest request) {
     final guard = Auth.guard();
+    final pinned = _pinnedCredential;
+
+    if (pinned != null && _presentedCredential(request) == pinned) {
+      return request;
+    }
 
     if (guard is BaseGuard) {
       final token = guard.cachedToken;
@@ -127,6 +140,7 @@ class AuthInterceptor extends MagicNetworkInterceptor {
       final current = guard is BaseGuard ? _currentCredential : null;
       if (current == null) return error;
 
+      _pinnedCredential = current;
       final retried = await _retryRequest(_withCredential(request, current));
 
       return sameSession() ? retried ?? error : error;
@@ -135,6 +149,7 @@ class AuthInterceptor extends MagicNetworkInterceptor {
 
       return error;
     } finally {
+      _pinnedCredential = null;
       _isRefreshing = false;
     }
   }

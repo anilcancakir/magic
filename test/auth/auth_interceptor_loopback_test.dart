@@ -38,7 +38,38 @@ class _RefreshingGuard extends BaseGuard {
       );
 
   @override
-  Future<void> login(Map<String, dynamic> data, Authenticatable user) async {}
+  Future<void> login(Map<String, dynamic> data, Authenticatable user) =>
+      startSession(
+        user,
+        token: data['token'] as String?,
+        refreshToken: data['refresh_token'] as String?,
+      );
+}
+
+/// Holds the [hold]-th request to [path] (counting from zero) before the
+/// interceptors added after it see it, as Dio's queued chain can.
+class _GateInterceptor extends MagicNetworkInterceptor {
+  _GateInterceptor(this.path, this.hold);
+
+  final String path;
+  final int hold;
+  int _seen = 0;
+
+  /// Completes once the held request has reached the gate.
+  final Completer<void> arrived = Completer<void>();
+
+  /// Lets the held request through.
+  final Completer<void> open = Completer<void>();
+
+  @override
+  Future<dynamic> onRequest(MagicRequest request) async {
+    if (request.url == path && _seen++ == hold) {
+      arrived.complete();
+      await open.future;
+    }
+
+    return request;
+  }
 }
 
 /// A loopback server that answers each request by the credential it carried.
@@ -272,6 +303,59 @@ void main() {
       expect(restoring.cachedToken, 'new-token');
       expect(restoring.check(), isTrue);
       expect(restoring.id(), 9);
+    },
+  );
+
+  test(
+    'a retry keeps the refreshed token when a sign-in lands before it is sent',
+    () async {
+      // Dio runs the retry's interceptor chain on a later turn, and
+      // `onRequest` used to write whatever token the guard held by then: a
+      // sign-in landing in that turn sent account A's request, a write as
+      // much as a read, under account B's token.
+      final refreshing = _RefreshingGuard();
+      Config.set('auth', <String, dynamic>{
+        'defaults': <String, dynamic>{'guard': 'api'},
+        'guards': <String, dynamic>{
+          'api': <String, dynamic>{'driver': 'refreshing'},
+        },
+      });
+      Auth.manager
+        ..extend('refreshing', (_) => refreshing)
+        ..forgetGuards();
+      final gate = _GateInterceptor('/notifications', 1);
+      final driver = DioNetworkDriver(baseUrl: panel.baseUrl)
+        ..addInterceptor(gate)
+        ..addInterceptor(AuthInterceptor());
+      Magic.singleton('network', () => driver);
+      await refreshing.login(<String, dynamic>{
+        'token': 'a-token',
+        'refresh_token': 'a-refresh',
+      }, _User()..setRawAttributes({'id': 1}, sync: true));
+      panel.answerWith = (path, authorization) =>
+          switch ((path, authorization)) {
+            ('/refresh', _) => (
+              200,
+              '{"token": "a2-token", "refresh_token": "a2-refresh"}',
+            ),
+            ('/notifications', 'Bearer a-token') => null,
+            _ => (200, '{}'),
+          };
+
+      final inFlight = Http.post('/notifications', data: {'body': 'from A'});
+      await gate.arrived.future;
+      await refreshing.login(<String, dynamic>{
+        'token': 'b-token',
+        'refresh_token': 'b-refresh',
+      }, _User()..setRawAttributes({'id': 2}, sync: true));
+      gate.open.complete();
+      final response = await inFlight;
+
+      expect(panel.presented, isNot(contains('Bearer b-token')));
+      expect(panel.presented.last, 'Bearer a2-token');
+      expect(response.statusCode, 401);
+      expect(refreshing.id(), 2);
+      expect(refreshing.cachedToken, 'b-token');
     },
   );
 

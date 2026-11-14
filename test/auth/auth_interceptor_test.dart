@@ -60,8 +60,31 @@ class _RefreshingGuard extends BaseGuard {
 
 /// A vault whose writes land one at a time, in the order they were issued,
 /// as a platform keystore's do, and which holds the write of [holdValue]
-/// until [release] completes.
+/// until [release] completes, and the answer of a read of [holdReadKey]
+/// until [readRelease] completes.
 class _SerialHoldingVault extends FakeVaultService {
+  /// The key whose read answers late with the value it read at once, or
+  /// null to hold no read.
+  String? holdReadKey;
+
+  /// Completes when the held read has taken its value and is waiting.
+  final Completer<void> readTaken = Completer<void>();
+
+  /// Lets the held read answer.
+  final Completer<void> readRelease = Completer<void>();
+
+  @override
+  Future<String?> get(String key) async {
+    final value = await super.get(key);
+
+    if (key == holdReadKey && !readTaken.isCompleted) {
+      readTaken.complete();
+      await readRelease.future;
+    }
+
+    return value;
+  }
+
   /// The value whose write is held, or null to hold nothing.
   String? holdValue;
 
@@ -565,5 +588,79 @@ void main() {
       expect(replays(), <Object?>['Bearer a2-token']);
       expect(guard.cachedToken, 'a2-token');
     });
+
+    test(
+      'a restore that read the disk before the refresh wrote it lets it land',
+      () async {
+        // The restore's read answered with the pre-refresh token after the
+        // refresh had already moved the in-memory one. Read as another
+        // session, it put the stale token back and the refresh skipped its
+        // refresh-token write, so the next 401 refreshed with a token the
+        // server had rotated away and the account was logged out.
+        holdRefresh = true;
+        vault
+          ..holdReadKey = 'auth_token'
+          ..holdValue = 'a2-token';
+
+        final refusal = AuthInterceptor().onError(
+          _unauthorized(<String, dynamic>{'Authorization': 'Bearer a-token'}),
+        );
+        await refreshArrived.future;
+        final restoring = guard.restore();
+        await vault.readTaken.future;
+        refreshRelease.complete();
+        await vault.holdStarted.future;
+        vault.readRelease.complete();
+        await restoring;
+        vault.release.complete();
+        final result = await refusal;
+
+        expect(await Vault.get('refresh_token'), 'a2-refresh');
+        expect(guard.cachedToken, 'a2-token');
+        expect(result, isA<MagicResponse>());
+        expect(replays(), <Object?>['Bearer a2-token']);
+      },
+    );
+
+    test(
+      "a sign-in without a refresh token does not keep the previous one",
+      () async {
+        // B signing in over A with no refresh token of its own used to
+        // inherit A's, and B's next 401 traded it for A's access token.
+        await guard.login(<String, dynamic>{
+          'token': 'b-token',
+        }, _User()..setRawAttributes({'id': 2}, sync: true));
+
+        expect(await Vault.get('refresh_token'), isNull);
+
+        await AuthInterceptor().onError(
+          _unauthorized(<String, dynamic>{'Authorization': 'Bearer b-token'}),
+        );
+
+        expect(refreshCount, 0);
+        expect(guard.cachedToken, isNot('a2-token'));
+      },
+    );
+
+    test(
+      'a sign-in without a refresh token during the refresh write gets none',
+      () async {
+        vault.holdValue = 'a2-token';
+
+        final refusal = AuthInterceptor().onError(
+          _unauthorized(<String, dynamic>{'Authorization': 'Bearer a-token'}),
+        );
+        await vault.holdStarted.future;
+        final signingIn = guard.login(<String, dynamic>{
+          'token': 'b-token',
+        }, _User()..setRawAttributes({'id': 2}, sync: true));
+        vault.release.complete();
+        await refusal;
+        await signingIn;
+
+        expect(guard.cachedToken, 'b-token');
+        expect(await Vault.get('refresh_token'), isNull);
+      },
+    );
   });
 }

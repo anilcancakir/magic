@@ -307,13 +307,15 @@ MagicBuilder(
 1. Original request fails with 401, **having presented the token**
 2. Interceptor calls `Auth.refreshToken()`
 3. If refresh succeeds, original request is retried with new token
-4. If refresh fails, user is logged out
+4. If refresh fails, user is logged out (unless the session changed meanwhile, see below)
 
 `BaseGuard.refreshToken()` returns `false` unless the guard was built with both `refreshEndpoint` and `refreshTokenKey`. The built-in guards resolved from the `auth` config are built with neither, so for them step 4 follows any 401 on a presented credential. To refresh tokens, register a custom guard that passes both (see [Custom Guards](#custom-guards)). The refresh posts `{'refresh_token': ...}` to `refreshEndpoint` and reads `token` or `access_token` (at the top level or under `data`) and an optional `refresh_token` from the response.
 
 **A 401 on a request that carried no auth header, or an older token, is ignored.** The ladder above runs only when the refused request actually presented the header `auth.token.header` names, matched without regard to case, carrying the token the guard holds now. A request dispatched before a sign-in completed goes out anonymous, and its refusal arrives once the session exists; treating that as a rejection would end a session the server was never shown. Only a credential the server actually saw and refused ends a session.
 
 **A request that raced a token change is handed back refused, not replayed.** When the refused request carried an older token and the guard already holds a newer one, the interceptor cannot tell a refresh from a different account signing in, and a replay with the newer token could answer one account's screen with another account's data. The caller receives the 401 and decides whether its request still stands.
+
+**A refresh belongs to the session it started in.** When a sign-in, a sign-out or a restore of another account's token lands while a refresh is in the air, the refreshed token is discarded and the refused request is handed back with no retry and no logout, so the new session keeps its own token and stays signed in. A retry already on its way is sent with the refreshed token, never the new session's, and its answer is handed back as the 401. A sign-in without a `refresh_token` deletes the stored one, so it never inherits the previous account's.
 
 **A guard that does not extend `BaseGuard`** keeps no token the interceptor can compare against, so it is judged on presence alone: a 401 ends its session only when the request carried the header `auth.token.header` names. A cookie-based guard, or one that sends its credential under another header, stays signed in while calls return 401; such a guard has to end its own session.
 

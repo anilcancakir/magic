@@ -141,7 +141,8 @@ abstract class BaseGuard implements Guard {
       _holdThenPersist(token, refreshToken);
 
   /// Open a session: mark it opened and move the in-memory token, persist
-  /// [token] (when given) and its [refreshToken], then set [user] and cache it.
+  /// [token] (when given) and its [refreshToken] (or delete the stored one when
+  /// none is given), then set [user] and cache it.
   ///
   /// Everything an in-flight boot sync reads moves before the first await.
   /// The sync ignores its answer once [_sessionEpoch] has moved, so neither of
@@ -167,6 +168,16 @@ abstract class BaseGuard implements Guard {
     final epoch = ++_sessionEpoch;
 
     if (token != null) await _holdThenPersist(token, refreshToken);
+
+    // A session with no refresh token of its own must not keep the previous
+    // one's: its next 401 would trade it for the previous account's token.
+    // Skipped once a newer sign-in has begun, whose own write must stand.
+    if (refreshToken == null &&
+        refreshTokenKey != null &&
+        _sessionEpoch == epoch) {
+      await Vault.delete(refreshTokenKey!);
+    }
+
     setUser(user);
 
     await cacheUser(user);
@@ -245,10 +256,16 @@ abstract class BaseGuard implements Guard {
   /// or none), so [_sessionEpoch] moves with it. The same token is the same
   /// session: `Auth.restore()` after a profile save must not discard a
   /// refresh in the air that the server has already rotated to.
+  ///
+  /// When the in-memory token moved while the read was in the air (a refresh,
+  /// a sign-in), memory is newer than what the read saw, so nothing changes:
+  /// putting the read back would undo a refresh the server already rotated.
   Future<void> loadTokenToCache() async {
+    final held = _cachedToken;
     final token = await Vault.get(tokenKey);
-    if (token != _cachedToken) _sessionEpoch++;
+    if (_cachedToken != held) return;
 
+    if (token != held) _sessionEpoch++;
     _cachedToken = token;
   }
 
