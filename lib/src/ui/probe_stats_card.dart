@@ -22,7 +22,7 @@ class ProbeStatsCard extends StatelessWidget {
       className: 'flex flex-col gap-4 p-4 rounded-lg bg-white dark:bg-gray-800 shrink-2',
       children: [
         WText(title, className: 'text-sm text-gray-500'),
-        WText('$value', className: 'text-3xl font-bold'),
+        WText('$value', className: 'text-3xl font-bold', key: const ValueKey('probe-value')),
         WDiv(
           className: 'absolute top-2 right-2',
           child: WButton(
