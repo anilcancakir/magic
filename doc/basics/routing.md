@@ -874,6 +874,7 @@ Widget build(BuildContext context) {
 | Expecting a swipe back or a working Android back button on a `to()` route | `to()` replaces the page list; mark drill-down routes with `.stacked()` and `.transition(RouteTransition.platform)` |
 | Adding a `NavigatorObserver` after the router is built | `addObserver` throws a `StateError`; register observers in `boot()`, before `routerConfig` is read |
 | Giving two groups the same layout widget but no shared `layoutId` | Each group compiles to its own shell, so moving between them rebuilds the layout; give the groups one `layoutId` |
+| Wrapping a dialog overlay panel in a full-frame `Material` to fix its text style | The dialog already puts a transparent `Material` above the panel; add a `Material` only where the panel needs its own surface, and keep it off the scrim around the panel |
 
 <a name="related-documentation"></a>
 ## Related Documentation
