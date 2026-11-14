@@ -2642,6 +2642,31 @@ void main() async {
       expect(MagicInstallCommand().buildDevtoolsWiring(umbrella), umbrella);
     });
 
+    test('a call that only appears in a comment is not installed setup', () {
+      // The commented umbrella example in install.yaml is plausible in a
+      // preserved main.dart; it must not stop the real wiring being written.
+      const commented = '''
+import 'package:magic/magic.dart';
+import 'package:material_ui/material_ui.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // if (!kReleaseMode) MagicDevtools.installPre();
+  /* TapirPlugin.install(); */
+  await Magic.init(configFactories: []);
+
+  runApp(MagicApplication(title: 'My App'));
+}
+''';
+
+      final wired = MagicInstallCommand().buildDevtoolsWiring(commented);
+
+      expect(wired, contains('\n    TapirPlugin.install();'));
+      expect(wired, contains('CrumbsPlugin.install();'));
+      expect(wired, contains('MagicTapirIntegration.install();'));
+    });
+
     test('a call already in the file is never written a second time', () {
       // Hand-wired under another guard, or by crumbs:install (which writes
       // kDebugMode): call presence decides, not the snippet text.

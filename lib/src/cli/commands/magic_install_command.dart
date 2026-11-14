@@ -934,16 +934,23 @@ class MagicInstallCommand extends DowelInstallCommand {
   /// @return The transformed source with the debug-trio wiring injected.
   @visibleForTesting
   String buildDevtoolsWiring(String source) {
-    // 0. The umbrella call installs every block below.
-    if (source.contains('MagicDevtools.installPre(')) return source;
+    // 0. A call counts only when it is code: a commented example (the one in
+    //    install.yaml, say) is not installed setup.
+    final String code = source.replaceAll(
+      RegExp(r'/\*[\s\S]*?\*/|//[^\n]*'),
+      '',
+    );
 
-    final bool wiresTapir = !source.contains('TapirPlugin.install(');
-    final bool wiresCrumbs = !source.contains('CrumbsPlugin.install(');
-    final bool wiresPerf = !source.contains('MagicPerfIntegration.install(');
-    final bool wiresTapirIntegration = !source.contains(
+    // The umbrella call installs every block below.
+    if (code.contains('MagicDevtools.installPre(')) return source;
+
+    final bool wiresTapir = !code.contains('TapirPlugin.install(');
+    final bool wiresCrumbs = !code.contains('CrumbsPlugin.install(');
+    final bool wiresPerf = !code.contains('MagicPerfIntegration.install(');
+    final bool wiresTapirIntegration = !code.contains(
       'MagicTapirIntegration.install(',
     );
-    final bool wiresCrumbsIntegration = !source.contains(
+    final bool wiresCrumbsIntegration = !code.contains(
       'MagicCrumbsIntegration.install(',
     );
     if (!(wiresTapir ||

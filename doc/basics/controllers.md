@@ -168,7 +168,7 @@ State transitions:
 | Condition | Resulting State |
 |-----------|----------------|
 | Request fails (4xx/5xx) | `isError` with `response.errorMessage` |
-| Transport failure (status `0`: no connection, timeout) | `isError` with `'Failed to load'`, or the server `message` when a body carries one |
+| Transport failure (status `0`: no connection, timeout) | `isError` with the transport exception's message when the driver has one, otherwise `'Failed to load'` |
 | Body is not a JSON object | `isEmpty` |
 | `dataKey` list is null or empty | `isEmpty` |
 | List has items | `isSuccess` with `List<E>` cast to `T` |
@@ -206,7 +206,7 @@ State transitions:
 | Condition | Resulting State |
 |-----------|----------------|
 | Request fails (4xx/5xx) | `isError` with `response.errorMessage` |
-| Transport failure (status `0`: no connection, timeout) | `isError` with `'Failed to load'`, or the server `message` when a body carries one |
+| Transport failure (status `0`: no connection, timeout) | `isError` with the transport exception's message when the driver has one, otherwise `'Failed to load'` |
 | Body is not a JSON object | `isError` with `'Invalid response format'` |
 | `dataKey` value is null | `isError` with `'Resource not found'` |
 | Data present | `isSuccess` with parsed `T` |
