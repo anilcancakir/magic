@@ -84,7 +84,7 @@ class RouteDefinition {
   /// Page title for browser tab / app switcher.
   String? _title;
 
-  /// Parent group prefix (set by Route.group).
+  /// Parent group prefix (set by MagicRoute.group).
   String? _groupPrefix;
 
   /// Whether navigating here pushes a page rather than replacing the stack.

@@ -37,9 +37,9 @@ import 'title_manager.dart';
 /// Navigate from anywhere - controllers, services, or pure Dart classes:
 ///
 /// ```dart
-/// Route.to('/dashboard');
-/// Route.back();
-/// Route.replace('/home');
+/// MagicRoute.to('/dashboard');
+/// MagicRoute.back();
+/// MagicRoute.replace('/home');
 /// ```
 ///
 /// ## Setup
@@ -1260,8 +1260,8 @@ class MagicRouter {
   /// Navigate to a path.
   ///
   /// ```dart
-  /// Route.to('/dashboard');
-  /// Route.to('/users/42');
+  /// MagicRoute.to('/dashboard');
+  /// MagicRoute.to('/users/42');
   /// ```
   ///
   /// Replaces the page stack, which is what a tab or a nav destination wants.
@@ -1505,7 +1505,7 @@ class MagicRouter {
   /// Unlike `to()`, this preserves the navigation stack.
   ///
   /// ```dart
-  /// Route.push('/details');
+  /// MagicRoute.push('/details');
   /// ```
   void push(String path) {
     // The four sibling verbs all open with this and `push` did not, so a call
@@ -1546,8 +1546,8 @@ class MagicRouter {
   /// page. A second call before the browser has answered does nothing.
   ///
   /// ```dart
-  /// Route.back();
-  /// Route.back(fallback: '/home');
+  /// MagicRoute.back();
+  /// MagicRoute.back(fallback: '/home');
   /// ```
   void back({String? fallback}) {
     if (_router == null) {
@@ -1597,7 +1597,7 @@ class MagicRouter {
   /// consciously visited the old route, so it shouldn't appear in history.
   ///
   /// ```dart
-  /// Route.replace('/home');
+  /// MagicRoute.replace('/home');
   /// ```
   void replace(String path) {
     if (_router == null) {

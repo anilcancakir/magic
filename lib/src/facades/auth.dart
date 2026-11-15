@@ -64,7 +64,7 @@ class Auth {
   /// if (response.successful) {
   ///   final user = User.fromMap(response['data']['user']);
   ///   await Auth.login({'token': response['data']['token']}, user);
-  ///   Route.to('/dashboard');
+  ///   MagicRoute.to('/dashboard');
   /// }
   /// ```
   static Future<void> login(Map<String, dynamic> data, Authenticatable user) =>
@@ -77,7 +77,7 @@ class Auth {
   /// ```dart
   /// await Http.post('/logout'); // Optional API call
   /// await Auth.logout();
-  /// Route.to('/login');
+  /// MagicRoute.to('/login');
   /// ```
   static Future<void> logout() => guard().logout();
 
@@ -172,9 +172,9 @@ class Auth {
   /// ```dart
   /// await Auth.restore();
   /// if (Auth.check()) {
-  ///   Route.to('/dashboard');
+  ///   MagicRoute.to('/dashboard');
   /// } else {
-  ///   Route.to('/login');
+  ///   MagicRoute.to('/login');
   /// }
   /// ```
   static Future<void> restore() => guard().restore();
