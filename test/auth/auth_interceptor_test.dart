@@ -1093,5 +1093,45 @@ void main() {
         expect(await Vault.get('auth_user'), isNull);
       },
     );
+
+    test(
+      'a refresh that read a lost sign-in\'s refresh token stores nothing',
+      () async {
+        // The refresh started after the losing sign-in queued its refresh
+        // token, read it, and found the session unchanged when it answered:
+        // forgetting the sign-in's tokens did not end anything, so the
+        // refreshed pair was written back after the sign-out.
+        vault
+          ..holdRemoveKey = 'auth_token'
+          ..holdValue = 's-refresh';
+        holdRefresh = true;
+        refreshAnswer = MagicResponse(
+          data: <String, dynamic>{
+            'token': 's2-token',
+            'refresh_token': 's2-refresh',
+          },
+          statusCode: 200,
+        );
+
+        final signingOut = guard.logout();
+        final signingIn = guard.login(<String, dynamic>{
+          'token': 's-token',
+          'refresh_token': 's-refresh',
+        }, _User()..setRawAttributes({'id': 2}, sync: true));
+        vault.removeRelease.complete();
+        await vault.holdStarted.future;
+        final refreshing = guard.refreshToken();
+        vault.release.complete();
+        await Future.wait<void>([signingOut, signingIn]);
+        await refreshArrived.future;
+        refreshRelease.complete();
+        await refreshing;
+
+        expect(guard.check(), isFalse);
+        expect(guard.cachedToken, isNull);
+        expect(await Vault.get('auth_token'), isNull);
+        expect(await Vault.get('refresh_token'), isNull);
+      },
+    );
   });
 }

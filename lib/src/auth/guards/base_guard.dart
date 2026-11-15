@@ -237,9 +237,15 @@ abstract class BaseGuard implements Guard {
     await Event.dispatch(AuthLogin(user));
   }
 
-  /// Delete both stored tokens without ending a session: for a sign-in that a
-  /// sign-out won over, whose writes landed after the sign-out's deletes.
+  /// Delete both stored tokens of a sign-in that a sign-out won over, whose
+  /// writes landed after the sign-out's deletes.
+  ///
+  /// Runs only while no token is held and no sign-in is writing, so the
+  /// session it ends belongs to nobody; [_sessionEpoch] still moves first,
+  /// or a refresh that read the lost sign-in's refresh token in the meantime
+  /// would find its session unchanged and write the refreshed pair back.
   Future<void> _forgetTokens() async {
+    _sessionEpoch++;
     await Vault.delete(tokenKey);
     if (refreshTokenKey != null) await Vault.delete(refreshTokenKey!);
   }
