@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -87,17 +88,21 @@ class MagicForm extends StatefulWidget {
   /// Asked on a back attempt (system back, `Navigator.maybePop`); the route
   /// pops only when the future answers `true`, and a second attempt while
   /// one is pending is not asked again. While it is set the route cannot be
-  /// swiped away: the form builds on Flutter's `PopScope` with
-  /// `canPop: false`. An approval lifts that veto for one frame and asks
-  /// `Navigator.maybePop` again, so the route's own pop logic runs: a web
-  /// overlay that closes through the browser steps the browser back. As with
-  /// `maybePop`, an answer that arrives after the route left the top of the
-  /// stack is dropped, and an approved back on the first route bubbles
-  /// through each enclosing navigator, then out of the app (on Android that
-  /// closes it, including for a programmatic `maybePop`).
+  /// swiped away: the route holds one pop veto (a `PopEntry`) for every
+  /// guarded `MagicForm` on it. A back attempt asks each form's callback in
+  /// turn, in the order the forms mounted, and stops at the first refusal.
+  /// When all approve, the veto is lifted only while `Navigator.maybePop`
+  /// runs again (microtasks, no frame, unless the route also carries a
+  /// legacy async `willPop` callback), so the route's own pop logic decides: a
+  /// web overlay that closes through the browser steps the browser back. As
+  /// with `maybePop`, an answer that arrives after the route, or the page
+  /// holding its navigator, left the top of the stack is dropped, and an
+  /// approved back on the first route bubbles through each enclosing
+  /// navigator, then out of the app (on Android that closes it, including
+  /// for a programmatic `maybePop`).
   ///
   /// Two differences from Flutter's deprecated `Form.onWillPop`, which come
-  /// with `PopScope`: `Navigator.maybePop` answers `true` at once rather than
+  /// with the move to pop entries: `Navigator.maybePop` answers `true` at once rather than
   /// after the callback, and an exception the callback throws is reported
   /// through `FlutterError.reportError` instead of from the `maybePop` call.
   /// `Navigator.pop` is never vetoed, as before.
@@ -129,11 +134,37 @@ class MagicForm extends StatefulWidget {
 }
 
 class _MagicFormState extends State<MagicForm> {
-  /// Whether an approved back has lifted the pop veto for one frame.
-  bool _approved = false;
+  /// The guard of the route this form vetoes on, while it has a callback.
+  _RouteGuard? _guard;
 
-  /// Whether [MagicForm.onWillPop] is being asked right now.
-  bool _asking = false;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _attach();
+  }
+
+  @override
+  void didUpdateWidget(MagicForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _attach();
+  }
+
+  @override
+  void dispose() {
+    _guard?.remove(this);
+    super.dispose();
+  }
+
+  /// Joins the guard of the enclosing route while [MagicForm.onWillPop] is
+  /// set, and leaves it otherwise.
+  void _attach() {
+    final ModalRoute<Object?>? route = widget.onWillPop == null
+        ? null
+        : ModalRoute.of(context);
+    if (_guard?.route == route) return;
+    _guard?.remove(this);
+    _guard = route == null ? null : (_RouteGuard.of(route)..add(this));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -162,73 +193,113 @@ class _MagicFormState extends State<MagicForm> {
       }
     }
 
-    final bool guarded = widget.onWillPop != null;
-
     return Form(
       key: effectiveFormKey,
       autovalidateMode: effectiveMode,
       onChanged: widget.onChanged,
-      canPop: guarded ? _approved : null,
-      onPopInvokedWithResult: guarded ? _onPopInvoked : null,
       child: widget.child,
     );
   }
+}
 
-  /// Asks [MagicForm.onWillPop] about a blocked back attempt and, on `true`,
-  /// lifts the veto and asks `Navigator.maybePop` again, so the route
-  /// finishes the pop with its own logic.
-  Future<void> _onPopInvoked(bool didPop, Object? result) async {
-    if (didPop || _approved || _asking) return;
+/// The one pop veto a route holds for every guarded [MagicForm] on it.
+///
+/// A `PopEntry` of its own rather than each form's `PopScope`: the forms are
+/// asked in turn by one leader and the route pops once when all approve, and
+/// the veto is lifted synchronously, only while that `maybePop` runs.
+class _RouteGuard extends PopEntry<Object?> {
+  _RouteGuard._(this.route);
 
-    // 1. Bind the answer to the route that asked, before the await.
-    final ModalRoute<Object?>? route = ModalRoute.of(context);
-    final NavigatorState navigator = Navigator.of(context);
-    final List<NavigatorState> ancestors = <NavigatorState>[
+  static final Expando<_RouteGuard> _guards = Expando<_RouteGuard>();
+
+  /// The guard of [route], created and registered on first use.
+  static _RouteGuard of(ModalRoute<Object?> route) =>
+      _guards[route] ??= _RouteGuard._(route);
+
+  final ModalRoute<Object?> route;
+  final List<_MagicFormState> _forms = <_MagicFormState>[];
+  final ValueNotifier<bool> _canPop = ValueNotifier<bool>(false);
+  bool _running = false;
+
+  @override
+  ValueListenable<bool> get canPopNotifier => _canPop;
+
+  void add(_MagicFormState form) {
+    if (_forms.isEmpty) route.registerPopEntry(this);
+    _forms.add(form);
+  }
+
+  void remove(_MagicFormState form) {
+    _forms.remove(form);
+    if (_forms.isNotEmpty) return;
+    route.unregisterPopEntry(this);
+    _guards[route] = null;
+  }
+
+  @override
+  void onPopInvokedWithResult(bool didPop, Object? result) {
+    if (didPop || _running || _forms.isEmpty) return;
+    _running = true;
+    _ask(result).whenComplete(() => _running = false);
+  }
+
+  /// Asks every form in turn and, when all approve, lets the route finish
+  /// the pop with its own logic.
+  Future<void> _ask(Object? result) async {
+    // 1. Bind the attempt to its navigator chain before any await.
+    final BuildContext context = _forms.first.context;
+    final List<NavigatorState> chain = <NavigatorState>[
       for (
-        NavigatorState? nav = navigator.context
-            .findAncestorStateOfType<NavigatorState>();
+        NavigatorState? nav = Navigator.of(context);
         nav != null;
         nav = nav.context.findAncestorStateOfType<NavigatorState>()
       )
         nav,
     ];
+    final List<ModalRoute<Object?>?> holders = <ModalRoute<Object?>?>[
+      for (final NavigatorState nav in chain.take(chain.length - 1))
+        ModalRoute.of(nav.context),
+    ];
 
-    // 2. Ask once; a throw is reported, never left to the caller's zone.
-    final bool approved;
-    _asking = true;
-    try {
-      approved = await widget.onWillPop!();
-    } catch (error, stack) {
-      FlutterError.reportError(
-        FlutterErrorDetails(
-          exception: error,
-          stack: stack,
-          library: 'magic',
-          context: ErrorDescription('while asking MagicForm.onWillPop'),
-        ),
-      );
-      return;
-    } finally {
-      _asking = false;
+    // 2. One answer per form; a refusal or a throw ends the attempt.
+    for (final _MagicFormState form in List<_MagicFormState>.of(_forms)) {
+      final Future<bool> Function()? willPop = form.widget.onWillPop;
+      if (!form.mounted || willPop == null) continue;
+      try {
+        if (!await willPop()) return;
+      } catch (error, stack) {
+        FlutterError.reportError(
+          FlutterErrorDetails(
+            exception: error,
+            stack: stack,
+            library: 'magic',
+            context: ErrorDescription('while asking MagicForm.onWillPop'),
+          ),
+        );
+        return;
+      }
     }
 
-    // 3. Like maybePop, forget the approval when the history changed while it
-    //    was pending: the route left, or another one was pushed over it.
-    if (!approved || !mounted || route == null || !route.isCurrent) return;
+    // 3. Like maybePop, drop a late approval: the route must still be on
+    //    top, and so must the page holding each enclosing navigator (as
+    //    go_router's walk over the current navigators reads it).
+    if (!route.isCurrent) return;
+    if (holders.any(
+      (ModalRoute<Object?>? page) => !(page?.isCurrent ?? true),
+    )) {
+      return;
+    }
 
-    // 4. Lift the veto for one frame, so PopScope reads canPop: true, and let
-    //    the route decide: an overlay steps the browser back, a first route
-    //    bubbles (maybePop answers false only then).
-    setState(() => _approved = true);
-    await WidgetsBinding.instance.endOfFrame;
+    // 4. Lift the veto while the route decides (an overlay steps the browser
+    //    back); a first route bubbles, the only case maybePop answers false.
+    _canPop.value = true;
     try {
-      if (!route.isCurrent || await navigator.maybePop(result)) return;
-      for (final NavigatorState ancestor in ancestors) {
-        if (ancestor.mounted && await ancestor.maybePop(result)) return;
+      for (final NavigatorState nav in chain) {
+        if (nav.mounted && await nav.maybePop(result)) return;
       }
       await SystemNavigator.pop();
     } finally {
-      if (mounted) setState(() => _approved = false);
+      _canPop.value = false;
     }
   }
 }

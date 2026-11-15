@@ -253,6 +253,7 @@ void main() {
     testWidgets('an answer that lands after the form left is dropped', (
       tester,
     ) async {
+      final List<String> platformCalls = _recordPlatformCalls(tester);
       final Completer<bool> answer = Completer<bool>();
       final navigator = await _pumpFormRoute(
         tester,
@@ -268,6 +269,103 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('home'), findsOneWidget);
+      expect(platformCalls, isNot(contains('SystemNavigator.pop')));
+    });
+
+    testWidgets('two forms that both approve, at different times, pop the '
+        'route once and are each asked once', (tester) async {
+      final GlobalKey<NavigatorState> navigatorKey =
+          GlobalKey<NavigatorState>();
+      final _FormController controller = _FormController();
+      addTearDown(controller.dispose);
+      var askedA = 0;
+      var askedB = 0;
+      await tester.pumpWidget(
+        MaterialApp(navigatorKey: navigatorKey, home: const Text('home')),
+      );
+      navigatorKey.currentState!.push(
+        MaterialPageRoute<void>(
+          builder: (_) => Column(
+            children: [
+              MagicForm(
+                formKey: GlobalKey<FormState>(),
+                controller: controller,
+                onWillPop: () async {
+                  askedA++;
+                  return true;
+                },
+                child: const Text('form'),
+              ),
+              MagicForm(
+                formKey: GlobalKey<FormState>(),
+                controller: controller,
+                onWillPop: () async {
+                  askedB++;
+                  // A dialog's answer: later than the first form's.
+                  await Future<void>.delayed(const Duration(milliseconds: 50));
+                  return true;
+                },
+                child: const Text('other form'),
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await navigatorKey.currentState!.maybePop();
+      for (var frame = 0; frame < 20; frame++) {
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      await tester.pumpAndSettle();
+
+      expect(find.text('home'), findsOneWidget);
+      expect(askedA, 1);
+      expect(askedB, 1);
+    });
+
+    testWidgets('a late approval on a layout page does not pop a page pushed '
+        'over the shell meanwhile', (tester) async {
+      final List<String> platformCalls = _recordPlatformCalls(tester);
+      MagicApp.reset();
+      Magic.flush();
+      TitleManager.reset();
+      MagicRouter.reset();
+      addTearDown(MagicRouter.reset);
+      final _FormController controller = _FormController();
+      addTearDown(controller.dispose);
+      final Completer<bool> answer = Completer<bool>();
+
+      MagicRoute.group(
+        layout: (Widget child) => child,
+        routes: () {
+          MagicRoute.page(
+            '/',
+            () => MagicForm(
+              formKey: GlobalKey<FormState>(),
+              controller: controller,
+              onWillPop: () => answer.future,
+              child: const Text('form'),
+            ),
+          );
+        },
+      );
+      MagicRoute.page('/other', () => const Text('other'));
+      await tester.pumpWidget(
+        MaterialApp.router(routerConfig: MagicRouter.instance.routerConfig),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      MagicRoute.push('/other'); // lands on the root navigator, over the shell
+      await tester.pumpAndSettle();
+
+      answer.complete(true);
+      await tester.pumpAndSettle();
+
+      expect(find.text('other'), findsOneWidget);
+      expect(platformCalls, isNot(contains('SystemNavigator.pop')));
     });
 
     testWidgets('one form on a route vetoes even when another approves', (
