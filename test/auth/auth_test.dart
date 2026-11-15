@@ -101,6 +101,21 @@ class _CacheFirstGuard extends BaseGuard {
   Future<void> login(Map<String, dynamic> data, Authenticatable user) async {}
 }
 
+/// [_CacheFirstGuard] with a refresh endpoint, so a test can rotate its token
+/// the way the interceptor does.
+class _RefreshingCacheFirstGuard extends BaseGuard {
+  _RefreshingCacheFirstGuard()
+    : super(
+        userEndpoint: '/user',
+        refreshEndpoint: '/refresh',
+        refreshTokenKey: 'refresh_token',
+        userFactory: (data) => MockUser()..setRawAttributes(data, sync: true),
+      );
+
+  @override
+  Future<void> login(Map<String, dynamic> data, Authenticatable user) async {}
+}
+
 /// A driver whose GET never answers until the test opens the gate, standing in
 /// for a backend that accepts the connection and then says nothing.
 class _GatedDriver extends FakeNetworkDriver {
@@ -838,8 +853,9 @@ void main() {
       // A refresh keeps the account and bumps no session state. The
       // interceptor's own refresh-and-retry of the sync lands as a 200 under
       // the new token, and another request's refresh leaves the sync's 401
-      // speaking about a token nobody holds any more.
-      late _CacheFirstGuard guard;
+      // speaking about a token nobody holds any more. The rotation goes
+      // through `refreshToken()`: `storeToken` marks a new session.
+      late _RefreshingCacheFirstGuard guard;
 
       Future<void> rotateWhileHeld(
         MagicResponse response, {
@@ -848,16 +864,23 @@ void main() {
         Log.fake();
         Vault.fake({
           'auth_token': 'old-token',
+          'refresh_token': 'old-refresh',
           'auth_user': jsonEncode({'id': 7, 'name': 'Cached User'}),
         });
-        guard = _CacheFirstGuard();
+        guard = _RefreshingCacheFirstGuard();
         var calls = 0;
         Magic.singleton(
           'network',
           () => FakeNetworkDriver(
-            stubs: (MagicRequest _) async {
+            stubs: (MagicRequest request) async {
+              if (request.url == '/refresh') {
+                return MagicResponse(
+                  data: {'token': 'rotated-token'},
+                  statusCode: 200,
+                );
+              }
               if (calls++ > 0) return recheck!;
-              await guard.storeToken('rotated-token');
+              await guard.refreshToken();
 
               return response;
             },
@@ -1275,14 +1298,18 @@ void main() {
         // The access token is on disk by then and the server has rotated the
         // old one away, so going back to the old token would sign requests
         // with a token nobody accepts while the Vault holds the working one.
+        // A refresh goes through `refreshToken()`: `storeToken` is a sign-in.
         Magic.app.setInstance('vault', _RefusingVault('new-refresh'));
-        final guard = BearerTokenGuard(refreshTokenKey: 'refresh_token');
-        await guard.storeToken('old-token');
-
-        await expectLater(
-          guard.storeToken('new-token', 'new-refresh'),
-          throwsA(isA<StateError>()),
+        Http.fake(
+          (MagicRequest _) => MagicResponse(
+            data: {'token': 'new-token', 'refresh_token': 'new-refresh'},
+            statusCode: 200,
+          ),
         );
+        final guard = _RefreshingCacheFirstGuard();
+        await guard.storeToken('old-token', 'old-refresh');
+
+        expect(await guard.refreshToken(), isFalse);
 
         expect(guard.cachedToken, 'new-token');
         expect(await Vault.get('auth_token'), 'new-token');
