@@ -181,7 +181,10 @@ Magic.delete<UserController>();
 class UserController extends MagicController {
   @override
   void onInit() {
-    // Called when controller is first created
+    // Called once, the first time a stateful view backs the controller.
+    // super.onInit() marks the controller initialised; without it a remount
+    // runs onInit (and loadUsers) again.
+    super.onInit();
     loadUsers();
   }
 

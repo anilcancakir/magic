@@ -277,11 +277,12 @@ class StoreOrderRequest extends FormRequest {
     'product_id': [Required()],
     'quantity': [Required(), Min(1)],
     'note': [Max(500)],
+    'status': [Required(), In(['pending'])],
   };
 }
 ```
 
-Pass the raw form data to `validate()` in the controller. It runs `authorize` first, then `prepared`, then the rules, and returns the cleaned data filtered to the keys declared in `rules()`:
+Pass the raw form data to `validate()` in the controller. It runs `authorize` first, then `prepared`, then the rules, and returns the cleaned data filtered to the keys declared in `rules()`. A key that `prepared()` adds survives only when `rules()` names it, which is why `status` has a rule above; without one, `validate()` drops it:
 
 ```dart
 class OrderController extends MagicController with MagicStateMixin<Order>, ValidatesRequests {
@@ -350,7 +351,7 @@ class ProfileController extends MagicController with ValidatesRequests {
 
       // Success path
     } on ValidationException {
-      // validationErrors is already populated; notifyListeners() was called
+      // validationErrors is already populated and the view was refreshed
       // The MagicForm widget switches to AutovalidateMode.always automatically
     }
   }

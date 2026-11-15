@@ -90,7 +90,7 @@ class SearchIndex implements SessionScoped {
 }
 ```
 
-`SessionScope.unregister` must run when the holder is disposed; an unregistered-but-live holder would otherwise be reset forever, even after nothing references it.
+`SessionScope.unregister` must run when the holder is disposed; a registered-but-dead holder would otherwise be reset forever, even after nothing references it.
 
 <a name="failure-modes"></a>
 ## Failure Modes

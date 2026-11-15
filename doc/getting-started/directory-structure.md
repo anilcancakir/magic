@@ -137,9 +137,10 @@ lib/config/
 ├── cache.dart               # Cache drivers
 ├── logging.dart             # Log channels
 ├── routing.dart             # Router options
-├── view.dart                # Snackbar, dialog and loading styles
-└── localization.dart        # Supported locales
+└── view.dart                # Snackbar, dialog and loading styles
 ```
+
+[`magic:install`](../packages/magic-cli.md) writes no localisation config; add a `localization` key (for example `supported_locales`) to a config file yourself when you need one.
 
 <a name="the-resources-directory"></a>
 ## The Resources Directory
