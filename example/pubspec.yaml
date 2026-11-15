@@ -36,7 +36,7 @@ dependencies:
   cupertino_icons: ^2.0.0
   magic:
     path: ..
-    version: 1.0.0
+    version: 1.0.1
   dowel: ^1.0.0
   material_ui: ^1.11.0
 
