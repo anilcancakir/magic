@@ -48,7 +48,7 @@ Not-bug-worthy (documented magic behavior, not a defect):
 - A relation property is null because the API payload did not nest it: there is no lazy load and no `with()` (section 3, 5). Embed it or fetch and `set` it.
 - `find()` / `all()` hitting the API instead of SQLite: `useLocal` defaults to false (section 5, 7). Override `useLocal => true` to opt in, with `magic_local_storage` installed: a `useLocal` model with no `LocalModelStore` bound throws a `StateError` by design.
 - Flash input lingering across more than one navigation: `Session.tick()` is not automatic (section 7). Wire it at bootstrap.
-- `Auth.guest()` failing to compile or `Http.patch(...)` not existing: `guest` is a getter and there is no `patch` verb (section 7). Use `Auth.guest` and `Http.put`/`update`.
+- `Auth.guest()` failing to compile or `Http.patch(...)` not existing: `guest` is a getter and there is no `patch` verb (section 7). Use `Auth.guest`, and `Http.put`/`update` where the endpoint accepts PUT (a Laravel endpoint that takes only PATCH accepts `Http.post` with `'_method': 'PATCH'`).
 - `response.body` not existing: the payload is `response.data` (section 7).
 - A route added after `Magic.init()` completes throwing a `StateError`: the router builds once, after every provider's `register()` and `boot()`; add routes from a provider (section 1, 5).
 - Auth session not restoring: `Auth.manager.setUserFactory(...)` was not set, or AppServiceProvider is listed after AuthServiceProvider (Core Law 5, checklist). Fix the factory and provider order.

@@ -381,7 +381,7 @@ These facades fake without a mock library: `Http.fake` (`FakeNetworkDriver`: `as
 | `user.getAttribute('name')` outside the model | a typed getter (`user.name`) built on `get<String>('name')` | the model owns the key and the type |
 | controller passed through a view constructor | `Magic.find<T>()` or `MagicView` | that is how magic resolves controllers |
 | waiting for flash to expire after navigation | wire `Session.tick()` once at bootstrap | it is not automatic, so old input lingers |
-| `Http.patch(...)` | `Http.put(...)` or `Http.update(...)` | there is no `patch` verb |
+| `Http.patch(...)` | `Http.put(...)` or `Http.update(...)` where the endpoint accepts PUT; for a Laravel endpoint that takes only PATCH, `Http.post(url, data: {..., '_method': 'PATCH'})` | there is no `patch` verb, and PUT is not a general substitute |
 | `response.body` | `response.data` | `.body` does not exist on `MagicResponse` |
 | `configs: [appConfig]` that reads `env()` | `configFactories: [() => appConfig]` | Env is not loaded when `configs` evaluates |
 | `Auth.guest()` | `Auth.guest` | it is a bool getter |
