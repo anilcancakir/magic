@@ -441,6 +441,126 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('home'), findsOneWidget);
     });
+
+    testWidgets('an approved back notifies another pop scope on the route '
+        'once, and that scope keeps its own answer', (tester) async {
+      final List<bool> notified = <bool>[];
+      final GlobalKey<NavigatorState> navigatorKey =
+          GlobalKey<NavigatorState>();
+      final _FormController controller = _FormController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(navigatorKey: navigatorKey, home: const Text('home')),
+      );
+      navigatorKey.currentState!.push(
+        MaterialPageRoute<void>(
+          builder: (_) => PopScope<Object?>(
+            canPop: false,
+            onPopInvokedWithResult: (bool didPop, Object? result) =>
+                notified.add(didPop),
+            child: MagicForm(
+              formKey: GlobalKey<FormState>(),
+              controller: controller,
+              onWillPop: () async => true,
+              child: const Text('form'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await navigatorKey.currentState!.maybePop();
+      await tester.pumpAndSettle();
+
+      expect(notified, <bool>[false]);
+      expect(find.text('form'), findsOneWidget);
+    });
+
+    testWidgets('the veto is back while the platform has not answered the '
+        'exit', (tester) async {
+      final Completer<Object?> exit = Completer<Object?>();
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (MethodCall call) =>
+            call.method == 'SystemNavigator.pop' ? exit.future : Future.value(),
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      var asked = 0;
+      final _FormController controller = _FormController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MagicForm(
+            formKey: GlobalKey<FormState>(),
+            controller: controller,
+            onWillPop: () async {
+              asked++;
+
+              return true;
+            },
+            child: const Text('form'),
+          ),
+        ),
+      );
+
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      await tester.pump();
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      await tester.pump();
+
+      // The first approval handed the exit to the platform and restored the
+      // veto, so the second back is asked again instead of being ignored.
+      expect(asked, 2);
+      exit.complete();
+    });
+
+    testWidgets('an approved back on a layout page pushed over another page '
+        'pops the shell, not the app', (tester) async {
+      final List<String> platformCalls = _recordPlatformCalls(tester);
+      MagicApp.reset();
+      Magic.flush();
+      TitleManager.reset();
+      MagicRouter.reset();
+      addTearDown(MagicRouter.reset);
+      final _FormController controller = _FormController();
+      addTearDown(controller.dispose);
+
+      MagicRoute.page('/', () => const Text('start'));
+      MagicRoute.group(
+        layout: (Widget child) => child,
+        routes: () {
+          MagicRoute.page(
+            '/form',
+            () => MagicForm(
+              formKey: GlobalKey<FormState>(),
+              controller: controller,
+              onWillPop: () async => true,
+              child: const Text('form'),
+            ),
+          );
+        },
+      );
+      await tester.pumpWidget(
+        MaterialApp.router(routerConfig: MagicRouter.instance.routerConfig),
+      );
+      await tester.pumpAndSettle();
+      MagicRoute.push('/form'); // the shell lands over the start page
+      await tester.pumpAndSettle();
+      expect(find.text('form'), findsOneWidget);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(find.text('start'), findsOneWidget);
+      expect(platformCalls, isNot(contains('SystemNavigator.pop')));
+    });
   });
 }
 

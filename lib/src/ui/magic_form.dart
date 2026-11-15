@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../concerns/validates_requests.dart';
 import '../http/magic_controller.dart';
+import '../routing/magic_overlay_page.dart';
 import 'magic_form_data.dart';
 
 /// A Form widget that integrates with Magic's validation system.
@@ -99,13 +102,18 @@ class MagicForm extends StatefulWidget {
   /// holding its navigator, left the top of the stack is dropped, and an
   /// approved back on the first route bubbles through each enclosing
   /// navigator, then out of the app (on Android that closes it, including
-  /// for a programmatic `maybePop`).
+  /// for a programmatic `maybePop`); the veto is back before the exit goes to
+  /// the platform. A route that another pop entry still vetoes (a
+  /// `PopScope(canPop: false)`) is not asked again: that entry was notified by
+  /// the back itself and keeps its own answer.
   ///
-  /// Two differences from Flutter's deprecated `Form.onWillPop`, which come
-  /// with the move to pop entries: `Navigator.maybePop` answers `true` at once rather than
-  /// after the callback, and an exception the callback throws is reported
-  /// through `FlutterError.reportError` instead of from the `maybePop` call.
-  /// `Navigator.pop` is never vetoed, as before.
+  /// Three differences from Flutter's deprecated `Form.onWillPop`, which come
+  /// with the move to pop entries: `Navigator.maybePop` answers `true` at once
+  /// rather than after the callback, an exception the callback throws is
+  /// reported through `FlutterError.reportError` instead of from the
+  /// `maybePop` call, and a legacy `willPop` callback on the same route is
+  /// asked a second time by the approved back. `Navigator.pop` is never
+  /// vetoed, as before.
   final Future<bool> Function()? onWillPop;
 
   /// Restoration ID to save and restore the state of the [Form].
@@ -292,14 +300,31 @@ class _RouteGuard extends PopEntry<Object?> {
 
     // 4. Lift the veto while the route decides (an overlay steps the browser
     //    back); a first route bubbles, the only case maybePop answers false.
+    //    The exit goes to the platform after the veto is back, so a reply
+    //    that never comes cannot leave the route unguarded.
+    bool handled = false;
     _canPop.value = true;
     try {
-      for (final NavigatorState nav in chain) {
-        if (nav.mounted && await nav.maybePop(result)) return;
+      // Another pop entry that still vetoes (a PopScope) was notified by the
+      // back that started this attempt and keeps its own answer; a second
+      // maybePop would notify it twice. An overlay that steps the browser
+      // back reads doNotPop by design and is asked again.
+      if (route.popDisposition == RoutePopDisposition.doNotPop &&
+          !routeStepsBrowserBack(route)) {
+        return;
       }
-      await SystemNavigator.pop();
+      for (final NavigatorState nav in chain) {
+        // Only the navigator of the form's own route gets the result, as in
+        // go_router's walk: an outer page has its own result type.
+        final Object? given = identical(nav, chain.first) ? result : null;
+        if (nav.mounted && await nav.maybePop(given)) {
+          handled = true;
+          break;
+        }
+      }
     } finally {
       _canPop.value = false;
     }
+    if (!handled) unawaited(SystemNavigator.pop());
   }
 }
