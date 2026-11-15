@@ -422,7 +422,7 @@ class MagicRoute {
   ///
   /// ```dart
   /// MaterialApp.router(
-  ///   routerConfig: Route.config,
+  ///   routerConfig: MagicRoute.config,
   /// )
   /// ```
   static GoRouter get config => MagicRouter.instance.routerConfig;
