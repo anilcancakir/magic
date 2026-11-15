@@ -270,6 +270,44 @@ void main() {
       expect(find.text('home'), findsOneWidget);
     });
 
+    testWidgets('one form on a route vetoes even when another approves', (
+      tester,
+    ) async {
+      final GlobalKey<NavigatorState> navigatorKey =
+          GlobalKey<NavigatorState>();
+      final _FormController controller = _FormController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(navigatorKey: navigatorKey, home: const Text('home')),
+      );
+      navigatorKey.currentState!.push(
+        MaterialPageRoute<void>(
+          builder: (_) => Column(
+            children: [
+              MagicForm(
+                formKey: GlobalKey<FormState>(),
+                controller: controller,
+                onWillPop: () async => true,
+                child: const Text('form'),
+              ),
+              MagicForm(
+                formKey: GlobalKey<FormState>(),
+                controller: controller,
+                onWillPop: () async => false,
+                child: const Text('other form'),
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await navigatorKey.currentState!.maybePop();
+      await tester.pumpAndSettle();
+
+      expect(find.text('form'), findsOneWidget);
+    });
+
     testWidgets('Navigator.pop is not vetoed', (tester) async {
       var asked = 0;
       final navigator = await _pumpFormRoute(

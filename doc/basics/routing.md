@@ -408,9 +408,9 @@ MagicRoute.layout(
 );
 ```
 
-> [!TIP]
-The routes you pass leave the top-level table and live under the layout only, as a group's routes do. Shell pages are tried after every top-level route, so a top-level catch-all such as `MagicRoute.page('/:slug', ...)` captures `/dashboard` before the layout sees it, whatever order you registered them in: put a catch-all last inside a layout, or keep it out of the top level.
+The routes you pass leave the top-level table and live under the layout only, as a group's routes do; an overlay route in the list is the exception and opens on the root navigator, above the shell (see [Bottom Sheet Routes](#bottom-sheet-routes)). go_router takes the first match, trying every top-level route first and then each shell in registration order. A catch-all such as `MagicRoute.page('/:slug', ...)` therefore captures every path it can match that is tried after it: at the top level it shadows every layout page, and last in an app shell it still captures `/login` from a guest shell registered later. Register a catch-all after every route it could shadow, in the last shell tried.
 
+> [!TIP]
 > For most cases, the `layout:` parameter on `MagicRoute.group()` is more convenient. Use `MagicRoute.layout()` when you need to reference a list of routes that are built separately.
 
 <a name="a-layer-above-every-page"></a>
