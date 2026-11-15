@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 <!-- Copy as CLAUDE.md to project root. Customize CUSTOMIZE sections. -->
-<!-- Requires fluttersdk CC plugin (magic-framework + wind-ui skills). -->
+<!-- Requires the magic-framework and wind-ui skills: npx skills add anilcancakir/magic, npx skills add anilcancakir/wind_kit. -->
 
 ## Mission
 
@@ -82,7 +82,7 @@ WDiv(
 | `magic-framework` | Facades, ORM, providers, controllers, routing, testing |
 | `wind-ui` | W-components, className tokens, states, responsive, theme |
 
-Via `fluttersdk` CC plugin. Full API refs + templates + anti-patterns. Defer to skills for details.
+Install with `npx skills add anilcancakir/magic` and `npx skills add anilcancakir/wind_kit`. Full API refs + templates + anti-patterns. Defer to skills for details.
 
 ## Agent Context
 
@@ -90,7 +90,7 @@ IMPORTANT: Subagents inherit nothing. Inject into every Agent prompt:
 
 ```
 Project rules:
-1. Load skills before coding: invoke skill "fluttersdk:magic-framework" for any framework/data/routing task, invoke skill "fluttersdk:wind-ui" for any UI/styling task. Read skill references for API details
+1. Load skills before coding: invoke skill "magic-framework" for any framework/data/routing task, invoke skill "wind-ui" for any UI/styling task. Read skill references for API details
 2. Wind UI only: WDiv/WText/WIcon/WSpacer/WAnchor/WButton + className. NEVER Row, Column, Container, Text, Icon
 3. className: triple-quoted ''', dark: pair on every color (bg-white dark:bg-gray-800), responsive sm:/md:/lg:/xl:
 4. Conditional styles: states param + prefixed classes (selected:bg-blue-500, states: {'selected'}). NEVER interpolation
