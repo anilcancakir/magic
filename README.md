@@ -139,7 +139,7 @@ Log.info('Loaded plans for ${Config.get<String>('app.name')}');
 | `MagicRoute`, `Session` | Navigation without context; flash data across one navigation |
 | `Storage`, `Vault`, `Launch` | Files, secure storage, opening URLs, mail, phone and SMS |
 
-Fails when: a facade runs before `await Magic.init()` returns (its service is not bound yet); code calls `Http.patch` (there is no `patch` verb, use `put` or `update`); `Launch` runs without `LaunchServiceProvider` in `app.providers`.
+Fails when: a facade runs before `await Magic.init()` returns (its service is not bound yet); code calls `Http.patch` (there is no `patch` verb; `put` and `update` send PUT, which suits only an endpoint that accepts it, and a Laravel endpoint that takes only PATCH accepts `Http.post` with `'_method': 'PATCH'` in the body); `Launch` runs without `LaunchServiceProvider` in `app.providers`.
 
 ## Models
 
@@ -160,11 +160,11 @@ if (user != null) {
 | `table`, `resource`, `fillable`, `casts`, `relations` | Describe the model; casts include `datetime` (to `Carbon`), `json`, `bool`, `int`, `double`, `EnumCast` and `ListCast` |
 | `get<T>(key)`, `set(key, value)` | Typed attribute access for the model's own getters and setters |
 | `fill(map, {strict})`, `setRawAttributes(map, {sync})` | Mass assignment through `fillable`; hydration that bypasses it |
-| `save()`, `delete()` | Persist through the API; `false` with `validationErrors` on a refused save |
+| `save()`, `delete()` | Persist through the API (and the local store with `useLocal`); `save()` answers `true` when any leg succeeded, and `validationErrors` holds the remote leg's field errors |
 | `InteractsWithPersistence.findById`, `allModels` | The reads behind a model's static `find` and `all` |
 | `toMap()`, `toJson()`, `hidden`, `appends` | Serialisation |
 
-Fails when: a relation was not nested in the payload (there is no lazy load and no `with()`, so it reads `null`); `fill` without `strict` meets a key outside `fillable` (it is dropped silently, `strict: true` throws `MassAssignmentException`); `get<T>` meets a value of another type (it answers `null`); a `useLocal` model has no `magic_local_storage` (it throws `StateError`).
+Fails when: a relation was not nested in the payload (there is no lazy load and no `with()`, so it reads `null`); `fill` without `strict` meets a key outside `fillable` (it is dropped silently, `strict: true` throws `MassAssignmentException`); `get<T>` meets a value of another type (it answers `null`); a `useLocal` model has no `magic_local_storage` (it throws `StateError`); a hybrid model (`useLocal` and `useRemote`) whose API refuses the save while the local write succeeds answers `true` with `validationErrors` filled, so check the errors even after a `true`.
 
 ## Routing and middleware
 
@@ -308,7 +308,13 @@ A cache with a time-to-live, file-backed by default.
 final List<dynamic> plans = await Cache.remember<List<dynamic>>(
   'plans',
   const Duration(hours: 1),
-  () async => (await Http.get('/plans')).data as List<dynamic>,
+  () async {
+    final MagicResponse response = await Http.get('/plans');
+    // Throwing keeps a failed answer out of the cache: remember stores only
+    // what the callback returns.
+    if (!response.successful) throw StateError('Plans failed: ${response.statusCode}');
+    return response.data as List<dynamic>;
+  },
 );
 ```
 
@@ -318,7 +324,7 @@ final List<dynamic> plans = await Cache.remember<List<dynamic>>(
 | `Cache.has`, `forget`, `flush` | Check, remove one key, clear |
 | `Cache.remember<T>(key, ttl, callback)` | Read, or compute and store |
 
-Fails when: `CacheServiceProvider` is not in `app.providers` (the `cache` key is unbound); `cache.driver` is not a `CacheStore` (it throws); `remember<T>` finds a cached value of another type (the cast throws).
+Fails when: `CacheServiceProvider` is not in `app.providers` (the `cache` key is unbound); `cache.driver` is not a `CacheStore` (it throws); `remember<T>` finds a cached value of another type (the cast throws); a `remember` callback returns a failed response's body (it is cached for the whole TTL, so throw instead).
 
 ## Localisation
 

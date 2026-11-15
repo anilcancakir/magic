@@ -54,7 +54,7 @@ void registerAppRoutes() {
 - `MagicController` (a `ChangeNotifier`) with `MagicStateMixin<T>`: `setLoading`, `setSuccess`, `setError`, `setEmpty`, `fetchList`, `fetchOne`, `renderState`. `MagicView` and `MagicStatefulView` bind a view to its controller.
 - `MagicRoute`: `page(path, handler)` with `.name()`, `.title()`, `.middleware()`; `group`, `to`, `toNamed(name, params:, query:)`, `back`. `MagicMiddleware` runs on navigation.
 - `Auth`: `login`, `logout`, `check`, `guest`, `user<T>()`, `id`, `restore`, `refreshToken`, `manager.setUserFactory`; guards `BearerTokenGuard`, `BasicAuthGuard`, `ApiKeyGuard`. `Gate`: `define`, `allows`, `denies`, `before`; `Policy`; `MagicCan` and `MagicCannot` widgets.
-- `Http`: `get`, `post`, `put`, `delete`, `upload`, `index`, `show`, `store`, `update`, `destroy`; answers `MagicResponse` (`failed`, `data`, `errors`, `errorMessage`).
+- `Http`: `get`, `post`, `put`, `delete`, `upload`, `index`, `show`, `store`, `update`, `destroy`; answers `MagicResponse` (`failed`, `data`, `errors`, `errorMessage`). There is no PATCH: `put` and `update` send PUT, and a Laravel endpoint that takes only PATCH accepts `post` with `'_method': 'PATCH'` in the body.
 - `Cache` (`put`, `get`, `has`, `forget`, `remember`), `Config` (`get`, `set`, `has`), `Event` (`dispatch`, `listen<T>`), `Lang` (`get`, `choice`, `setLocale`), `Log` (`info`, `error`, `channel`), `Session` (flash, `old`, `error`), `Storage` (`put`, `get`, `url`, `download`, `disk`), `Vault` (`put`, `get`, `delete`), `Launch` (`url`, `email`, `phone`, `sms`).
 - `Validator.make(data, rules).passes()` with rules `Required`, `Email`, `Min`, `Max`, `Confirmed`, `In`, `Unique` and more; `FormRequest`, `MagicFormData`, `ValidatesRequests`, `MagicFormObject` for forms.
 - `MagicAction<I, O>` is one write unit; `Repository<T>` and `RepositoryQuery<T>` cache remote rows by id; `SessionScope` and `SessionScoped` reset tenant state on identity change; `MagicPerfHooks.sink` is the diagnostics seam.
@@ -80,6 +80,8 @@ Android, iOS, macOS, Windows, Linux and the web. `Vault` uses the platform's sec
 - Use `fromMap` for model hydration: it bypasses `fillable`, while `fill` drops keys not listed (`fill(map, strict: true)` throws instead).
 - Register routes in a provider's `boot()`: the first read of `MagicRoute.config` (the last step of `Magic.init`) builds the router, and a route, layout or observer added after it throws `StateError`. A middleware alias nothing registered makes `Magic.init` throw.
 - `Magic.make` on an unbound key throws; `Gate` denies without an error when the ability is undefined, nobody is signed in or the callback throws; `Lang.get` answers the key itself when it is missing.
+- `save()` answers `true` when any leg succeeded: a hybrid model (`useLocal` and `useRemote`) whose API refuses the save while the local write succeeds answers `true` with `validationErrors` filled, so check them even after a `true`.
+- `Cache.remember` stores whatever its callback returns: throw on a failed response inside it, or the failure is cached for the TTL.
 - `FormRequest.validate` keeps only the keys `rules()` names, even ones `prepared()` added; a custom rule's `message()` returns a translation key, since `Rule.name` derives from it.
 ## Docs
 
