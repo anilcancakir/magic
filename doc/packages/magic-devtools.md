@@ -42,7 +42,7 @@ This page covers what each tool gives you, how to install `magic_devtools`, the 
 <a name="crumbs-the-passive-runtime-inspector"></a>
 ### Crumbs: the passive runtime inspector
 
-`crumbs` passively records runtime activity (HTTP requests, logs, exceptions, queries, and framework events) into in-memory ring buffers and serves them to agents. It does not change app behavior; it observes.
+`crumbs` passively records runtime activity (HTTP requests, logs, exceptions, queries, and framework events) into in-memory ring buffers and serves them to agents. It does not change app behaviour; it observes.
 
 `MagicCrumbsIntegration` registers Magic watchers and an HTTP adapter into crumbs. The watchers subscribe to Magic's model, cache, event, gate, and query activity; the adapter feeds Magic's HTTP traffic into crumbs' HTTP buffer. It also assigns tapir's `pendingHttpCountReader`, `recentLogsReader` and `recentExceptionsReader`, so tapir's network-idle wait and its console and exceptions tools read crumbs' buffers. Crumbs is read-only: it captures and surfaces telemetry, it never writes back into your app.
 
@@ -199,7 +199,7 @@ The guard is what makes the regular-dependency choice safe: the package ships in
 ### Magic watchers
 
 | Watcher | Captures |
-|---------|----------|
+|:---|:---|
 | `MagicModelWatcher` | Model lifecycle events: `ModelCreated`, `ModelSaved`, `ModelDeleted`. |
 | `MagicCacheWatcher` | Cache activity: `CacheHit`, `CacheMiss`, `CachePut`, `CacheForget` and `CacheFlush`. |
 | `MagicEventWatcher` | The curated set of magic auth, database, and gate-definition events. |

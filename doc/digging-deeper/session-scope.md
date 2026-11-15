@@ -96,7 +96,7 @@ class SearchIndex implements SessionScoped {
 ## Failure Modes
 
 | Situation | What happens |
-|---|---|
+|:---|:---|
 | Two logins under the same identity in a row | The second `sync()` is a no-op: the identity did not change |
 | A `resetForSession()` throws | Logged via `Log.error`, isolated per holder: one holder's throw never stops another's reset |
 | A reset resolves another controller mid-iteration | Safe: the scoped set is snapshotted before iterating |

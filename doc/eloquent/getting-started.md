@@ -35,7 +35,7 @@ dart run magic:dowel make:model Post
 ### Available Options
 
 | Option | Shortcut | Description |
-|--------|----------|-------------|
+|:---|:---|:---|
 | `--migration` | `-m` | Create a database migration (needs `magic_local_storage`) |
 | `--seeder` | `-s` | Create a database seeder (needs `magic_local_storage`) |
 | `--factory` | `-f` | Create a model factory (needs `magic_local_storage`) |
@@ -169,7 +169,7 @@ Map<String, String> get casts => const {
 ### Available Cast Types
 
 | Cast | Returns |
-|------|---------|
+|:---|:---|
 | `datetime` | `Carbon` (Magic's date/time wrapper) |
 | `bool` | `bool` |
 | `int` | `int` |

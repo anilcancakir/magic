@@ -143,7 +143,7 @@ If you used `dart run magic:dowel magic:install`, your application is already bo
 
 ### Generated Entry Point
 
-The generated `lib/main.dart` initializes Magic and runs your app:
+The generated `lib/main.dart` initialises Magic and runs your app:
 
 ```dart
 import 'package:material_ui/material_ui.dart';
@@ -180,7 +180,7 @@ void main() async {
 The `Magic.init()` method accepts:
 
 | Parameter | Type | Description |
-|-----------|------|-------------|
+|:---|:---|:---|
 | `envFileName` | `String` | Environment file name (default: `.env`) |
 | `configFactories` | `List<Function>` | Configuration factory functions |
 | `configs` | `List<Map>` | Direct configuration maps |
@@ -206,7 +206,7 @@ final appConfig = {
 };
 ```
 
-Then initialize in `lib/main.dart`:
+Then initialise in `lib/main.dart`:
 
 ```dart
 import 'package:material_ui/material_ui.dart';
@@ -226,7 +226,7 @@ void main() async {
 
 ### The Application Widget
 
-`MagicApplication` is your root widget. It handles routing, themes, localization, and overlays automatically:
+`MagicApplication` is your root widget. It handles routing, themes, localisation, and overlays automatically:
 
 ```dart
 runApp(

@@ -45,13 +45,13 @@ final opened = await Launch.url('https://flutter.dev');
 
 The optional `mode` parameter controls how the URL is opened. It maps directly to `url_launcher`'s `LaunchMode` enum:
 
-| Mode | Behavior |
-|------|----------|
+| Mode | Behaviour |
+|:---|:---|
 | `LaunchMode.externalApplication` | Opens in the default external app (browser, app, etc.), **default** |
 | `LaunchMode.inAppWebView` | Opens inside a WebView within the app |
 | `LaunchMode.inAppBrowserView` | Opens in an in-app browser with browser chrome |
 | `LaunchMode.externalNonBrowserApplication` | Opens in an external non-browser app |
-| `LaunchMode.platformDefault` | Uses the platform's default behavior |
+| `LaunchMode.platformDefault` | Uses the platform's default behaviour |
 
 ```dart
 // Open in the default external browser or app

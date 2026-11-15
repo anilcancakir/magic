@@ -139,7 +139,7 @@ final url = await Storage.url('avatars/1.jpg');
 ```
 
 | Platform | URL Format |
-|----------|------------|
+|:---|:---|
 | Mobile/Desktop | `file:///path/to/file.jpg` |
 | Web | `blob:http://localhost/...` |
 
@@ -227,7 +227,7 @@ final bytes = await Storage.disk('temp').get('cache.dat');
 ### Properties
 
 | Property | Type | Description |
-|----------|------|-------------|
+|:---|:---|:---|
 | `path` | `String?` | Original file path (null on Web) |
 | `name` | `String` | File name with extension |
 | `size` | `int?` | File size in bytes |
@@ -296,7 +296,7 @@ final file = MagicFile(
 
 ### Replacing the manager
 
-Inject a custom `StorageManager` subclass with `Storage.setManager()` to control disk behavior in tests:
+Inject a custom `StorageManager` subclass with `Storage.setManager()` to control disk behaviour in tests:
 
 ```dart
 class FakeStorageManager extends StorageManager {

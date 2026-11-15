@@ -1,6 +1,6 @@
 # Directory Structure
 
-The default Magic project layout organizes your app into folders for controllers, models, routes, config, and resources, so each is easy to locate at a glance, and it mirrors Laravel's conventions.
+The default Magic project layout organises your app into folders for controllers, models, routes, config, and resources, so each is easy to locate at a glance, and it mirrors Laravel's conventions.
 
 - [Introduction](#introduction)
 - [The Root Directory](#the-root-directory)
@@ -14,7 +14,7 @@ The default Magic project layout organizes your app into folders for controllers
 <a name="introduction"></a>
 ## Introduction
 
-The default Magic application structure is intended to provide a great starting point for both large and small applications. But you are free to organize your application however you like. Magic imposes almost no restrictions on where any given class is located, as long as the classes can be imported.
+The default Magic application structure is intended to provide a great starting point for both large and small applications. But you are free to organise your application however you like. Magic imposes almost no restrictions on where any given class is located, as long as the classes can be imported.
 
 <a name="the-root-directory"></a>
 ## The Root Directory
@@ -101,7 +101,7 @@ class User extends Model with HasTimestamps, InteractsWithPersistence {
 
 ### The Policies Directory
 
-The `policies` directory contains the authorization policy classes for your application. Policies are used to determine if a user can perform a given action against a resource.
+The `policies` directory contains the authorisation policy classes for your application. Policies are used to determine if a user can perform a given action against a resource.
 
 ### The Providers Directory
 

@@ -237,7 +237,7 @@ Magic dispatches events on every cache operation. You can listen to these events
 All cache events extend `MagicEvent` and live in `package:magic/magic.dart`:
 
 | Event | Payload | Fired when |
-|-------|---------|-----------|
+|:---|:---|:---|
 | `CacheHit` | `key`, `value` | A `Cache.get()` returns a stored value. |
 | `CacheMiss` | `key` | A `Cache.get()` finds no stored value. |
 | `CachePut` | `key`, `value`, `ttl?` | A value is written via `Cache.put()` or `Cache.remember()`. |

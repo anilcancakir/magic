@@ -58,13 +58,13 @@ Rules derived from this template:
 Pages live under `doc/` in one of these subdirectories. Do not create new subdirectories; place new pages in the closest existing folder.
 
 | Folder | Content |
-|--------|---------|
+|:---|:---|
 | `getting-started/` | Installation, configuration, service providers, directory structure |
 | `architecture/` | Facades, service container, request lifecycle |
 | `basics/` | Routing, controllers, middleware, views, forms, HTTP client, UI helpers |
-| `security/` | Authentication, authorization, vault |
-| `eloquent/` | Eloquent ORM getting started, mutators, serialization |
-| `digging-deeper/` | Cache, events, validation, localization, logging, file storage, launch, session, carbon, helpers |
+| `security/` | Authentication, authorisation, vault |
+| `eloquent/` | Eloquent ORM getting started, mutators, serialisation |
+| `digging-deeper/` | Cache, events, validation, localisation, logging, file storage, launch, session, carbon, helpers |
 | `testing/` | Getting started with testing, HTTP tests, facade fakes |
 | `packages/` | The CLI, devtools (tapir and crumbs), and other first-party integrations |
 | `contributing/` | Contribution guide (code) and this authoring guide (docs) |
@@ -101,7 +101,7 @@ When a facade or framework feature changes, apply this checklist before marking 
 **1. Identify the matching doc page.**
 
 | Changed surface | Primary doc page |
-|-----------------|------------------|
+|:---|:---|
 | `Auth` facade | `doc/security/authentication.md` |
 | `Cache` facade | `doc/digging-deeper/cache.md` |
 | `Config` facade | `doc/getting-started/configuration.md` |

@@ -44,7 +44,7 @@ Magic provides the following facades:
 ### Core Facades
 
 | Facade | Description |
-|--------|-------------|
+|:---|:---|
 | `Magic` | Application container, UI helpers (snackbar, dialog) |
 | `Config` | Configuration values access |
 | `Env` | Environment variables |
@@ -52,7 +52,7 @@ Magic provides the following facades:
 ### Authentication & Security
 
 | Facade | Description |
-|--------|-------------|
+|:---|:---|
 | `Auth` | Authentication state and user |
 | `Gate` | Authorization abilities and policies |
 | `Vault` | Secure storage (Keychain/Keystore) |
@@ -60,32 +60,32 @@ Magic provides the following facades:
 ### HTTP & Network
 
 | Facade | Description |
-|--------|-------------|
+|:---|:---|
 | `Http` | HTTP client for API requests |
 
 ### Routing
 
 | Facade | Description |
-|--------|-------------|
+|:---|:---|
 | `MagicRoute` | Navigation and route definitions |
 
 ### Session Management
 
 | Facade | Description |
-|--------|-------------|
+|:---|:---|
 | `Session` | Form flash data for validation errors and old input |
 
 ### Data & Storage
 
 | Facade | Description |
-|--------|-------------|
+|:---|:---|
 | `Cache` | Caching system |
 | `Storage` | File storage |
 
 ### Utilities
 
 | Facade | Description |
-|--------|-------------|
+|:---|:---|
 | `Carbon` | Date and time manipulation |
 | `Event` | Event dispatching |
 | `Lang` | Localization and translations |

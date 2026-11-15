@@ -115,7 +115,7 @@ Providers are registered in `config/app.dart`:
 ### Provider Lifecycle
 
 1. **register()** - Bind services to container (no dependencies)
-2. **boot()** - Initialize services (can use other services)
+2. **boot()** - Initialise services (can use other services)
 
 ```dart
 class AppServiceProvider extends ServiceProvider {
@@ -293,7 +293,7 @@ class TaskListView extends MagicView<TaskController> {
 4. Controller calls `refreshUI()` → View rebuilds
 
 > [!TIP]
-> Understanding this lifecycle helps you place logic in the right location: configuration in providers, authorization in middleware, business logic in controllers, and UI in views.
+> Understanding this lifecycle helps you place logic in the right location: configuration in providers, authorisation in middleware, business logic in controllers, and UI in views.
 
 <a name="related-documentation"></a>
 ## Related Documentation

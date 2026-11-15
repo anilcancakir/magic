@@ -87,7 +87,7 @@ lib/
 ### Key Files
 
 | File | Purpose |
-|------|---------|
+|:---|:---|
 | `lib/src/foundation/magic.dart` | Core Magic facade |
 | `lib/src/facades/*.dart` | Public API facades |
 | `lib/src/providers/*.dart` | Service providers |

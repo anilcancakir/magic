@@ -42,7 +42,7 @@ MagicPerfHooks.sink = null;
 ## Event Kinds
 
 | Event | Fields | Reported when |
-|---|---|---|
+|:---|:---|:---|
 | `ControllerNotified` | `controller`, `cause` | `MagicController.refreshUI()` notifies (every `setState` helper and `ValidatesRequests` go through it). |
 | `RepositoryUpserted` | `type`, `count` | `Repository.upsertFromList` or `upsertFromShow` merged rows; `type` is the model type. |
 | `QueryReloaded` | `type`, `startUs`, `endUs`, `fromCache` | A `RepositoryQuery.reload()` settled; `fromCache` is `true` when `ensureFresh()` joined a first load already in flight instead of sending its own request. |
@@ -58,7 +58,7 @@ MagicPerfHooks.sink = null;
 `ControllerNotified.cause` is a `MagicNotifyCause`, carried by a zone value each instrumented path sets around the callback it invokes, so it follows that callback across its `await`s:
 
 | Cause | Set around | Kind |
-|---|---|---|
+|:---|:---|:---|
 | `setState` | `MagicStateMixin.setState`, so every `setSuccess`, `setError`, `setLoading`, `setEmpty` | derived |
 | `repositoryQuery` | a `RepositoryQuery` notifying its listeners | derived |
 | `timerTick` | a `Countdown` `onTick`, a `Debouncer` callback, a `Poll` read | root |

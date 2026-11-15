@@ -235,7 +235,7 @@ Magic fires several system events automatically.
 ### Authentication Events
 
 | Event | Fired When |
-|-------|------------|
+|:---|:---|
 | `AuthLogin` | A guard's `startSession` finishes: the token (when given) is persisted, the user is set and cached. Not fired on a restore. |
 | `AuthLogout` | A guard's `logout()` ends the in-memory session, guest logout included. Not a promise the credentials are gone: it fires even when a Vault delete failed, so a listener releasing server-side state must gate on `Auth.hasToken()`. |
 | `AuthRestored` | An API-confirmed sync (`BaseGuard`'s background `/user` fetch) sets the user; not fired for the cache-only step of `Auth.restore()`. `changed` is `false` when the sync only confirmed the user already held. |
@@ -257,7 +257,7 @@ Event.listen<AuthLogin>(() => LogAuthLogin());
 ### Model Lifecycle Events
 
 | Event | Fired When |
-|-------|------------|
+|:---|:---|
 | `ModelSaving` | Before model is saved |
 | `ModelSaved` | After model is saved |
 | `ModelCreating` | Before new model is created |
@@ -283,7 +283,7 @@ Event.listen<ModelCreated>(() => LogNewUser());
 ### Gate Events
 
 | Event | Fired When |
-|-------|------------|
+|:---|:---|
 | `GateAbilityDefined` | Ability registered with `Gate.define()` |
 | `GateAccessChecked` | After any ability check |
 | `GateAccessDenied` | When access is denied |
@@ -305,7 +305,7 @@ Event.listen<GateAccessDenied>(() => LogDeniedAccess());
 Core defines `DatabaseConnected` and `QueryExecuted`, but fires neither itself: the `magic_local_storage` plugin, which owns the database layer, is the source of them. See [Installation](https://anilcancakir.com/magic/docs/local_storage/getting-started/installation).
 
 | Event | Fired When |
-|-------|------------|
+|:---|:---|
 | `DatabaseConnected` | Database connection established |
 | `QueryExecuted` | After query execution |
 

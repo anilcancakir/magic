@@ -20,7 +20,7 @@ Controllers extend `MagicController` (a `ChangeNotifier`) to hold reactive state
 <a name="introduction"></a>
 ## Introduction
 
-Instead of defining all of your request handling logic as closures in your route files, you may wish to organize this behavior using "controller" classes. Controllers can group related request handling logic into a single class. Controllers are stored in the `lib/app/controllers` directory.
+Instead of defining all of your request handling logic as closures in your route files, you may wish to organise this behaviour using "controller" classes. Controllers can group related request handling logic into a single class. Controllers are stored in the `lib/app/controllers` directory.
 
 <a name="writing-controllers"></a>
 ## Writing Controllers
@@ -112,7 +112,7 @@ class UserController extends MagicController
 #### State Methods
 
 | Method | Description |
-|--------|-------------|
+|:---|:---|
 | `setLoading()` | Set loading state |
 | `setSuccess(T data)` | Set success state with data |
 | `setError(String message)` | Set error state with message |
@@ -121,7 +121,7 @@ class UserController extends MagicController
 #### State Properties
 
 | Property | Type | Description |
-|----------|------|-------------|
+|:---|:---|:---|
 | `isLoading` | bool | Currently loading |
 | `isSuccess` | bool | Successfully loaded |
 | `isError` | bool | Error occurred |
@@ -166,7 +166,7 @@ class ProjectController extends MagicController
 State transitions:
 
 | Condition | Resulting State |
-|-----------|----------------|
+|:---|:---|
 | Request fails (4xx/5xx) | `isError` with `response.errorMessage` |
 | Transport failure (status `0`: no connection, timeout) | `isError` with the transport exception's message when the driver has one, otherwise `'Failed to load'` |
 | Body is not a JSON object | `isEmpty` |
@@ -204,7 +204,7 @@ class ProjectDetailController extends MagicController
 State transitions:
 
 | Condition | Resulting State |
-|-----------|----------------|
+|:---|:---|
 | Request fails (4xx/5xx) | `isError` with `response.errorMessage` |
 | Transport failure (status `0`: no connection, timeout) | `isError` with the transport exception's message when the driver has one, otherwise `'Failed to load'` |
 | Body is not a JSON object | `isError` with `'Invalid response format'` |
@@ -270,7 +270,7 @@ class AuthController extends MagicController
 ### ValidatesRequests Methods
 
 | Method | Description |
-|--------|-------------|
+|:---|:---|
 | `handleApiError(response)` | Handle 422 and other API errors automatically |
 | `setErrorsFromResponse(response)` | Populate errors from 422 validation response |
 | `hasError('field')` | Check if a field has an error |
@@ -347,7 +347,7 @@ dart run magic:dowel make:controller Monitor --actions --timers --validates --te
 ### Command Options
 
 | Option | Alias | Description |
-|--------|-------|-------------|
+|:---|:---|:---|
 | `--resource` | `-r` | Generate a read controller that owns a `RepositoryQuery` over `<Model>Repository` |
 | `--model` | `-m` | The model a `--resource` controller reads (default: the controller's own name) |
 | `--actions` | | Mix in `RunsActions` |
@@ -366,7 +366,7 @@ A `--resource` controller imports `lib/app/models/<model>.dart` and `lib/app/rep
 ## Gotchas
 
 | Mistake | Fix |
-|---------|-----|
+|:---|:---|
 | Loading data in `onInit` and expecting it to run on every visit | `onInit` fires once per controller instance, because controllers are Type-keyed singletons. Mix `RefetchesOnMount` into the view state when each mount must refetch |
 | Omitting `super.onInit()` or `super.onClose()` | Both are `@mustCallSuper`; `OwnsTimers` cancels its timers inside `onClose`, so skipping the super call leaks them |
 | Calling `notifyListeners()` directly | Call `refreshUI()`: it guards against a disposed controller and feeds the perf hooks |

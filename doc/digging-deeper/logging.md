@@ -68,8 +68,8 @@ Map<String, dynamic> get loggingConfig => {
 Magic includes these built-in drivers:
 
 | Driver | Description |
-|--------|-------------|
-| `console` | Pretty-prints to the debug console with colors and emojis |
+|:---|:---|
+| `console` | Pretty-prints to the debug console with colours and emojis |
 | `stack` | Broadcasts to multiple channels simultaneously |
 
 A channel with an unknown `driver` name falls back to `console`, unless a custom driver is registered under that name (see [Creating Custom Channels](#creating-custom-channels)).
@@ -91,7 +91,7 @@ The `console` channel can specify a minimum `level`. Messages below this thresho
 **Levels by priority** (RFC 5424):
 
 | Level | Priority | Description |
-|-------|----------|-------------|
+|:---|:---|:---|
 | `emergency` | 0 | System is unusable |
 | `alert` | 1 | Action must be taken immediately |
 | `critical` | 2 | Critical conditions |
@@ -282,7 +282,7 @@ test('logs a payment error', () {
 The `FakeLogManager` exposes:
 
 | Method | Description |
-|--------|-------------|
+|:---|:---|
 | `assertLogged(level, message)` | Assert at least one entry matches the given level and message |
 | `assertLoggedError(message)` | Shorthand for `assertLogged('error', message)` |
 | `assertNothingLogged([level])` | Assert the log is empty, or empty at a specific level |

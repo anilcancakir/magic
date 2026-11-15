@@ -88,7 +88,7 @@ A field outside `showOnlyKeys` that the list sends as `null` DOES become `null`:
 ## Reading and Writing a Single Row
 
 | Method | What it does |
-|---|---|
+|:---|:---|
 | `find(id)` | The cached row for `id`, or `null` |
 | `all` | Every cached row, in no particular order |
 | `refresh(id)` | Re-reads `GET $resource/$id`; a 404 evicts the row and answers `null`, any other failure hands back the cached copy |
@@ -108,7 +108,7 @@ A `Repository` implements `SessionScoped` and registers itself with `SessionScop
 ## Failure Modes
 
 | Situation | What happens |
-|---|---|
+|:---|:---|
 | A list page throws mid-fetch | `RepositoryQuery.items` and `.meta` keep what they already held; `loadFailed` is `true` only when `items` is also empty |
 | A page lands after a session reset (`repository.epoch` moved) | The page's rows never reach the repository or the query's ids |
 | `refresh(id)` gets a 404 | The row is evicted; answers `null` |
