@@ -20,6 +20,18 @@ environment:
   sdk: ">=3.13.0 <4.0.0"
   flutter: ">=3.47.0"
 
+# Declared explicitly so pub.dev's platform detection is not silently narrowed:
+# its import-graph trace follows the default branch of a conditional export
+# (the `dart:io` and `path_provider` side here) and drops the web tag, although
+# the web branches are selected at build time.
+platforms:
+  android:
+  ios:
+  web:
+  macos:
+  windows:
+  linux:
+
 dependencies:
   flutter:
     sdk: flutter
