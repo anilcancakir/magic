@@ -35,7 +35,7 @@ import 'package:go_router/go_router.dart';
 /// Then define your layout route:
 ///
 /// ```dart
-/// Route.layout(
+/// MagicRoute.layout(
 ///   builder: (child) => DashboardLayout(child: child),
 ///   routes: [
 ///     MagicRoute.page('/dashboard', DashboardHome.new),

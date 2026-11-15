@@ -321,9 +321,9 @@ class MagicRoute {
   /// No BuildContext required!
   ///
   /// ```dart
-  /// Route.to('/dashboard');
-  /// Route.to('/users/42');
-  /// Route.to('/search', query: {'q': 'flutter'});
+  /// MagicRoute.to('/dashboard');
+  /// MagicRoute.to('/users/42');
+  /// MagicRoute.to('/search', query: {'q': 'flutter'});
   /// ```
   static void to(String path, {Map<String, String>? query}) {
     MagicRouter.instance.to(path, queryParameters: query);
@@ -332,7 +332,7 @@ class MagicRoute {
   /// Navigate to a named route.
   ///
   /// ```dart
-  /// Route.toNamed('users.show', params: {'id': '42'});
+  /// MagicRoute.toNamed('users.show', params: {'id': '42'});
   /// ```
   static void toNamed(
     String name, {
@@ -351,7 +351,7 @@ class MagicRoute {
   /// Unlike `to()`, this preserves the back stack.
   ///
   /// ```dart
-  /// Route.push('/details');
+  /// MagicRoute.push('/details');
   /// ```
   static void push(String path) {
     MagicRouter.instance.push(path);
@@ -365,8 +365,8 @@ class MagicRoute {
   /// [MagicRouter.back].
   ///
   /// ```dart
-  /// Route.back();
-  /// Route.back(fallback: '/home');
+  /// MagicRoute.back();
+  /// MagicRoute.back(fallback: '/home');
   /// ```
   static void back({String? fallback}) {
     MagicRouter.instance.back(fallback: fallback);
@@ -375,7 +375,7 @@ class MagicRoute {
   /// Replace the current route.
   ///
   /// ```dart
-  /// Route.replace('/home');
+  /// MagicRoute.replace('/home');
   /// ```
   static void replace(String path) {
     MagicRouter.instance.replace(path);
@@ -422,7 +422,7 @@ class MagicRoute {
   ///
   /// ```dart
   /// MaterialApp.router(
-  ///   routerConfig: Route.config,
+  ///   routerConfig: MagicRoute.config,
   /// )
   /// ```
   static GoRouter get config => MagicRouter.instance.routerConfig;
