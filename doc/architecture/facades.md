@@ -39,15 +39,13 @@ Use facades when:
 <a name="available-facades"></a>
 ## Available Facades
 
-Magic provides the following facades:
+Core ships 13 facades, one file each under `lib/src/facades/`: `Auth`, `Cache`, `Config`, `Event`, `Gate`, `Http`, `Lang`, `Launch`, `Log`, `MagicRoute`, `Session`, `Storage` and `Vault`.
 
 ### Core Facades
 
 | Facade | Description |
 |:---|:---|
-| `Magic` | Application container, UI helpers (snackbar, dialog) |
 | `Config` | Configuration values access |
-| `Env` | Environment variables |
 
 ### Authentication & Security
 
@@ -86,11 +84,20 @@ Magic provides the following facades:
 
 | Facade | Description |
 |:---|:---|
-| `Carbon` | Date and time manipulation |
 | `Event` | Event dispatching |
 | `Lang` | Localization and translations |
 | `Launch` | Open URLs, email, phone, and SMS via url_launcher |
 | `Log` | Logging |
+
+### Related Classes
+
+These are static entry points too, but they are classes in their own right, not facades over a container binding.
+
+| Class | Description |
+|:---|:---|
+| `Magic` | Application container, UI helpers (snackbar, dialog) |
+| `Env` | Environment variables |
+| `Carbon` | Date and time manipulation |
 
 ### Plugin Facades
 
