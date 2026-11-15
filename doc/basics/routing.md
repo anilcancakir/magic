@@ -375,7 +375,7 @@ MagicRoute.group(
 
 Moving between two shells rebuilds the layout and plays its entrance animation again, so the sidebar flashes and loses its state. Put every route that shows the same layout in groups with one `layoutId`.
 
-Shells are emitted in registration order of their first group, and go_router tries them in that order. In debug builds, `MagicRouter` prints a note once per layout widget type when a group without a `layoutId` builds the same layout widget as another group (two different explicit ids are taken as deliberate), and suggests the same `layoutId` to share one shell or a unique id to keep them apart on purpose.
+Shells are emitted in registration order of their first group, after every top-level route, and go_router tries them in that order: a top-level catch-all shadows every layout page. In debug builds, `MagicRouter` prints a note once per layout widget type when a group without a `layoutId` builds the same layout widget as another group (two different explicit ids are taken as deliberate), and suggests the same `layoutId` to share one shell or a unique id to keep them apart on purpose.
 
 > [!TIP]
 > Use layouts for any UI that should persist across page navigation, such as sidebars, bottom navigation bars, or headers.
@@ -409,6 +409,8 @@ MagicRoute.layout(
 ```
 
 > [!TIP]
+The routes you pass leave the top-level table and live under the layout only, as a group's routes do. Shell pages are tried after every top-level route, so a top-level catch-all such as `MagicRoute.page('/:slug', ...)` captures `/dashboard` before the layout sees it, whatever order you registered them in: put a catch-all last inside a layout, or keep it out of the top level.
+
 > For most cases, the `layout:` parameter on `MagicRoute.group()` is more convenient. Use `MagicRoute.layout()` when you need to reference a list of routes that are built separately.
 
 <a name="a-layer-above-every-page"></a>
