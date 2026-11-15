@@ -263,7 +263,7 @@ class Post extends Model with HasTimestamps, InteractsWithPersistence { ... }
 3. If `useRemote`: POST `/{resource}` (new) or PUT `/{resource}/{id}` (existing). Sets `id` from response on create.
 4. If `useLocal`: INSERT or UPDATE through the bound `LocalModelStore`. The SQLite store drops attributes the table has no column for.
 5. On success: `exists = true`, `syncOriginal()`, dispatches `ModelCreated`/`ModelUpdated`, then `ModelSaved`.
-6. Returns `true` when any leg succeeded. A hybrid model whose remote leg is refused (a 422) while the local write succeeds returns `true` with `validationErrors` filled, so check them even after a `true`.
+6. Returns `true` when any leg succeeded. A hybrid model whose remote leg is refused (a 422) while the local write succeeds returns `true` with `validationErrors` filled, so check them even after a `true`. A remote failure that is not a field failure (a 500, or a transport error) also returns `true` when the local write succeeds, with `validationErrors` empty: read `lastRemoteResponse`, which is the remote answer (`successful` false on a 500), `statusCode` 0 when no readable answer came back, and `null` when the driver threw.
 
 ### find(id) flow
 1. If `useLocal`: queries SQLite first; returns hydrated model on hit.

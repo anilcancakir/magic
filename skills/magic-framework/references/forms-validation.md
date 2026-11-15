@@ -557,7 +557,9 @@ class StoreUserRequest extends FormRequest {
   };
 }
 
-// In a controller action:
+// In a controller action. FormRequest.validate() never touches the error bag,
+// so clear the previous attempt's errors first, or a corrected resubmit keeps them.
+controller.clearErrors();
 try {
   final validated = StoreUserRequest().validate(form.data);   // name and email: model fields
   final user = User()..fill(validated, strict: true);

@@ -262,7 +262,7 @@ class StoreUserRequest extends FormRequest {
       {...data, 'email': (data['email'] as String?)?.trim().toLowerCase()};
   @override Map<String, List<Rule>> rules() => {
     'name': [Required()],
-    'email': [Required(), Email(), Unique('/users', field: 'email')],
+    'email': [Required(), Email()],   // an AsyncRule such as Unique passes here: run it with validateRequestAsync
   };
 }
 
