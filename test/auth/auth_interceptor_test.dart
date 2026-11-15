@@ -67,9 +67,11 @@ class _SerialHoldingVault extends FakeVaultService {
   /// Lets the held read answer.
   final Completer<void> readRelease = Completer<void>();
 
+  /// Reads take their place in the order too, as `MagicVaultService._run`
+  /// gives them; a held read gives its place up once it has its value.
   @override
   Future<String?> get(String key) async {
-    final value = await super.get(key);
+    final value = await _inOrder(() => super.get(key));
 
     if (key == holdReadKey && !readTaken.isCompleted) {
       readTaken.complete();
@@ -119,7 +121,7 @@ class _SerialHoldingVault extends FakeVaultService {
 
   /// Runs [operation] after every one issued before it. A failure reaches
   /// the caller and does not stop the ones issued after it.
-  Future<void> _inOrder(Future<void> Function() operation) {
+  Future<T> _inOrder<T>(Future<T> Function() operation) {
     final result = _tail.then((_) => operation());
     _tail = result.then<void>((_) {}, onError: (Object _) {});
 
@@ -872,6 +874,7 @@ void main() {
 
         expect(guard.cachedToken, 'a-token');
         expect(guard.id(), 1);
+        expect(await Vault.get('auth_token'), 'a-token');
         expect(await Vault.get('refresh_token'), isNull);
       },
     );
@@ -969,6 +972,100 @@ void main() {
 
         expect(guard.id(), 1);
         expect(guard.cachedToken, 'a-token');
+        expect(await Vault.get('auth_token'), 'a-token');
+      },
+    );
+
+    test(
+      'a restore during a sign-in does not commit the old account',
+      () async {
+        // The sign-in deletes the refresh token before it writes its access
+        // token, and a restore read queued in between read A's token, took
+        // it for another session and set A's cached user; the sign-in then
+        // stood down without an error.
+        final restoring = _RefreshingGuard(
+          userFactory: (data) => _User()..setRawAttributes(data, sync: true),
+        );
+        await restoring.login(<String, dynamic>{
+          'token': 'a-token',
+          'refresh_token': 'a-refresh',
+        }, _User()..setRawAttributes({'id': 1}, sync: true));
+        vault.holdRemoveKey = 'refresh_token';
+
+        final signingIn = restoring.login(<String, dynamic>{
+          'token': 'b-token',
+          'refresh_token': 'b-refresh',
+        }, _User()..setRawAttributes({'id': 2}, sync: true));
+        final restored = restoring.restore();
+        vault.removeRelease.complete();
+        await Future.wait<void>([signingIn, restored]);
+
+        expect(restoring.id(), 2);
+        expect(restoring.cachedToken, 'b-token');
+        expect(await Vault.get('auth_token'), 'b-token');
+        expect(await Vault.get('auth_user'), contains('"id":2'));
+      },
+    );
+
+    test(
+      'a failed sign-in falls back to the token a refresh rotated to',
+      () async {
+        // The refresh's write landed after B began, so it never became the
+        // committed token, and B's failure put back the token the server had
+        // rotated away.
+        vault
+          ..holdValue = 'a2-token'
+          ..refuseValue = 'b-token';
+
+        final refreshing = guard.refreshToken();
+        await vault.holdStarted.future;
+        final signingIn = guard.login(<String, dynamic>{
+          'token': 'b-token',
+          'refresh_token': 'b-refresh',
+        }, _User()..setRawAttributes({'id': 2}, sync: true));
+        vault.release.complete();
+        await refreshing;
+        await expectLater(signingIn, throwsA(isA<MagicVaultException>()));
+
+        expect(guard.id(), 1);
+        expect(guard.cachedToken, 'a2-token');
+        expect(await Vault.get('auth_token'), 'a2-token');
+      },
+    );
+
+    test(
+      'a sign-in that a running sign-out wins over leaves no token behind',
+      () async {
+        // The sign-out was already inside its token delete when the sign-in
+        // began; the sign-out wins (see `auth_events_dispatch_test.dart`),
+        // but the sign-in's token stayed committed and on disk, and a later
+        // failed sign-in put it back under a guest.
+        final plain = BearerTokenGuard();
+        await plain.login(<String, dynamic>{
+          'token': 'a-token',
+        }, _User()..setRawAttributes({'id': 1}, sync: true));
+        vault.holdRemoveKey = 'auth_token';
+
+        final signingOut = plain.logout();
+        final signingIn = plain.login(<String, dynamic>{
+          'token': 's-token',
+        }, _User()..setRawAttributes({'id': 2}, sync: true));
+        vault.removeRelease.complete();
+        await Future.wait<void>([signingOut, signingIn]);
+
+        expect(plain.check(), isFalse);
+        expect(plain.cachedToken, isNull);
+        expect(await Vault.get('auth_token'), isNull);
+
+        vault.refuseValue = 'x-token';
+        await expectLater(
+          plain.login(<String, dynamic>{
+            'token': 'x-token',
+          }, _User()..setRawAttributes({'id': 3}, sync: true)),
+          throwsA(isA<MagicVaultException>()),
+        );
+
+        expect(plain.cachedToken, isNull);
       },
     );
   });

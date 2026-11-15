@@ -50,6 +50,11 @@ abstract class BaseGuard implements Guard {
   /// may meanwhile hold the token of another sign-in still in flight.
   String? _committedToken;
 
+  /// The epoch of a sign-in whose Vault writes are still outstanding, or
+  /// null. A restore read queued among them sees the previous account's
+  /// token and must not take it for the session.
+  int? _signingIn;
+
   /// Moves, synchronously and before any await, whenever a session opens
   /// ([startSession]), ends ([logout], [clearTokens]) or is swapped for the
   /// one on disk ([loadTokenToCache] reading a different token). An in-flight
@@ -212,6 +217,14 @@ abstract class BaseGuard implements Guard {
     if (_sessionEpoch != epoch || !identical(_user, user)) {
       if (cachedToken == null) await clearUserCache();
 
+      // A sign-out that won took this sign-in's token out of memory, but its
+      // writes landed after the sign-out's deletes. No session holds a token
+      // and none is opening, so neither may be left on disk.
+      if (cachedToken == null && _signingIn == null) {
+        await Vault.delete(tokenKey);
+        if (refreshTokenKey != null) await Vault.delete(refreshTokenKey!);
+      }
+
       return;
     }
 
@@ -237,9 +250,13 @@ abstract class BaseGuard implements Guard {
   /// a sign-in, the token of the last session whose writes all landed), as
   /// long as the session has not changed since, and the failure propagates:
   /// a token whose session could not be stored must not ride on later
-  /// requests. The Vault keeps whatever steps did land, so after a failure
-  /// past the first one the previous token stays in memory while its stored
-  /// refresh token is already gone, and the new access token may be on disk.
+  /// requests. A sign-in also puts that token back as the stored access token
+  /// (best effort, see [_restoreStoredToken]); after a failure past the first
+  /// step its stored refresh token is already gone.
+  ///
+  /// While a sign-in's writes are outstanding, [_signingIn] names it, and a
+  /// restore's token read stands down rather than commit the previous
+  /// account's token it may read from among them.
   ///
   /// A refresh's failed refresh-token write does NOT move it back. By then
   /// the new access token is on disk, and the server has already rotated the
@@ -255,11 +272,10 @@ abstract class BaseGuard implements Guard {
     required int epoch,
     bool newSession = false,
   }) async {
-    // A sign-in falls back to the last committed session's token, never to
-    // one another sign-in still in flight was holding when this one began.
-    final previous = newSession ? _committedToken : _cachedToken;
+    final previous = _cachedToken;
     _cachedToken = token;
     var revertible = true;
+    if (newSession) _signingIn = epoch;
 
     try {
       if (newSession && refreshTokenKey != null) {
@@ -277,20 +293,49 @@ abstract class BaseGuard implements Guard {
       }
 
       revertible = newSession;
-      if (_sessionEpoch != epoch) return;
+
+      // A refresh rotates the committed session, whoever began since: their
+      // writes are queued after this one.
       if (!newSession) _committedToken = token;
+      if (_sessionEpoch != epoch) return;
 
       if (refreshToken != null && refreshTokenKey != null) {
         await Vault.put(refreshTokenKey!, refreshToken);
       }
 
-      if (_sessionEpoch == epoch) _committedToken = token;
-    } catch (_) {
+      // Committed only while memory still holds it: a sign-out that cleared
+      // memory during these writes owns the session.
+      if (_sessionEpoch == epoch && _cachedToken == token) {
+        _committedToken = token;
+      }
+    } catch (error, stack) {
       if (revertible && _sessionEpoch == epoch && _cachedToken == token) {
-        _cachedToken = previous;
+        // A sign-in falls back to the last committed session, never to a
+        // token another sign-in in flight held, on disk as in memory.
+        final fallback = newSession ? _committedToken : previous;
+        _cachedToken = fallback;
+        if (newSession) await _restoreStoredToken(fallback);
       }
 
-      rethrow;
+      Error.throwWithStackTrace(error, stack);
+    } finally {
+      if (_signingIn == epoch) _signingIn = null;
+    }
+  }
+
+  /// Put [token] back as the stored access token after a failed sign-in, so
+  /// the Vault pairs no account's cached user with another account's token.
+  /// A failure here is logged, not thrown: the sign-in's own error is the one
+  /// the caller has to see.
+  Future<void> _restoreStoredToken(String? token) async {
+    try {
+      if (token == null) {
+        await Vault.delete(tokenKey);
+      } else {
+        await Vault.put(tokenKey, token);
+      }
+    } catch (e) {
+      Log.warning('Auth: could not restore the stored token: $e');
     }
   }
 
@@ -323,7 +368,7 @@ abstract class BaseGuard implements Guard {
     final epoch = _sessionEpoch;
     final token = await Vault.get(tokenKey);
 
-    if (_sessionEpoch != epoch) return false;
+    if (_sessionEpoch != epoch || _signingIn != null) return false;
     if (_cachedToken != held) return true;
 
     if (token != held) _sessionEpoch++;
