@@ -135,7 +135,7 @@ You can exclude features you don't need:
 dart run magic:dowel magic:install --without-auth --without-cache
 ```
 
-Available flags: `--without-auth`, `--without-network`, `--without-cache`, `--without-localization`, `--without-logging`, `--preserve` (inject the Magic bootstrap into an existing `lib/main.dart` instead of overwriting it) and `--with-devtools` (wire `magic_devtools`, tapir and crumbs into `lib/main.dart` under `!kReleaseMode`).
+Available flags: `--without-auth`, `--without-network`, `--without-cache`, `--without-localization`, `--without-logging`, `--preserve` (inject the Magic bootstrap into an existing `lib/main.dart` instead of overwriting it; it rejects a synchronous `main()`, so make the entry point `async` first) and `--with-devtools` (wire `magic_devtools`, tapir and crumbs into `lib/main.dart` under `!kReleaseMode`).
 <a name="bootstrapping-your-application"></a>
 ## Bootstrapping Your Application
 
