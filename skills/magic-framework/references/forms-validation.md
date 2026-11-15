@@ -554,18 +554,13 @@ class StoreUserRequest extends FormRequest {
   @override Map<String, List<Rule>> rules() => {
     'name': [Required()],
     'email': [Required(), Email()],
-    'password': [Required(), Min(8), Confirmed()],
   };
 }
 
 // In a controller action:
 try {
-  final validated = StoreUserRequest().validate(form.data);   // name, email, password
-  final user = User();
-  user.fill({   // the model's own fields only: password is not fillable, strict would throw on it
-    for (final key in user.fillable)
-      if (validated.containsKey(key)) key: validated[key],
-  }, strict: true);
+  final validated = StoreUserRequest().validate(form.data);   // name and email: model fields
+  final user = User()..fill(validated, strict: true);
   await user.save();
 } on AuthorizationException catch (e) {
   Magic.error(trans('errors.forbidden'), e.message);
@@ -579,7 +574,7 @@ try {
 
 `attributes()` maps a field key to the display name used for `:attribute` in this request's messages (`{'url': 'Server address'}` gives `The Server address field is required.`); an entry beats the global `attributes.<key>` lookup, a missing field keeps it, and the value is literal text, not a translation key. `Validator.make(data, rules, attributes: {...})` takes the same map. `ValidatesRequests.validate(data, rules, attributes: {...})` takes it too, and `validateRequest`/`validateRequestAsync` pass the request's `attributes()` on, so the mixin and `MagicFormObject.submit` honour it.
 
-Pair with a strict `Model.fill(..., strict: true)` of the model's own fields to catch schema drift at the boundary: a key outside `fillable` becomes `MassAssignmentException` instead of silently corrupting state. That is also why the whole validated map cannot go in when it carries a field the model does not store, such as a password.
+Pair with `Model.fill(validated, strict: true)` to catch schema drift at the boundary: a validated key outside `fillable` becomes `MassAssignmentException` instead of silently corrupting state. A request that also validates a field the model does not store (a password the backend hashes) is not filled, since `save()` sends only the model's attributes: send the whole `validated` map as the body (`Http.store('users', validated)`) and hydrate the model from the response.
 
 ### Exceptions
 
