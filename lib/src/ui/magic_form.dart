@@ -52,7 +52,7 @@ import 'magic_form_data.dart';
 ///   child: Column(...),
 /// )
 /// ```
-class MagicForm extends StatelessWidget {
+class MagicForm extends StatefulWidget {
   /// The form data manager (recommended).
   ///
   /// When provided, `formKey` and `controller` are automatically extracted.
@@ -84,22 +84,23 @@ class MagicForm extends StatelessWidget {
   /// Enables the form to veto attempts by the user to dismiss the
   /// [ModalRoute] that contains the form.
   ///
-  /// Asked on every back attempt (system back, `Navigator.maybePop`); the
-  /// route pops only when the future answers `true`. While it is set the
-  /// route cannot be swiped away, the same as Flutter's `PopScope` with
-  /// `canPop: false`, which is what the form builds on. As with
-  /// `Navigator.maybePop`, an answer that arrives after the route left the
-  /// top of the stack is dropped, and an approved back on the first route
-  /// bubbles through each enclosing navigator, then out of the app (on
-  /// Android that closes it, including for a programmatic `maybePop`).
+  /// Asked on a back attempt (system back, `Navigator.maybePop`); the route
+  /// pops only when the future answers `true`, and a second attempt while
+  /// one is pending is not asked again. While it is set the route cannot be
+  /// swiped away: the form builds on Flutter's `PopScope` with
+  /// `canPop: false`. An approval lifts that veto for one frame and asks
+  /// `Navigator.maybePop` again, so the route's own pop logic runs: a web
+  /// overlay that closes through the browser steps the browser back. As with
+  /// `maybePop`, an answer that arrives after the route left the top of the
+  /// stack is dropped, and an approved back on the first route bubbles
+  /// through each enclosing navigator, then out of the app (on Android that
+  /// closes it, including for a programmatic `maybePop`).
   ///
   /// Two differences from Flutter's deprecated `Form.onWillPop`, which come
-  /// with `PopScope`: `Navigator.maybePop` answers `true` at once rather
-  /// than after the callback, and an exception the callback throws surfaces
-  /// as an uncaught zone error, not from the `maybePop` call. And an approved
-  /// close of a web overlay route that closes through the browser pops in
-  /// the app instead of stepping the browser back, so the history entry is
-  /// left behind.
+  /// with `PopScope`: `Navigator.maybePop` answers `true` at once rather than
+  /// after the callback, and an exception the callback throws is reported
+  /// through `FlutterError.reportError` instead of from the `maybePop` call.
+  /// `Navigator.pop` is never vetoed, as before.
   final Future<bool> Function()? onWillPop;
 
   /// Restoration ID to save and restore the state of the [Form].
@@ -124,21 +125,34 @@ class MagicForm extends StatelessWidget {
        );
 
   @override
+  State<MagicForm> createState() => _MagicFormState();
+}
+
+class _MagicFormState extends State<MagicForm> {
+  /// Whether an approved back has lifted the pop veto for one frame.
+  bool _approved = false;
+
+  /// Whether [MagicForm.onWillPop] is being asked right now.
+  bool _asking = false;
+
+  @override
   Widget build(BuildContext context) {
+    final MagicFormData? formData = widget.formData;
+
     // Extract formKey and controller from formData if provided
-    final effectiveFormKey = formData?.formKey ?? formKey;
-    final effectiveController = formData?.controller ?? controller;
+    final effectiveFormKey = formData?.formKey ?? widget.formKey;
+    final effectiveController = formData?.controller ?? widget.controller;
 
     // Determine autovalidate mode
     AutovalidateMode effectiveMode =
-        autovalidateMode ?? AutovalidateMode.disabled;
+        widget.autovalidateMode ?? AutovalidateMode.disabled;
 
     // If controller has server-side errors relevant to THIS form,
     // force validation to show them. When formData is provided, only
     // errors matching this form's fields trigger autovalidation —
     // preventing cross-form error leakage in shared-controller setups.
     if (formData != null) {
-      if (formData!.hasRelevantErrors) {
+      if (formData.hasRelevantErrors) {
         effectiveMode = AutovalidateMode.always;
       }
     } else if (effectiveController is ValidatesRequests) {
@@ -148,31 +162,23 @@ class MagicForm extends StatelessWidget {
       }
     }
 
-    final Future<bool> Function()? willPop = onWillPop;
+    final bool guarded = widget.onWillPop != null;
 
     return Form(
       key: effectiveFormKey,
       autovalidateMode: effectiveMode,
-      onChanged: onChanged,
-      canPop: willPop == null ? null : false,
-      onPopInvokedWithResult: willPop == null
-          ? null
-          : (bool didPop, Object? result) =>
-                _popIfAllowed(context, willPop, didPop, result),
-      child: child,
+      onChanged: widget.onChanged,
+      canPop: guarded ? _approved : null,
+      onPopInvokedWithResult: guarded ? _onPopInvoked : null,
+      child: widget.child,
     );
   }
 
-  /// Asks [willPop] about a blocked back attempt and, on `true`, finishes it
-  /// the way `Navigator.maybePop` finishes an approved pop, so the veto keeps
-  /// its `onWillPop` contract on top of `canPop: false`.
-  Future<void> _popIfAllowed(
-    BuildContext context,
-    Future<bool> Function() willPop,
-    bool didPop,
-    Object? result,
-  ) async {
-    if (didPop) return;
+  /// Asks [MagicForm.onWillPop] about a blocked back attempt and, on `true`,
+  /// lifts the veto and asks `Navigator.maybePop` again, so the route
+  /// finishes the pop with its own logic.
+  Future<void> _onPopInvoked(bool didPop, Object? result) async {
+    if (didPop || _approved || _asking) return;
 
     // 1. Bind the answer to the route that asked, before the await.
     final ModalRoute<Object?>? route = ModalRoute.of(context);
@@ -186,24 +192,43 @@ class MagicForm extends StatelessWidget {
       )
         nav,
     ];
-    if (!await willPop()) return;
 
-    // 2. Like maybePop, forget the approval when the history changed while it
-    //    was pending: the route left, or another one was pushed over it.
-    if (!context.mounted || route == null || !route.isCurrent) return;
-    if (!route.isFirst) {
-      navigator.pop(result);
+    // 2. Ask once; a throw is reported, never left to the caller's zone.
+    final bool approved;
+    _asking = true;
+    try {
+      approved = await widget.onWillPop!();
+    } catch (error, stack) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stack,
+          library: 'magic',
+          context: ErrorDescription('while asking MagicForm.onWillPop'),
+        ),
+      );
       return;
+    } finally {
+      _asking = false;
     }
 
-    // 3. A first route bubbles (RoutePopDisposition.bubble) instead of
-    //    leaving a navigator empty: each enclosing navigator in turn, as
-    //    Router.popRoute walks them, and out of the app when none takes it
-    //    (maybePop answers false only for a bubbling first route).
-    for (final NavigatorState ancestor in ancestors) {
-      if (!ancestor.mounted) continue;
-      if (await ancestor.maybePop(result)) return;
+    // 3. Like maybePop, forget the approval when the history changed while it
+    //    was pending: the route left, or another one was pushed over it.
+    if (!approved || !mounted || route == null || !route.isCurrent) return;
+
+    // 4. Lift the veto for one frame, so PopScope reads canPop: true, and let
+    //    the route decide: an overlay steps the browser back, a first route
+    //    bubbles (maybePop answers false only then).
+    setState(() => _approved = true);
+    await WidgetsBinding.instance.endOfFrame;
+    try {
+      if (!route.isCurrent || await navigator.maybePop(result)) return;
+      for (final NavigatorState ancestor in ancestors) {
+        if (ancestor.mounted && await ancestor.maybePop(result)) return;
+      }
+      await SystemNavigator.pop();
+    } finally {
+      if (mounted) setState(() => _approved = false);
     }
-    await SystemNavigator.pop();
   }
 }

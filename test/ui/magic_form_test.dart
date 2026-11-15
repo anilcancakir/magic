@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:magic/magic.dart';
+import 'package:magic/src/routing/magic_overlay_page.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Controller the form binds to; [ValidatesRequests] is what [MagicForm] reads.
@@ -174,6 +175,135 @@ void main() {
 
       expect(find.text('form'), findsOneWidget);
       expect(platformCalls, contains('SystemNavigator.pop'));
+    });
+
+    testWidgets('an approved close of an overlay that closes through the '
+        'browser steps the browser back', (tester) async {
+      var stepped = 0;
+      var removed = 0;
+      final GlobalKey<NavigatorState> key = GlobalKey<NavigatorState>();
+      final _FormController controller = _FormController();
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Navigator(
+            key: key,
+            pages: <Page<Object?>>[
+              const MaterialPage<void>(child: Text('base')),
+              MagicOverlayPage<void>(
+                closesThroughBrowser: () => true,
+                stepBrowserBack: ([VoidCallback? onGivenUp]) => stepped++,
+                child: MagicForm(
+                  formKey: GlobalKey<FormState>(),
+                  controller: controller,
+                  onWillPop: () async => true,
+                  child: const Text('form'),
+                ),
+              ),
+            ],
+            onDidRemovePage: (_) => removed++,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await key.currentState!.maybePop();
+      await tester.pumpAndSettle();
+
+      // The overlay's own pop logic runs: the browser steps back and the
+      // router, not the navigator, removes the page.
+      expect(stepped, 1);
+      expect(removed, 0);
+    });
+
+    testWidgets('a callback that throws keeps the route', (tester) async {
+      final navigator = await _pumpFormRoute(
+        tester,
+        onWillPop: () async => throw StateError('no answer'),
+      );
+
+      await navigator.maybePop();
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isA<StateError>());
+      expect(find.text('form'), findsOneWidget);
+    });
+
+    testWidgets('a callback that never answers keeps the route, and a second '
+        'back does not ask again', (tester) async {
+      var asked = 0;
+      final navigator = await _pumpFormRoute(
+        tester,
+        onWillPop: () {
+          asked++;
+          return Completer<bool>().future;
+        },
+      );
+
+      await navigator.maybePop();
+      await tester.pumpAndSettle();
+      await navigator.maybePop();
+      await tester.pumpAndSettle();
+
+      expect(asked, 1);
+      expect(find.text('form'), findsOneWidget);
+    });
+
+    testWidgets('an answer that lands after the form left is dropped', (
+      tester,
+    ) async {
+      final Completer<bool> answer = Completer<bool>();
+      final navigator = await _pumpFormRoute(
+        tester,
+        onWillPop: () => answer.future,
+      );
+
+      unawaited(navigator.maybePop());
+      await tester.pump();
+      navigator.pop(); // the form route goes while the answer is pending
+      await tester.pumpAndSettle();
+
+      answer.complete(true);
+      await tester.pumpAndSettle();
+
+      expect(find.text('home'), findsOneWidget);
+    });
+
+    testWidgets('Navigator.pop is not vetoed', (tester) async {
+      var asked = 0;
+      final navigator = await _pumpFormRoute(
+        tester,
+        onWillPop: () async {
+          asked++;
+          return false;
+        },
+      );
+
+      navigator.pop();
+      await tester.pumpAndSettle();
+
+      expect(asked, 0);
+      expect(find.text('home'), findsOneWidget);
+    });
+
+    testWidgets('a refused back can be approved on the next attempt', (
+      tester,
+    ) async {
+      var answer = false;
+      final navigator = await _pumpFormRoute(
+        tester,
+        onWillPop: () async => answer,
+      );
+
+      await navigator.maybePop();
+      await tester.pumpAndSettle();
+      expect(find.text('form'), findsOneWidget);
+
+      answer = true;
+      await navigator.maybePop();
+      await tester.pumpAndSettle();
+      expect(find.text('home'), findsOneWidget);
     });
   });
 }
