@@ -4,7 +4,7 @@ In-repo smoke reference for the `magic` framework. Deliberately minimal: 17 dart
 
 This example is NOT a starting point for a real product. A real app starts from `flutter create`, adds `magic` and runs `dart run magic:dowel magic:install`, then adds `magic_starter` (auth, teams, profile, billing) and the plugins it needs (magic_notifications, magic_deeplink, magic_social_auth, magic_devtools) as hosted dependencies, each with its own installer.
 
-This example cannot take those plugins itself: pub refuses to unify a path dependency (`magic: {path: ..}` here) with hosted dependencies (like `magic_notifications: ^0.0.2`) in the same resolution graph. This is a hard technical constraint, not a choice.
+This example cannot take those plugins itself: pub refuses to unify a path dependency (`magic: {path: ..}` here) with hosted dependencies (like `magic_notifications: ^1.0.0`) in the same resolution graph. This is a hard technical constraint, not a choice.
 
 ## Stack
 
