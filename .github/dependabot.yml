@@ -1,9 +1,10 @@
 # Dependabot (REPO_SPEC.md Appendix B). Minor and patch updates roll up into one
 # pull request per ecosystem and week; a major opens its own pull request and
-# waits for review. The ecosystem's own 0.x packages are excluded from the group
-# (a 0.x minor bump is breaking in pub, yet Dependabot reports it as a minor),
-# so each opens its own pull request, which is never armed for auto-merge.
-# Other 0.x dependencies (intl, timezone) are excluded for the same reason.
+# waits for review. The ecosystem's own packages are excluded from the group:
+# raising the floor of a sibling is a release decision, so each bump opens its
+# own pull request, which is never armed for auto-merge.
+# Other 0.x dependencies (intl, timezone) are excluded too:
+# a 0.x minor bump is breaking in pub, yet Dependabot reports it as a minor.
 
 version: 2
 
