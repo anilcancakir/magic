@@ -15,14 +15,17 @@ dart run magic:dowel make:model User -mcf   # a generator; -m -f need magic_loca
 `magic:install` adds `wind_kit`, `material_ui` and `dowel`, writes `lib/config/`, the service providers, `.env` and a `lib/main.dart` that calls `Magic.init()`. A plugin: `flutter pub add <package>`, then `dart run magic:dowel plugin:install <package>`.
 
 ```dart
-class User extends Model with HasTimestamps, InteractsWithPersistence {
+class User extends Model with HasTimestamps, InteractsWithPersistence, Authenticatable {
   @override String get table => 'users';
   @override String get resource => 'users';
+  @override List<String> get fillable => ['name', 'email'];
 
-  String? get name => getAttribute('name') as String?;
+  String? get name => get<String>('name');
 
   static User fromMap(Map<String, dynamic> map) =>
       User()..setRawAttributes(map, sync: true)..exists = map.containsKey('id');
+  static Future<User?> find(dynamic id) =>
+      InteractsWithPersistence.findById<User>(id, User.new);
 }
 
 class UserController extends MagicController with MagicStateMixin<List<User>> {
@@ -47,11 +50,11 @@ void registerAppRoutes() {
 
 - `Magic`: `init({envFileName, configs, configFactories, providers})` boots env, config, providers and the router; `make<T>(key)`, `bind`, `singleton`, `findOrPut(builder)` for the container; `flush()` for tests. `MagicApplication` is the root widget.
 - `ServiceProvider`: `register()` (sync, bind services) and `boot()` (async, after every provider registered). `BaseEventServiceProvider` maps event types to listener factories.
-- `Model` (with `HasTimestamps`, `InteractsWithPersistence`): `table`, `resource`, `fillable`, `casts`, `getAttribute`, `setAttribute`, `fill`, `setRawAttributes`, `save`, `delete`; `make:model` generates the static `find` and `all` wrappers over `InteractsWithPersistence.findById` and `allModels`. API-first; `useLocal` adds SQLite through `magic_local_storage`.
+- `Model` (with `HasTimestamps`, `InteractsWithPersistence`): `table`, `resource`, `fillable`, `casts`, `get<T>` and `set` (typed access for the model's own getters; `get<T>` answers `null` on a type mismatch), `getAttribute`, `setAttribute`, `fill`, `setRawAttributes`, `save`, `delete`; `make:model` generates the static `find` and `all` wrappers over `InteractsWithPersistence.findById` and `allModels`. API-first; `useLocal` adds SQLite through `magic_local_storage`.
 - `MagicController` (a `ChangeNotifier`) with `MagicStateMixin<T>`: `setLoading`, `setSuccess`, `setError`, `setEmpty`, `fetchList`, `fetchOne`, `renderState`. `MagicView` and `MagicStatefulView` bind a view to its controller.
 - `MagicRoute`: `page(path, handler)` with `.name()`, `.title()`, `.middleware()`; `group`, `to`, `toNamed(name, params:, query:)`, `back`. `MagicMiddleware` runs on navigation.
 - `Auth`: `login`, `logout`, `check`, `guest`, `user<T>()`, `id`, `restore`, `refreshToken`, `manager.setUserFactory`; guards `BearerTokenGuard`, `BasicAuthGuard`, `ApiKeyGuard`. `Gate`: `define`, `allows`, `denies`, `before`; `Policy`; `MagicCan` and `MagicCannot` widgets.
-- `Http`: `get`, `post`, `put`, `delete`, `upload`, `index`, `show`, `store`, `update`, `destroy`; answers `MagicResponse` (`failed`, `data`, `errors`, `errorMessage`).
+- `Http`: `get`, `post`, `put`, `delete`, `upload`, `index`, `show`, `store`, `update`, `destroy`; answers `MagicResponse` (`failed`, `data`, `errors`, `errorMessage`). There is no PATCH: `put` and `update` send PUT, and a Laravel endpoint that takes only PATCH accepts `post` with `'_method': 'PATCH'` in the body.
 - `Cache` (`put`, `get`, `has`, `forget`, `remember`), `Config` (`get`, `set`, `has`), `Event` (`dispatch`, `listen<T>`), `Lang` (`get`, `choice`, `setLocale`), `Log` (`info`, `error`, `channel`), `Session` (flash, `old`, `error`), `Storage` (`put`, `get`, `url`, `download`, `disk`), `Vault` (`put`, `get`, `delete`), `Launch` (`url`, `email`, `phone`, `sms`).
 - `Validator.make(data, rules).passes()` with rules `Required`, `Email`, `Min`, `Max`, `Confirmed`, `In`, `Unique` and more; `FormRequest`, `MagicFormData`, `ValidatesRequests`, `MagicFormObject` for forms.
 - `MagicAction<I, O>` is one write unit; `Repository<T>` and `RepositoryQuery<T>` cache remote rows by id; `SessionScope` and `SessionScoped` reset tenant state on identity change; `MagicPerfHooks.sink` is the diagnostics seam.
@@ -75,7 +78,11 @@ Android, iOS, macOS, Windows, Linux and the web. `Vault` uses the platform's sec
 - In tests call `MagicTest.init()` (or `MagicApp.reset()` and `Magic.flush()` in `setUp`): the container and facade caches leak between tests otherwise. `Gate` is a process static that `Magic.flush()` does not clear; `MagicTest.init()` clears it.
 - Never run `dart run magic:dowel` inside the magic repository itself.
 - Use `fromMap` for model hydration: it bypasses `fillable`, while `fill` drops keys not listed (`fill(map, strict: true)` throws instead).
-
+- Register routes in a provider's `boot()`: the first read of `MagicRoute.config` (the last step of `Magic.init`) builds the router, and a route, layout or observer added after it throws `StateError`. A middleware alias nothing registered makes `Magic.init` throw.
+- `Magic.make` on an unbound key throws; `Gate` denies without an error when the ability is undefined, nobody is signed in or the callback throws; `Lang.get` answers the key itself when it is missing.
+- `save()` answers `true` when any leg succeeded: a hybrid model (`useLocal` and `useRemote`) whose API refuses the save while the local write succeeds answers `true` with `validationErrors` filled, so check them even after a `true`; a remote failure without field errors (a 500, a transport error) also answers `true` with `validationErrors` empty, and `lastRemoteResponse` is the failed response, `statusCode` 0 for no readable answer, or `null` when the driver threw.
+- `Cache.remember` stores whatever its callback returns: throw on a failed response inside it, or the failure is cached for the TTL.
+- `FormRequest.validate` keeps only the keys `rules()` names, even ones `prepared()` added; a custom rule's `message()` returns a translation key, since `Rule.name` derives from it.
 ## Docs
 
 - [Installation](https://anilcancakir.com/magic/docs/getting-started/installation.md): install, bootstrap, requirements, the `wind_kit` setup, upgrading.
