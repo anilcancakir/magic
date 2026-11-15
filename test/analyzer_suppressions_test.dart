@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+import 'package:yaml/yaml.dart';
 
 /// The package lints with zero suppressions: an issue is fixed where it
 /// arises, so an `ignore` comment or a severity downgraded to `ignore` in
@@ -31,13 +32,47 @@ void main() {
         'analysis_options.yaml',
         'example/analysis_options.yaml',
       ])
-        for (final String line in File(p.join(root, path)).readAsLinesSync())
-          if (RegExp(r'^\s+\w+:\s*ignore\s*$').hasMatch(line))
-            '$path: ${line.trim()}',
+        for (final String code in _ignoredDiagnostics(
+          File(p.join(root, path)).readAsStringSync(),
+        ))
+          '$path: $code',
     ];
 
     expect(offenders, isEmpty);
   });
+
+  test('the options check sees a commented or quoted ignore', () {
+    const String options = '''
+analyzer:
+  errors:
+    deprecated_member_use: ignore # temporary
+    unused_import: 'ignore'
+    todo: info
+''';
+
+    expect(_ignoredDiagnostics(options), [
+      'deprecated_member_use',
+      'unused_import',
+    ]);
+  });
+}
+
+/// The diagnostic codes an analysis_options.yaml downgrades to `ignore`.
+///
+/// Parsed, not matched line by line, so a trailing comment or a quoted value
+/// cannot hide an entry.
+List<String> _ignoredDiagnostics(String options) {
+  final Object? document = loadYaml(options);
+  if (document is! YamlMap) return const <String>[];
+
+  final Object? analyzer = document['analyzer'];
+  final Object? errors = analyzer is YamlMap ? analyzer['errors'] : null;
+  if (errors is! YamlMap) return const <String>[];
+
+  return <String>[
+    for (final MapEntry<dynamic, dynamic> entry in errors.entries)
+      if (entry.value == 'ignore') '${entry.key}',
+  ];
 }
 
 Iterable<File> _dartFiles(String dir) {

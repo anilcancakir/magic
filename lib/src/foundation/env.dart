@@ -106,11 +106,19 @@ class Env {
   /// - [key]: The environment variable name
   /// - [defaultValue]: Value to return if key doesn't exist
   ///
-  /// **Type Casting** (by `T`, which `env()` infers from the default):
+  /// **Type Casting**: `T` alone picks the conversion, with or without a
+  /// default (an omitted `T` is inferred from the default, `dynamic` when
+  /// there is none):
   /// - `bool`: `true` for 'true', '1' or 'yes' (any case), `false` otherwise
   /// - `int` or `double`: the parsed number, or [defaultValue] when it does
   ///   not parse
-  /// - any other `T`: the raw string, so 'null' stays the string 'null'
+  /// - any other `T`: the raw string cast to `T`, so 'null' stays the string
+  ///   'null' and `T` has to accept a `String`
+  ///
+  /// The fallback is [defaultValue] cast to `T`: with no default, an absent
+  /// or unparsable `get<int>('PORT')` throws a `TypeError` (`null` is not an
+  /// `int`), and `get<num>('PORT', 0)` or `get<int?>('PORT')` throws when
+  /// `PORT` is present, since only exactly `int` or `double` is parsed.
   static T get<T>(String key, [T? defaultValue]) {
     // If not loaded, return default value
     if (!_isLoaded) {
@@ -268,8 +276,11 @@ class Env {
 /// final port = env('PORT', 3000);
 /// ```
 ///
-/// The default's type picks the cast: a `bool`, `int` or `double` default
-/// converts the value, any other default (or none) returns the raw string.
+/// `T` picks the conversion, as in [Env.get]: an omitted `T` is inferred from
+/// the default, so `env('DEBUG', false)` converts to a `bool`, while
+/// `env<bool>('DEBUG')` converts too, with no default. Only exactly `bool`,
+/// `int` or `double` convert; any other `T` must accept the raw string, so
+/// `env<num>('PORT', 0)` throws when `PORT` is present.
 T env<T>(String key, [T? defaultValue]) {
   return Env.get<T>(key, defaultValue);
 }

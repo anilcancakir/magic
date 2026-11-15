@@ -23,14 +23,18 @@ import '../session/session_store.dart';
 /// Flash data survives exactly one navigation. Call [Session.tick] on every
 /// real route change. The router delegate listener can fire for non-navigation
 /// events (redirect re-evaluation, notifier rebuilds), so gate the tick on an
-/// actual location change:
+/// actual change of the delegate's configuration, in `main()` after
+/// `await Magic.init()`. Not `MagicRouter.instance.currentLocation`: it
+/// changes when the new page builds, after the listeners ran, so a tick
+/// gated on it lands one navigation late.
 ///
 /// ```dart
-/// var lastLocation = MagicRouter.instance.currentLocation;
-/// MagicRouter.instance.routerConfig.routerDelegate.addListener(() {
-///   final currentLocation = MagicRouter.instance.currentLocation;
-///   if (currentLocation == lastLocation) return;
-///   lastLocation = currentLocation;
+/// final delegate = MagicRouter.instance.routerConfig.routerDelegate;
+/// var lastConfiguration = delegate.currentConfiguration;
+/// delegate.addListener(() {
+///   final currentConfiguration = delegate.currentConfiguration;
+///   if (currentConfiguration == lastConfiguration) return;
+///   lastConfiguration = currentConfiguration;
 ///   Session.tick();
 /// });
 /// ```
