@@ -1068,5 +1068,30 @@ void main() {
         expect(plain.cachedToken, isNull);
       },
     );
+
+    test(
+      'a sign-in with a refresh token that a running sign-out wins over too',
+      () async {
+        // With a refresh token the writes interleave the other way: the
+        // sign-out's `_user = null` lands before the sign-in's last write, so
+        // the sign-in set its user after it and signed in with no token in
+        // memory, every request going out without a header.
+        vault.holdRemoveKey = 'auth_token';
+
+        final signingOut = guard.logout();
+        final signingIn = guard.login(<String, dynamic>{
+          'token': 's-token',
+          'refresh_token': 's-refresh',
+        }, _User()..setRawAttributes({'id': 2}, sync: true));
+        vault.removeRelease.complete();
+        await Future.wait<void>([signingOut, signingIn]);
+
+        expect(guard.check(), isFalse);
+        expect(guard.cachedToken, isNull);
+        expect(await Vault.get('auth_token'), isNull);
+        expect(await Vault.get('refresh_token'), isNull);
+        expect(await Vault.get('auth_user'), isNull);
+      },
+    );
   });
 }

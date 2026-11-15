@@ -198,6 +198,15 @@ abstract class BaseGuard implements Guard {
     // theirs to set.
     if (_sessionEpoch != epoch) return;
 
+    // A sign-out already running when this began cleared memory during the
+    // writes and won. Its deletes landed before them, so nothing it did
+    // removes this sign-in's tokens from disk.
+    if (_cachedToken != token) {
+      if (_cachedToken == null && _signingIn == null) await _forgetTokens();
+
+      return;
+    }
+
     setUser(user);
 
     await cacheUser(user);
@@ -220,15 +229,19 @@ abstract class BaseGuard implements Guard {
       // A sign-out that won took this sign-in's token out of memory, but its
       // writes landed after the sign-out's deletes. No session holds a token
       // and none is opening, so neither may be left on disk.
-      if (cachedToken == null && _signingIn == null) {
-        await Vault.delete(tokenKey);
-        if (refreshTokenKey != null) await Vault.delete(refreshTokenKey!);
-      }
+      if (cachedToken == null && _signingIn == null) await _forgetTokens();
 
       return;
     }
 
     await Event.dispatch(AuthLogin(user));
+  }
+
+  /// Delete both stored tokens without ending a session: for a sign-in that a
+  /// sign-out won over, whose writes landed after the sign-out's deletes.
+  Future<void> _forgetTokens() async {
+    await Vault.delete(tokenKey);
+    if (refreshTokenKey != null) await Vault.delete(refreshTokenKey!);
   }
 
   /// Move the in-memory token to [token], then persist it and [refreshToken]
