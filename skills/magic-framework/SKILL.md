@@ -40,7 +40,7 @@ The host app then depends on `package:magic/magic.dart`. Every API you write mus
 4. **IoC over `new` for services.** Bind in a provider's `register()`, resolve through the facade or `Magic.make<T>('key')`; do not scatter `Service()` construction across the app.
 5. **Provider discipline.** `register()` is synchronous and only binds services, the middleware kernel and event listeners. `boot()` is async and may resolve other services: routes go there (`RouteServiceProvider.boot()` calls `registerAppRoutes()`), and so does `Auth.manager.setUserFactory(...)`.
 6. **Reactive state, not `setState`.** Controllers extend `MagicController` (a `ChangeNotifier`); state flows through `MagicStateMixin` and `RxStatus`. Use `refreshUI()` (the guarded `notifyListeners` that every controller notification goes through), `setLoading/setSuccess/setError/setEmpty`, `MagicBuilder` for a section backed by a `ValueListenable`, and `MagicSelector` for a section backed by a plain controller field (it caches its child, so it survives the parent's `setState`). `MagicPerfHooks.sink` is a null-by-default static that tooling sets to observe those notifications; there is no `onRefreshUI`. Local `setState` belongs only to widget-local UI state inside a `MagicStatefulView`.
-7. **Typed attribute access.** A model declares a typed getter and setter per field, and code outside the model reads those, not a raw `getAttribute('key')`. Inside the model, `get<T>('key')` (what `make:model` generates) returns `null` on a type mismatch, while `getAttribute('key') as T?` (what the `doc/` pages show) throws; write with `set('key', v)`. Declare `fillable`, and call `fill(validated, strict: true)` after validation so schema drift throws `MassAssignmentException`.
+7. **Typed attribute access.** A model declares a typed getter and setter per field, and code outside the model reads those, not a raw `getAttribute('key')`. Inside the model, `get<T>('key')` (what `make:model` generates) returns `null` on a type mismatch, while `getAttribute('key') as T?` (what the `doc/` pages show) throws; write with `set('key', v)`. Declare `fillable`, and after validation fill the model's own fields with `strict: true` so schema drift throws `MassAssignmentException`; a validated field the model does not store (a password) is not filled, since strict throws on it too.
 8. **Context-free navigation and feedback.** `MagicRoute.to/back/replace` and `Magic.snackbar/toast/dialog/confirm/loading`. Never depend on a `BuildContext` for them, and never navigate or fetch inside `build()`.
 9. **Validate at the boundary.** `MagicFormData` for forms, `FormRequest` for complex payloads, `Validator` for ad hoc checks. Surface server errors with `handleApiError(response)` from the `ValidatesRequests` mixin.
 10. **Trailing commas and multi-line collections, always.** Match the project's style.
@@ -209,8 +209,16 @@ class _LoginViewState extends MagicStatefulViewState<AuthController, LoginView> 
   late final form = MagicFormData({'email': '', 'password': ''}, controller: controller);
   @override void onClose() => form.dispose();   // always dispose
   void _submit() => form.process(() => controller.login(form.data));
-  @override Widget build(BuildContext context) =>
-      WButton(onTap: _submit, isLoading: form.isProcessing, child: const WText('Sign in'));
+  @override Widget build(BuildContext context) => MagicForm(
+    formData: form,
+    child: WDiv(className: 'flex flex-col gap-4', children: [
+      WFormInput(controller: form['email'], type: InputType.email, label: 'Email',
+          validator: rules([Required(), Email()], field: 'email')),
+      WFormInput(controller: form['password'], type: InputType.password, label: 'Password',
+          validator: rules([Required()], field: 'password')),
+      WButton(onTap: _submit, isLoading: form.isProcessing, child: const WText('Sign in')),
+    ]),
+  );
 }
 
 // Responsive (AuthController, DashboardController and the dashboard widgets are the app's own)
@@ -257,8 +265,14 @@ class StoreUserRequest extends FormRequest {
 }
 
 final validated = StoreUserRequest().validate(form.data);  // throws Authorization or ValidationException
-final user = User()..fill(validated, strict: true);
-await user.save();
+// `validated` holds name, email and password, and password is not in User.fillable: a strict
+// fill of the whole map throws MassAssignmentException. Select the model's own fields first.
+final user = User();
+user.fill({
+  for (final key in user.fillable)
+    if (validated.containsKey(key)) key: validated[key],
+}, strict: true);
+await user.save();   // a field the model does not store (the password) goes to the API in a request body
 ```
 
 Override `attributes()` (`{'url': 'Server address'}`) to name a field for `:attribute` in this request's messages ahead of the global `attributes.<key>`.
@@ -372,7 +386,7 @@ These facades fake without a mock library: `Http.fake` (`FakeNetworkDriver`: `as
 | `configs: [appConfig]` that reads `env()` | `configFactories: [() => appConfig]` | Env is not loaded when `configs` evaluates |
 | `Auth.guest()` | `Auth.guest` | it is a bool getter |
 | `Http.get()` or `MagicRoute.to()` in `build()` | call it from `onInit()` or a callback | no I/O or navigation during build |
-| `user.fill(unvalidated)` | `user.fill(validated, strict: true)` | catches schema drift after validation |
+| `user.fill(unvalidated)` | `user.fill(<the model's fields from validated>, strict: true)` | catches schema drift after validation; a validated non-model field (a password) would throw |
 | `if (!Gate.allows(...)) throw` by hand | `authorize('ability')` in the controller | delegates to Gate and throws `AuthorizationException` |
 | a `Pick`, `Crypt`, `Echo`, `DB` or `Schema` call with no plugin | add the plugin, register its provider, load its skill | core has none of these facades |
 | `Storage.download` on mobile or desktop throwing `UnsupportedError` | register `magic_picker`'s `PickerServiceProvider` | it sets `LocalAdapterContract.downloadHandler`; web needs nothing |

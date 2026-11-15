@@ -286,10 +286,14 @@ final apiKey = Env.get<String>('API_KEY', '');
 final port = Env.get<int>('PORT', 5432);
 final debug = Env.get<bool>('DEBUG', false);
 
-// Type casting, decided by T (inferred from the default):
+// Type casting is decided by T alone, with or without a default (an omitted T is
+// inferred from the default, and is dynamic when there is none):
 // - T == bool: 'true', '1', 'yes' (case-insensitive) → true, anything else → false
 // - T == int or double: parsed, or the default when it does not parse
-// - any other T (or no default): the raw string, so 'null' stays the string 'null'
+// - any other T: the raw string cast to T, so 'null' stays the string 'null'
+// The fallback is the default cast to T: Env.get<int>('PORT') with PORT absent or
+// unparsable throws a TypeError (null is not an int), and Env.get<num>('PORT', 0) or
+// Env.get<int?>('PORT') throws when PORT is present (the raw string is not a num).
 
 // Check existence
 if (Env.has('STRIPE_KEY')) {

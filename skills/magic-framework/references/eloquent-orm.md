@@ -49,7 +49,8 @@ class Monitor extends Model with HasTimestamps, InteractsWithPersistence {
         'updated_at': 'datetime',
       };
 
-  // Typed getters: get<T>() returns null (or defaultValue) for a missing or wrongly typed value
+  // Typed getters: get<T>() returns null (or defaultValue) for a missing or wrongly typed
+  // value; an exception the cast raises (EnumCast with strict: true) still propagates
   int? get id => get<int>('id');
   String? get name => get<String>('name');
   MonitorType? get type => MonitorType.fromValue(get<String>('type'));
@@ -299,7 +300,7 @@ Dispatched via `Event.dispatch()` during the `save()` / `delete()` lifecycle.
 
 ## Gotchas
 
-- **Null Safety**: `get<T>()` returns `null` for missing or wrongly-typed values - it never throws.
+- **Null Safety**: `get<T>()` returns `null` (or `defaultValue`) for a missing or wrongly typed value instead of throwing a `TypeError`. It reads through `getAttribute()`, so an exception the cast itself raises still propagates: with `EnumCast(..., strict: true)` an unknown stored value throws `ArgumentError` before `get<T>()` can answer `null`.
 - **Column filtering**: the SQLite store behind `useLocal` drops attributes the table has no column for on insert and update.
 - **Manual Hydration**: Call `syncOriginal()` after manually hydrating a model to reset dirty state.
 - **Timestamps**: `HasTimestamps` stores timestamps as ISO 8601 strings; reads them back as `Carbon`.

@@ -324,7 +324,7 @@ if (await Launch.canLaunch('tel:+1234567890')) {
 
 ## Session
 
-Laravel-style flash store. Data written via `flash()` / `flashErrors()` lives in a **next** bucket and is promoted to **current** when the app calls `Session.tick()`. The router does not tick automatically - wire a routerDelegate listener gated on `MagicRouter.instance.currentLocation` changes during bootstrap (see example below). Each value survives exactly one hop.
+Laravel-style flash store. Data written via `flash()` / `flashErrors()` lives in a **next** bucket and is promoted to **current** when the app calls `Session.tick()`. The router does not tick automatically - wire a routerDelegate listener gated on changes of the delegate's `currentConfiguration` after `Magic.init()` (see example below). Each value survives exactly one hop.
 
 | Signature | Return Type | Notes |
 |-----------|-------------|-------|
@@ -353,12 +353,15 @@ import 'package:magic/magic.dart';
 
 // In main(), after `await Magic.init()` (call once: Magic does not tick Session automatically).
 // A provider's boot() is too early: reading routerConfig there builds the router before the routes exist.
-var lastLocation = MagicRouter.instance.currentLocation;
-MagicRouter.instance.routerConfig.routerDelegate.addListener(() {
-  final current = MagicRouter.instance.currentLocation;
-  if (current != lastLocation) {
+// Compare the delegate's configuration: it is set before listeners run, while
+// currentLocation only changes when the new page builds, one notification late.
+final delegate = MagicRouter.instance.routerConfig.routerDelegate;
+var lastConfiguration = delegate.currentConfiguration;
+delegate.addListener(() {
+  final current = delegate.currentConfiguration;
+  if (current != lastConfiguration) {
     Session.tick();
-    lastLocation = current;
+    lastConfiguration = current;
   }
 });
 

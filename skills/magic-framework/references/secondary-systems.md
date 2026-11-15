@@ -411,17 +411,18 @@ Laravel-style flash data for form repopulation and transient messages. Two inter
 - `_next`: receives `flash()` / `flashErrors()` writes during the current frame.
 - `_current`: read by `old()`, `error()`, `hasError()`, `hasFlash`.
 
-`Session.tick()` promotes `_next` → `_current`. The framework does **not** tick automatically - wire a routerDelegate listener gated on real `MagicRouter.instance.currentLocation` changes during bootstrap (GoRouter fires `routerDelegate` notifications for non-navigation rebuilds too, which would prematurely burn the flash). Each value then survives exactly one navigation hop.
+`Session.tick()` promotes `_next` → `_current`. The framework does **not** tick automatically - wire a routerDelegate listener gated on real changes of the delegate's `currentConfiguration`, after `Magic.init()` (`currentLocation` only changes when the new page builds, after the listeners ran, so it ticks one navigation late; GoRouter fires `routerDelegate` notifications for non-navigation rebuilds too, which would prematurely burn the flash). Each value then survives exactly one navigation hop.
 
 ```dart
 // Call once in main(), after `await Magic.init()`. Not in a ServiceProvider.boot(): reading
 // routerConfig there builds the router before RouteServiceProvider.boot() registers the routes.
-var lastLocation = MagicRouter.instance.currentLocation;
-MagicRouter.instance.routerConfig.routerDelegate.addListener(() {
-  final current = MagicRouter.instance.currentLocation;
-  if (current != lastLocation) {
+final delegate = MagicRouter.instance.routerConfig.routerDelegate;
+var lastConfiguration = delegate.currentConfiguration;
+delegate.addListener(() {
+  final current = delegate.currentConfiguration;
+  if (current != lastConfiguration) {
     Session.tick();
-    lastLocation = current;
+    lastConfiguration = current;
   }
 });
 ```
