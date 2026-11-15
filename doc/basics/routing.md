@@ -863,7 +863,7 @@ Widget build(BuildContext context) {
 }
 ```
 
-`MagicRoute.config` is only accessible after `Magic.init()` completes (it is the `GoRouter` produced by the router pre-build step in the bootstrap lifecycle). Accessing it before initialization throws a `StateError`.
+`MagicRoute.config` builds the `GoRouter` on its first read; `Magic.init()` reads it once at the end of the bootstrap, after every provider has booted. Read it only after `Magic.init()` completes: an earlier read does not throw, it freezes the router with the routes registered so far, and every later route, layout or observer registration (`addRoute`, `addLayout`, `addObserver`) throws a `StateError`.
 
 <a name="gotchas"></a>
 ## Gotchas

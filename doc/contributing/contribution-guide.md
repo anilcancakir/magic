@@ -62,11 +62,14 @@ lib/
 │   ├── facades/        # Facade classes
 │   ├── forms/          # MagicFormObject
 │   ├── foundation/     # Core Magic class
+│   ├── helpers/        # Date helpers
 │   ├── http/           # Controllers, middleware pipeline, Kernel
 │   ├── launch/         # URL, email, phone and SMS launching
 │   ├── localization/   # i18n
 │   ├── logging/        # Log manager and drivers
 │   ├── network/        # HTTP client
+│   ├── perf/           # Performance hooks
+│   ├── policies/       # Policy base class
 │   ├── providers/      # Service providers
 │   ├── routing/        # Router
 │   ├── security/       # Vault
