@@ -133,11 +133,13 @@ Map<String, dynamic> get appConfig => {
       // Framework Providers
       (app) => CacheServiceProvider(app),
       (app) => NetworkServiceProvider(app),
-      (app) => AuthServiceProvider(app),
-      
+
       // Application Providers
       (app) => AppServiceProvider(app),
       (app) => PaymentServiceProvider(app),
+
+      // Auth boots after AppServiceProvider has set the user factory
+      (app) => AuthServiceProvider(app),
     ],
   },
 };
@@ -151,7 +153,7 @@ Providers are loaded in the order they are listed:
 2. **Boot Phase**: `boot()` is called on each provider in order
 
 > [!TIP]
-> Place framework providers first, then your custom providers. If Provider B depends on Provider A, ensure A comes before B in the list.
+> Place framework providers first, then your custom providers. If Provider B depends on Provider A, ensure A comes before B in the list. `AuthServiceProvider` is the exception to framework-first: its `boot()` restores the stored session with the user factory that `AppServiceProvider.boot()` sets, so it goes after `AppServiceProvider`; in the other order the restore is skipped.
 
 <a name="providers-without-boot-logic"></a>
 ## Providers Without Boot Logic

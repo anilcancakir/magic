@@ -18,6 +18,7 @@ Magic DevTools wires a magic app into the tapir and crumbs dev tools, and is loa
     - [Magic watchers](#magic-watchers)
     - [The HTTP adapter](#the-http-adapter)
 - [Release builds load nothing](#release-builds-load-nothing)
+- [Related Documentation](#related-documentation)
 
 <a name="introduction"></a>
 ## Introduction
@@ -143,7 +144,6 @@ You can wire either integration on its own, or both at once. The rule is the sam
 
 ```dart
 import 'package:crumbs/crumbs.dart';
-import 'package:crumbs/crumbs.dart';
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:magic/magic.dart';
 import 'package:magic_devtools/crumbs.dart';
@@ -217,3 +217,11 @@ Each watcher is read-only: it subscribes to Magic activity and records it into c
 ## Release builds load nothing
 
 There is no production load path. The integrations are reachable only through `if (!kReleaseMode)` branches in `main()`, and the compiler strips those branches from release builds. A release build loads none of `magic_devtools`, tapir, or crumbs: zero enrichers, zero watchers, zero adapters, zero runtime cost. The package is a regular dependency for resolution and lint correctness only; its code never runs in production.
+
+<a name="related-documentation"></a>
+## Related Documentation
+
+- [Magic CLI](./magic-cli.md): `magic:install --with-devtools` and the `previews:refresh` catalog.
+- [Perf Hooks](../digging-deeper/perf-hooks.md): the performance data path `MagicPerfIntegration` feeds.
+- [Service Providers](../getting-started/service-providers.md): why the Magic integrations install after `Magic.init()`.
+- [Testing](../testing/getting-started.md): the in-process fakes for tests that do not drive a running app.
