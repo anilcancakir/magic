@@ -17,6 +17,6 @@ This example cannot take those plugins itself: pub refuses to unify a path depen
 
 ## Getting started
 
-The code here demonstrates basic magic patterns: IoC container setup in `lib/app/kernel.dart` (mostly commented out for clarity), routing in `lib/routes/app.dart`, and service provider registration. This is NOT a complete app; it is a minimal smoke test to verify the framework compiles and boots.
+The code here demonstrates basic magic patterns: middleware registration in `lib/app/kernel.dart` (mostly commented out for clarity), routing in `lib/routes/app.dart`, and service provider registration. This is NOT a complete app; it is a minimal smoke test to verify the framework compiles and boots.
 
 If you are starting a new app, follow the steps above instead. If you want to understand how magic works at the simplest level, read the source here.
