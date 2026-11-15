@@ -178,10 +178,13 @@ void main() {
     });
 
     test('dispose cleans up processing notifier', () {
-      // 1. Add a listener to prove the notifier is alive.
-      // ignore: unused_local_variable
+      // 1. Prove the notifier is alive: a listener fires on a change.
+      final notifier = form.processingListenable as ValueNotifier<bool>;
       var notified = false;
-      form.processingListenable.addListener(() => notified = true);
+      notifier.addListener(() => notified = true);
+      notifier.value = true;
+      expect(notified, isTrue);
+      notifier.value = false;
 
       // 2. Dispose.
       form.dispose();
@@ -189,10 +192,12 @@ void main() {
       // 3. Verify the notifier no longer fires (disposed).
       //    Accessing a disposed notifier throws a FlutterError up to Flutter
       //    3.49 and a StateError from package:listen on 3.50.
+      notified = false;
       expect(
-        () => (form.processingListenable as ValueNotifier<bool>).value = true,
+        () => notifier.value = true,
         throwsA(anyOf(isA<FlutterError>(), isA<StateError>())),
       );
+      expect(notified, isFalse);
     });
   });
 

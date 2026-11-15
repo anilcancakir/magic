@@ -131,11 +131,10 @@ void main() {
     });
 
     test('and one declared through MagicRoute.layout, reported once', () {
-      // The other door onto the same list, and the reason the check dedupes
-      // by identity. `MagicRoute.layout(routes: [...])` builds its list by
-      // calling `MagicRoute.page` with no collection open, so each route
-      // lands in `_routes` AND in the layout's children. Walking both lists
-      // without the set would name this route twice and count two.
+      // The other door onto the same list. `MagicRoute.layout(routes: [...])`
+      // builds its list by calling `MagicRoute.page` with no collection open,
+      // so each route first lands in `_routes`; the layout takes it out again,
+      // and the route is still checked, and reported once.
       MagicRoute.layout(
         builder: (Widget child) => child,
         routes: [

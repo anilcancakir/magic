@@ -44,14 +44,14 @@ enum RouteTransition {
 /// ## Basic Usage
 ///
 /// ```dart
-/// MagicRoute.get('/users', () => UsersPage());
-/// MagicRoute.get('/users/:id', (id) => UserDetailPage(id: id));
+/// MagicRoute.page('/users', () => UsersPage());
+/// MagicRoute.page('/users/:id', (id) => UserDetailPage(id: id));
 /// ```
 ///
 /// ## Fluent Chaining
 ///
 /// ```dart
-/// MagicRoute.get('/dashboard', () => controller.index())
+/// MagicRoute.page('/dashboard', () => controller.index())
 ///     .name('dashboard')
 ///     .middleware(['auth'])
 ///     .transition(RouteTransition.fade);
@@ -120,7 +120,7 @@ class RouteDefinition {
   /// Assign a name to this route for named navigation.
   ///
   /// ```dart
-  /// MagicRoute.get('/users/:id', (id) => UserPage(id))
+  /// MagicRoute.page('/users/:id', (id) => UserPage(id))
   ///     .name('users.show');
   /// ```
   RouteDefinition name(String routeName) {
@@ -136,11 +136,11 @@ class RouteDefinition {
   ///
   /// ```dart
   /// // Using alias
-  /// MagicRoute.get('/admin', () => AdminPage())
+  /// MagicRoute.page('/admin', () => AdminPage())
   ///     .middleware(['auth', 'admin']);
   ///
   /// // Using factory
-  /// MagicRoute.get('/log', () => LogPage())
+  /// MagicRoute.page('/log', () => LogPage())
   ///     .middleware([() => LoggingMiddleware()]);
   /// ```
   RouteDefinition middleware(List<dynamic> middlewares) {
@@ -151,7 +151,7 @@ class RouteDefinition {
   /// Set the page transition animation.
   ///
   /// ```dart
-  /// MagicRoute.get('/modal', () => ModalPage())
+  /// MagicRoute.page('/modal', () => ModalPage())
   ///     .transition(RouteTransition.slideUp);
   /// ```
   RouteDefinition transition(RouteTransition type) {

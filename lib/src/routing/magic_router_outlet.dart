@@ -38,8 +38,8 @@ import 'package:go_router/go_router.dart';
 /// Route.layout(
 ///   builder: (child) => DashboardLayout(child: child),
 ///   routes: [
-///     Route.get('/dashboard', DashboardHome.new),
-///     Route.get('/profile', ProfilePage.new),
+///     MagicRoute.page('/dashboard', DashboardHome.new),
+///     MagicRoute.page('/profile', ProfilePage.new),
 ///   ],
 /// );
 /// ```
