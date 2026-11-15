@@ -241,20 +241,28 @@ class TaskController extends MagicController with MagicStateMixin<List<Task>> {
 
   Future<void> _loadTasks() async {
     setLoading();
-    setSuccess(await Task.all());
+    try {
+      setSuccess(await Task.all());
+    } on Exception catch (e) {
+      setError(e.toString()); // the view's onError branch renders it
+    }
   }
 }
 ```
 
-`isEmpty`, `setLoading()` and `setSuccess()` come from `MagicStateMixin`, so a controller that tracks loading state mixes it in.
+`isEmpty`, `setLoading()`, `setSuccess()` and `setError()` come from `MagicStateMixin`, so a controller that tracks loading state mixes it in.
 
 ### Controller Lifecycle
 
-1. **findOrPut** - Get existing or create new controller
-2. **onInit()** - Called once, the first time a stateful view backs the controller (a `SimpleMagicController` calls it from its constructor)
-3. **Method execution** - Returns view widget
+For a `MagicController` behind a route:
+
+1. **findOrPut** - Get the existing controller or create one; creating it does not run `onInit()`
+2. **Method execution** - The route handler calls the method (`index()` above), which returns the view widget
+3. **onInit()** - Runs once per controller, when the first `MagicStatefulView` backed by it mounts; a stateless `MagicView` never runs it. Nothing the method reads in step 2 can depend on it
 4. **State updates** - `refreshUI()` (or a `MagicStateMixin` setter) triggers rebuilds
 5. **onClose()** - Called when controller is disposed
+
+A `SimpleMagicController` differs only in step 3: its constructor calls `onInit()`, so it has run before step 2.
 
 <a name="view-rendering"></a>
 ## View Rendering

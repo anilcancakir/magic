@@ -318,7 +318,7 @@ try {
 }
 ```
 
-- `authorize()` runs first and throws `AuthorizationException` on `false`.
+- `authorize()` runs first and throws `AuthorizationException` on `false`. `Gate.allows('monitor.create')` answers `true` only once the app has defined the ability, typically in a provider's `boot()` with `Gate.define('monitor.create', (User user, [dynamic _]) => user.isAdmin)` (see [Authorization](../security/authorization.md)). Until then every request is denied, unless a `Gate.before` callback allows it; a signed-out user is always denied.
 - `prepared()` normalises the payload before rules see it (trim, slugify, merge defaults).
 - `validate()` returns the prepared payload filtered to the keys declared in `rules()`, the same contract as `Validator.validate`.
 - `attributes()` names fields for `:attribute` in this request's messages (see below). Default is an empty map.
@@ -354,7 +354,7 @@ Pairs cleanly with `Model.fill(payload, strict: true)` so mass-assignment catche
 class MonitorController extends MagicController with ValidatesRequests {
   Future<void> store(Map<String, dynamic> data) async {
     try {
-      final payload = validateRequest(StoreMonitorRequest(Auth.user()!), data);
+      final payload = validateRequest(const StoreMonitorRequest(), data);
       await Http.post('/monitors', data: payload);
     } on AuthorizationException {
       Magic.error('Error', 'You do not have permission to create monitors.');

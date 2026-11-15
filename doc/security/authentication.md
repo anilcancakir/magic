@@ -25,7 +25,7 @@ Magic provides a simple, frontend-focused authentication system with user cachin
 ### Key Features
 
 | Feature | Description |
-|---------|-------------|
+|:--------|:------------|
 | **User Caching** | Instant restore from secure cache, then sync from API |
 | **Auto Token Refresh** | 401 response → refresh token → retry original request (for guards built with a refresh endpoint) |
 | **Multiple Guards** | Support for Bearer, Basic, API Key, or custom guards |
@@ -190,7 +190,7 @@ abstract class Guard {
 ### Built-in Guards
 
 | Guard | `driver` | Login Data | Use Case |
-|-------|----------|-----------|----------|
+|:------|:---------|:----------|:---------|
 | `BearerTokenGuard` | `bearer` (or `sanctum`) | `token` | JWT/OAuth APIs |
 | `BasicAuthGuard` | `basic` | `username`, `password` | Basic HTTP Auth |
 | `ApiKeyGuard` | `api_key` | `api_key` | API Key authentication |
@@ -223,7 +223,7 @@ class MyGuard extends BaseGuard {
 Auth.manager.extend('myguard', (config) => MyGuard());
 ```
 
-`startSession` marks the session as opened and moves the in-memory token before its first await, then persists the tokens, sets the user and caches it. Prefer it to `storeToken` followed by `setUser`: a boot-time user sync still in the air sees a sign-in made through `startSession` from its first line and ignores its own answer, whereas between `storeToken` and `setUser` it cannot tell the sign-in from a token refresh and applies the previous account.
+`startSession` marks the session as opened and moves the in-memory token before its first await, then persists the tokens, sets the user and caches it. Prefer it to `storeToken` followed by `setUser`: both mark a new session, so a boot-time user sync or a refresh still in the air ignores its answer, and both delete a stored refresh token the new session does not carry, but only `startSession` also deletes the stored access token when the login carries none and leaves the user alone when a newer sign-in began during its writes.
 
 ### Firebase Guard Example
 
@@ -307,7 +307,7 @@ MagicBuilder(
 1. Original request fails with 401, **having presented the token**
 2. Interceptor calls `Auth.refreshToken()`
 3. If refresh succeeds, original request is retried with new token
-4. If refresh fails, user is logged out
+4. If refresh fails, user is logged out (unless the session changed meanwhile, see below)
 
 `BaseGuard.refreshToken()` returns `false` unless the guard was built with both `refreshEndpoint` and `refreshTokenKey`. The built-in guards resolved from the `auth` config are built with neither, so for them step 4 follows any 401 on a presented credential. To refresh tokens, register a custom guard that passes both (see [Custom Guards](#custom-guards)). The refresh posts `{'refresh_token': ...}` to `refreshEndpoint` and reads `token` or `access_token` (at the top level or under `data`) and an optional `refresh_token` from the response.
 
@@ -315,12 +315,17 @@ MagicBuilder(
 
 **A request that raced a token change is handed back refused, not replayed.** When the refused request carried an older token and the guard already holds a newer one, the interceptor cannot tell a refresh from a different account signing in, and a replay with the newer token could answer one account's screen with another account's data. The caller receives the 401 and decides whether its request still stands.
 
+**A refresh belongs to the session it started in.** When a sign-in, a sign-out or a restore of another account's token lands while a refresh is in the air, the refreshed token is discarded and the refused request is handed back with no retry and no logout, so the new session keeps its own token and stays signed in. A retry already on its way is sent with the refreshed token, never the new session's, and its answer is handed back as the 401. A sign-in without a `token` or a `refresh_token` deletes the stored one, so it never inherits the previous account's. `storeToken` counts as a sign-in too, and drops a stored refresh token it is not given; a custom guard that rotates its own token through it gets no retry and loses an in-flight boot sync, so rotate through `refreshToken()` with a `refreshEndpoint` instead.
+
 **A guard that does not extend `BaseGuard`** keeps no token the interceptor can compare against, so it is judged on presence alone: a 401 ends its session only when the request carried the header `auth.token.header` names. A cookie-based guard, or one that sends its credential under another header, stays signed in while calls return 401; such a guard has to end its own session.
+
+`Auth.refreshToken()` also returns `false` when the session changed while the refresh was in the air, so the example below signs out only when the stored token is still the one it refreshed. Comparing the stored token with the one that was refreshed does not detect a sign-in that stores the same token, so the example below can sign out a replacement session in that case. It can also sign out a sign-in that is still writing its tokens, because the second read can still find the previous token on disk. No public session-identity check is available.
 
 ```dart
 // Manual token refresh
+final refreshed = await Auth.getToken();
 final success = await Auth.refreshToken();
-if (!success) {
+if (!success && await Auth.getToken() == refreshed) {
   await Auth.logout();
   MagicRoute.to('/login');
 }
@@ -442,7 +447,7 @@ If `userFactory` is not set on the guard, the cache load and API sync steps are 
 
 - **`AuthLogin`** fires at the end of `startSession`, once the token (when given) is persisted and the user is set and cached. Not fired on a restore; a restored user announces itself through `AuthRestored` instead. Skipped when the session ended or was replaced while the user was being cached, so a sign-out racing a sign-in never gets a stray `AuthLogin` for the session it just ended.
 - **`AuthLogout`** fires from `logout()`, after the `stateNotifier` bump and before a rethrown Vault failure. It carries the user held when the logout began (`null` for a guest), and a guest logout still dispatches. It means "the in-memory session ended", not "the credentials are gone": it fires even when a Vault delete failed, so a listener releasing server-side state must still gate on `Auth.hasToken()`.
-- **`AuthRestored`** fires only after an API-confirmed sync (`BaseGuard`'s background `/user` fetch inside `restore()`), never for the cache-only step that runs first. A sign-in or sign-out racing that sync suppresses it the same way `AuthLogin` is suppressed. Its `changed` field is `false` when the synced user serializes (`toMap()`, compared deeply) the same as the user the guard held before the sync, the usual warm cold boot, and `true` when an attribute moved or no user was held; a listener that remounts or refetches on it should skip `changed: false`. It defaults to `true` for an event built by hand.
+- **`AuthRestored`** fires only after an API-confirmed sync (`BaseGuard`'s background `/user` fetch inside `restore()`), never for the cache-only step that runs first. A sign-in or sign-out racing that sync suppresses it the same way `AuthLogin` is suppressed. Its `changed` field is `false` when the synced user serialises (`toMap()`, compared deeply) the same as the user the guard held before the sync, the usual warm cold boot, and `true` when an attribute moved or no user was held; a listener that remounts or refetches on it should skip `changed: false`. It defaults to `true` for an event built by hand.
 
 ```dart
 class LogAuthEvents extends MagicListener<AuthLogout> {
@@ -495,7 +500,7 @@ void main() {
 ### FakeAuthManager Assertions
 
 | Method | Description |
-|--------|-------------|
+|:-------|:------------|
 | `fake.assertLoggedIn()` | Fails if no user is currently set. |
 | `fake.assertLoggedOut()` | Fails if a user is currently set. |
 | `fake.assertLoginAttempted()` | Fails if `Auth.login()` was never called. |

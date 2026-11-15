@@ -80,9 +80,9 @@ Map<String, dynamic> get appConfig => {
 <a name="environment-variable-types"></a>
 ### Environment Variable Types
 
-All variables in your `.env` files are read as strings. `env()` and `Env.get()` convert a value only when the type argument is `bool`, `int` or `double`; the type is inferred from the default, so `env('APP_DEBUG', false)` reads a `bool` and `env('PORT', 3000)` reads an `int`. Every other type, including a call with no default, returns the raw string:
+All variables in your `.env` files are read as strings. The type argument `T` alone picks the conversion, whether or not you pass a default: `env()` and `Env.get()` convert only when `T` is exactly `bool`, `int` or `double`. When you omit `T`, it is inferred from the default, so `env('APP_DEBUG', false)` reads a `bool` and `env('PORT', 3000)` reads an `int`, while `env('APP_URL')` with no default reads `dynamic` and returns the raw string:
 
-| Requested type | `.env` value | Result |
+| `T` | `.env` value | Result |
 |:---|:---|:---|
 | `bool` | `true`, `1` or `yes` (any case) | `true` |
 | `bool` | any other value, including `false`, `(true)` and `on` | `false` |
@@ -90,8 +90,10 @@ All variables in your `.env` files are read as strings. `env()` and `Env.get()` 
 | `int` | anything else | the default |
 | `double` | a string `double.tryParse` accepts | the parsed `double` |
 | `double` | anything else | the default |
-| any other type | any value, including `null` and `empty` | the raw string (`'null'`, `'empty'`) |
-| any type | key absent, or `.env` not loaded | the default |
+| `String`, `dynamic`, `Object` | any value, including `null` and `empty` | the raw string (`'null'`, `'empty'`) |
+| any `T` | key absent, or `.env` not loaded | the default |
+
+"The default" is cast to `T`, so a call that can fall back needs a default of that type: `env<int>('PORT')` with `PORT` absent or unparsable throws a `TypeError`, since `null` is not an `int`; write `env<int>('PORT', 3000)`. Any other `T` gets the raw string cast to it, so it has to accept a `String`: `env<num>('PORT', 3000)` and `env<int?>('PORT')` throw when `PORT` is present (neither is exactly `int`), and so does `env<bool?>('DEBUG')`.
 
 `Env.getBool(key)` and `Env.getInt(key)` default to `false` and `0`; `Env.getString(key)` defaults to `''`.
 

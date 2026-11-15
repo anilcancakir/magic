@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -359,5 +361,70 @@ void main() {
         ),
       );
     });
+  });
+
+  group('operation order', () {
+    // On the web a delete runs `removeItem` at once while a write first awaits
+    // its key and `subtle.encrypt`, so a write issued before a sign-out's
+    // delete landed after it and the signed-out token was back on disk.
+    late Map<String, String> store;
+    late Completer<void> writeArrived;
+    late Completer<void> writeRelease;
+
+    setUp(() {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      store = <String, String>{};
+      writeArrived = Completer<void>();
+      writeRelease = Completer<void>();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(_channel, (MethodCall call) async {
+            final args = call.arguments as Map<Object?, Object?>;
+            final key = args['key'] as String? ?? '';
+
+            switch (call.method) {
+              case 'write':
+                if (args['value'] == 'slow') {
+                  writeArrived.complete();
+                  await writeRelease.future;
+                }
+                if (args['value'] == 'refused') {
+                  throw PlatformException(code: 'locked');
+                }
+                store[key] = args['value'] as String;
+              case 'delete':
+                store.remove(key);
+              case 'read':
+                return store[key];
+            }
+
+            return null;
+          });
+    });
+
+    test('a write issued before a delete never lands after it', () async {
+      final vault = MagicVaultService();
+
+      final writing = vault.put('auth_token', 'slow');
+      final deleting = vault.remove('auth_token');
+      await writeArrived.future;
+      writeRelease.complete();
+      await Future.wait<void>([writing, deleting]);
+
+      expect(store['auth_token'], isNull);
+    });
+
+    test(
+      'a failed operation reaches its caller and not the next one',
+      () async {
+        final vault = MagicVaultService();
+
+        final failing = vault.put('auth_token', 'refused');
+        final writing = vault.put('auth_token', 'next');
+
+        await expectLater(failing, throwsA(isA<MagicVaultException>()));
+        await writing;
+        expect(await vault.get('auth_token'), 'next');
+      },
+    );
   });
 }
