@@ -164,7 +164,7 @@ if (user != null) {
 | `InteractsWithPersistence.findById`, `allModels` | The reads behind a model's static `find` and `all` |
 | `toMap()`, `toJson()`, `hidden`, `appends` | Serialisation |
 
-Fails when: a relation was not nested in the payload (there is no lazy load and no `with()`, so it reads `null`); `fill` without `strict` meets a key outside `fillable` (it is dropped silently, `strict: true` throws `MassAssignmentException`); `get<T>` meets a value of another type (it answers `null`); a `useLocal` model has no `magic_local_storage` (it throws `StateError`); a hybrid model (`useLocal` and `useRemote`) whose API refuses the save while the local write succeeds answers `true` with `validationErrors` filled, so check the errors even after a `true`.
+Fails when: a relation was not nested in the payload (there is no lazy load and no `with()`, so it reads `null`); `fill` without `strict` meets a key outside `fillable` (it is dropped silently, `strict: true` throws `MassAssignmentException`); `get<T>` meets a value of another type (it answers `null`); a `useLocal` model has no `magic_local_storage` (it throws `StateError`); a hybrid model (`useLocal` and `useRemote`) whose API refuses the save while the local write succeeds answers `true` with `validationErrors` filled, so check the errors even after a `true`; when the API fails without field errors (a 500, a transport error) it also answers `true`, with `validationErrors` empty, and `lastRemoteResponse` tells you: the failed response, `statusCode` 0 for no readable answer, or `null` when the driver threw.
 
 ## Routing and middleware
 

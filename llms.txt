@@ -80,7 +80,7 @@ Android, iOS, macOS, Windows, Linux and the web. `Vault` uses the platform's sec
 - Use `fromMap` for model hydration: it bypasses `fillable`, while `fill` drops keys not listed (`fill(map, strict: true)` throws instead).
 - Register routes in a provider's `boot()`: the first read of `MagicRoute.config` (the last step of `Magic.init`) builds the router, and a route, layout or observer added after it throws `StateError`. A middleware alias nothing registered makes `Magic.init` throw.
 - `Magic.make` on an unbound key throws; `Gate` denies without an error when the ability is undefined, nobody is signed in or the callback throws; `Lang.get` answers the key itself when it is missing.
-- `save()` answers `true` when any leg succeeded: a hybrid model (`useLocal` and `useRemote`) whose API refuses the save while the local write succeeds answers `true` with `validationErrors` filled, so check them even after a `true`.
+- `save()` answers `true` when any leg succeeded: a hybrid model (`useLocal` and `useRemote`) whose API refuses the save while the local write succeeds answers `true` with `validationErrors` filled, so check them even after a `true`; a remote failure without field errors (a 500, a transport error) also answers `true` with `validationErrors` empty, and `lastRemoteResponse` is the failed response, `statusCode` 0 for no readable answer, or `null` when the driver threw.
 - `Cache.remember` stores whatever its callback returns: throw on a failed response inside it, or the failure is cached for the TTL.
 - `FormRequest.validate` keeps only the keys `rules()` names, even ones `prepared()` added; a custom rule's `message()` returns a translation key, since `Rule.name` derives from it.
 ## Docs
