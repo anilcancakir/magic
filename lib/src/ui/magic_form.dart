@@ -90,7 +90,16 @@ class MagicForm extends StatelessWidget {
   /// `canPop: false`, which is what the form builds on. As with
   /// `Navigator.maybePop`, an answer that arrives after the route left the
   /// top of the stack is dropped, and an approved back on the first route
-  /// bubbles to the enclosing navigator or out of the app.
+  /// bubbles through each enclosing navigator, then out of the app (on
+  /// Android that closes it, including for a programmatic `maybePop`).
+  ///
+  /// Two differences from Flutter's deprecated `Form.onWillPop`, which come
+  /// with `PopScope`: `Navigator.maybePop` answers `true` at once rather
+  /// than after the callback, and an exception the callback throws surfaces
+  /// as an uncaught zone error, not from the `maybePop` call. And an approved
+  /// close of a web overlay route that closes through the browser pops in
+  /// the app instead of stepping the browser back, so the history entry is
+  /// left behind.
   final Future<bool> Function()? onWillPop;
 
   /// Restoration ID to save and restore the state of the [Form].
@@ -168,8 +177,15 @@ class MagicForm extends StatelessWidget {
     // 1. Bind the answer to the route that asked, before the await.
     final ModalRoute<Object?>? route = ModalRoute.of(context);
     final NavigatorState navigator = Navigator.of(context);
-    final NavigatorState? parent = navigator.context
-        .findAncestorStateOfType<NavigatorState>();
+    final List<NavigatorState> ancestors = <NavigatorState>[
+      for (
+        NavigatorState? nav = navigator.context
+            .findAncestorStateOfType<NavigatorState>();
+        nav != null;
+        nav = nav.context.findAncestorStateOfType<NavigatorState>()
+      )
+        nav,
+    ];
     if (!await willPop()) return;
 
     // 2. Like maybePop, forget the approval when the history changed while it
@@ -180,11 +196,13 @@ class MagicForm extends StatelessWidget {
       return;
     }
 
-    // 3. A first route bubbles (RoutePopDisposition.bubble): to the enclosing
-    //    navigator, or out of the app, instead of leaving a navigator empty.
-    if (parent != null) {
-      await parent.maybePop(result);
-      return;
+    // 3. A first route bubbles (RoutePopDisposition.bubble) instead of
+    //    leaving a navigator empty: each enclosing navigator in turn, as
+    //    Router.popRoute walks them, and out of the app when none takes it
+    //    (maybePop answers false only for a bubbling first route).
+    for (final NavigatorState ancestor in ancestors) {
+      if (!ancestor.mounted) continue;
+      if (await ancestor.maybePop(result)) return;
     }
     await SystemNavigator.pop();
   }

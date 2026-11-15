@@ -136,5 +136,64 @@ void main() {
       expect(find.text('form'), findsOneWidget);
       expect(platformCalls, contains('SystemNavigator.pop'));
     });
+
+    testWidgets('an approved back on the only page of a layout bubbles out of '
+        'the app', (tester) async {
+      final List<String> platformCalls = _recordPlatformCalls(tester);
+      MagicApp.reset();
+      Magic.flush();
+      TitleManager.reset();
+      MagicRouter.reset();
+      addTearDown(MagicRouter.reset);
+      final _FormController controller = _FormController();
+      addTearDown(controller.dispose);
+
+      // The shell page is first on the root navigator and the form page is
+      // the only page in the shell's navigator.
+      MagicRoute.group(
+        layout: (Widget child) => child,
+        routes: () {
+          MagicRoute.page(
+            '/',
+            () => MagicForm(
+              formKey: GlobalKey<FormState>(),
+              controller: controller,
+              onWillPop: () async => true,
+              child: const Text('form'),
+            ),
+          );
+        },
+      );
+      await tester.pumpWidget(
+        MaterialApp.router(routerConfig: MagicRouter.instance.routerConfig),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(find.text('form'), findsOneWidget);
+      expect(platformCalls, contains('SystemNavigator.pop'));
+    });
   });
+}
+
+/// Records the platform channel calls, where `SystemNavigator.pop` lands.
+List<String> _recordPlatformCalls(WidgetTester tester) {
+  final List<String> calls = <String>[];
+  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+    SystemChannels.platform,
+    (MethodCall call) async {
+      calls.add(call.method);
+      return null;
+    },
+  );
+  addTearDown(
+    () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      null,
+    ),
+  );
+
+  return calls;
 }
