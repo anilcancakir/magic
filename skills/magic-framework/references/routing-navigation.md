@@ -210,7 +210,7 @@ MagicRoute.layout(
 );
 ```
 
-Multiple layout groups with the same ID merge their routes under a single layout shell: children are concatenated in registration order and the first builder wins. A layout without an ID is its own shell. Shells are emitted in registration order of their first group, and go_router tries them in that order.
+Multiple layout groups with the same ID merge their routes under a single layout shell: children are concatenated in registration order and the first builder wins. A layout without an ID is its own shell. Shells are emitted in registration order of their first group, after every top-level route, and go_router tries them in that order. The routes passed to `MagicRoute.layout` leave the top-level table (from the release after 1.0.0; on 1.0.0 they stayed in it too and rendered without the layout), so a top-level catch-all such as `MagicRoute.page('/:slug', ...)` captures a layout page whatever the registration order: put a catch-all last inside a layout, or keep it out of the top level.
 
 ### Above Every Route: `MagicApplication.builder`
 

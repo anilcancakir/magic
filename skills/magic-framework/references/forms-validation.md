@@ -107,7 +107,7 @@ const MagicForm({
   required Widget child,
   AutovalidateMode? autovalidateMode,
   VoidCallback? onChanged,
-  WillPopCallback? onWillPop,
+  Future<bool> Function()? onWillPop,
   String? restorationId,
 })
 ```
