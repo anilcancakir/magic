@@ -51,6 +51,17 @@ jobs:
             exit 1
           fi
 
+      # pub.dev rejects an upload whose CHANGELOG.md is over 262144 bytes, and
+      # only the final upload step finds out. Move the oldest releases into
+      # CHANGELOG-ARCHIVE.md before the file gets there.
+      - name: Check the changelog size
+        run: |
+          size="$(wc -c < CHANGELOG.md)"
+          if [ "$size" -gt 262144 ]; then
+            echo "::error::CHANGELOG.md is $size bytes; pub.dev accepts at most 262144. Archive the oldest releases." >&2
+            exit 1
+          fi
+
       - name: Setup Flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
