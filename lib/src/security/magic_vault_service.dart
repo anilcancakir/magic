@@ -58,6 +58,9 @@ class MagicVaultService {
   Future<FlutterSecureStorage>? _resolving;
   bool? _usesDataProtection;
 
+  /// The operations issued so far, settled in issue order (see [_run]).
+  Future<void> _tail = Future<void>.value();
+
   /// Creates the service.
   ///
   /// [macOsUsesDataProtectionKeychain] chooses which of macOS's two
@@ -126,7 +129,26 @@ class MagicVaultService {
   Future<void> flush() =>
       _run('Failed to flush vault', (storage) => storage.deleteAll());
 
+  /// Runs [operation] once every operation issued before it has finished.
+  ///
+  /// The platforms do not keep issue order on their own: on the web a delete
+  /// runs `removeItem` at once while a write first awaits its key and
+  /// `subtle.encrypt`, so a token written before a sign-out's delete landed
+  /// after it and was back on disk. A failure reaches its own caller through
+  /// the returned future; the chain only waits for it to settle, so the next
+  /// operation still runs. The order needs every operation to finish, so a
+  /// platform call that never answers stalls every later Vault call.
   Future<T> _run<T>(
+    String failure,
+    Future<T> Function(FlutterSecureStorage storage) operation,
+  ) {
+    final result = _tail.then((_) => _perform(failure, operation));
+    _tail = result.then<void>((_) {}, onError: (Object _) {});
+
+    return result;
+  }
+
+  Future<T> _perform<T>(
     String failure,
     Future<T> Function(FlutterSecureStorage storage) operation,
   ) async {

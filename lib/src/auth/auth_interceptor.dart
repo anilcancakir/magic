@@ -15,6 +15,14 @@ import 'guards/base_guard.dart';
 class AuthInterceptor extends MagicNetworkInterceptor {
   bool _isRefreshing = false;
 
+  /// The credential a retry was sent with, which [onRequest] leaves in place.
+  ///
+  /// Dio runs the retry's interceptor chain on a later turn, and a sign-in
+  /// landing in that turn would otherwise have [onRequest] send this session's
+  /// request under the new session's token. One at a time: [_isRefreshing]
+  /// serialises the refreshes that set it.
+  String? _pinnedCredential;
+
   /// The header carrying the token, as `auth.token.header` names it.
   String get _header {
     final authConfig = Config.get<Map<String, dynamic>>('auth', {});
@@ -34,6 +42,11 @@ class AuthInterceptor extends MagicNetworkInterceptor {
   @override
   dynamic onRequest(MagicRequest request) {
     final guard = Auth.guard();
+    final pinned = _pinnedCredential;
+
+    if (pinned != null && _presentedCredential(request) == pinned) {
+      return request;
+    }
 
     if (guard is BaseGuard) {
       final token = guard.cachedToken;
@@ -86,6 +99,14 @@ class AuthInterceptor extends MagicNetworkInterceptor {
   }
 
   /// Run the refresh-or-logout ladder for a 401 on the current credential.
+  ///
+  /// Against a [BaseGuard], the session the request was refused under is
+  /// captured before the refresh starts. When a sign-in, a sign-out or a
+  /// restore of another token replaced it by the time the refresh returns,
+  /// the refusal is handed back as it is: neither a logout (it would end the
+  /// new session) nor a retry (it would send this request with the new
+  /// session's token). A retry answered after such a change is handed back
+  /// refused too, since it may have gone out under the new session's token.
   Future<dynamic> _refreshOrLogout(
     MagicError error,
     MagicRequest request,
@@ -95,7 +116,17 @@ class AuthInterceptor extends MagicNetworkInterceptor {
     _isRefreshing = true;
 
     try {
-      final refreshed = await Auth.guard().refreshToken();
+      final guard = Auth.guard();
+      final epoch = guard is BaseGuard ? guard.sessionEpoch : null;
+      bool sameSession() => guard is! BaseGuard || guard.sessionEpoch == epoch;
+
+      final refreshed = await guard.refreshToken();
+
+      if (!sameSession()) {
+        Log.debug('Auth: session changed during the refresh; not retrying');
+
+        return error;
+      }
 
       if (!refreshed) {
         Log.warning('Auth: Token refresh failed, logging out');
@@ -106,15 +137,19 @@ class AuthInterceptor extends MagicNetworkInterceptor {
 
       Log.info('Auth: Token refreshed, retrying request');
 
-      final current = Auth.guard() is BaseGuard ? _currentCredential : null;
+      final current = guard is BaseGuard ? _currentCredential : null;
       if (current == null) return error;
 
-      return await _retryRequest(_withCredential(request, current)) ?? error;
+      _pinnedCredential = current;
+      final retried = await _retryRequest(_withCredential(request, current));
+
+      return sameSession() ? retried ?? error : error;
     } catch (e) {
       Log.error('Auth: Error during token refresh: $e');
 
       return error;
     } finally {
+      _pinnedCredential = null;
       _isRefreshing = false;
     }
   }
