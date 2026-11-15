@@ -244,7 +244,7 @@ class MagicRouter {
 
   /// Add a layout (shell) definition.
   ///
-  /// Usually called via `Route.layout()`.
+  /// Usually called via `MagicRoute.layout()` or `MagicRoute.group(layout:)`.
   void addLayout(LayoutDefinition layout) {
     if (_isBuilt) {
       throw StateError(
@@ -252,6 +252,11 @@ class MagicRouter {
         'Register all routes before accessing routerConfig.',
       );
     }
+    // `MagicRoute.layout(routes: [...])` builds its list with
+    // `MagicRoute.page`, which already put each route in the top-level table.
+    // go_router matches top-level routes before the shell, so a route left
+    // there would render without its layout.
+    _routes.removeWhere(layout.children.contains);
     _layouts.add(layout);
   }
 
@@ -339,10 +344,10 @@ class MagicRouter {
   /// route under a tab or shell layout ungated, which is where a gated screen
   /// usually lives.
   ///
-  /// The identity set is not defensive. `MagicRoute.layout(routes: [...])`
-  /// builds its list by calling `MagicRoute.page` with no collection open, so
-  /// those routes land in `_routes` AND in the layout's children, and the same
-  /// instance would otherwise be reported twice and counted twice.
+  /// The identity set keeps one route instance from being reported twice when
+  /// it is reachable from two places, such as a list passed to two
+  /// `MagicRoute.layout` calls. ([addLayout] takes a standalone layout's
+  /// routes out of `_routes`, so that path no longer doubles them.)
   void _assertMiddlewareResolvable() {
     final problems = <String>[];
     final seen = <RouteDefinition>{};
@@ -515,8 +520,8 @@ class MagicRouter {
       // An overlay declared in a layout group keeps the group's prefix and
       // middleware but is lifted out of the shell: it opens on the root
       // navigator, and go_router refuses a shell child that names the root
-      // key. `MagicRoute.layout(routes:)` also lands its routes in `_routes`,
-      // so one already added above is not added twice.
+      // key. An overlay still in `_routes` was added above and is not added
+      // twice.
       final pages = <RouteDefinition>[];
       for (final child in layout.children) {
         if (!child.isOverlay) {

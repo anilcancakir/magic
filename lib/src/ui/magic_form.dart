@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../concerns/validates_requests.dart';
@@ -86,7 +87,10 @@ class MagicForm extends StatelessWidget {
   /// Asked on every back attempt (system back, `Navigator.maybePop`); the
   /// route pops only when the future answers `true`. While it is set the
   /// route cannot be swiped away, the same as Flutter's `PopScope` with
-  /// `canPop: false`, which is what the form builds on.
+  /// `canPop: false`, which is what the form builds on. As with
+  /// `Navigator.maybePop`, an answer that arrives after the route left the
+  /// top of the stack is dropped, and an approved back on the first route
+  /// bubbles to the enclosing navigator or out of the app.
   final Future<bool> Function()? onWillPop;
 
   /// Restoration ID to save and restore the state of the [Form].
@@ -150,9 +154,9 @@ class MagicForm extends StatelessWidget {
     );
   }
 
-  /// Asks [willPop] about a blocked back attempt and pops the route itself
-  /// when it answers `true`, so the veto keeps its `onWillPop` contract on
-  /// top of `canPop: false`.
+  /// Asks [willPop] about a blocked back attempt and, on `true`, finishes it
+  /// the way `Navigator.maybePop` finishes an approved pop, so the veto keeps
+  /// its `onWillPop` contract on top of `canPop: false`.
   Future<void> _popIfAllowed(
     BuildContext context,
     Future<bool> Function() willPop,
@@ -161,7 +165,27 @@ class MagicForm extends StatelessWidget {
   ) async {
     if (didPop) return;
 
+    // 1. Bind the answer to the route that asked, before the await.
+    final ModalRoute<Object?>? route = ModalRoute.of(context);
     final NavigatorState navigator = Navigator.of(context);
-    if (await willPop()) navigator.pop(result);
+    final NavigatorState? parent = navigator.context
+        .findAncestorStateOfType<NavigatorState>();
+    if (!await willPop()) return;
+
+    // 2. Like maybePop, forget the approval when the history changed while it
+    //    was pending: the route left, or another one was pushed over it.
+    if (!context.mounted || route == null || !route.isCurrent) return;
+    if (!route.isFirst) {
+      navigator.pop(result);
+      return;
+    }
+
+    // 3. A first route bubbles (RoutePopDisposition.bubble): to the enclosing
+    //    navigator, or out of the app, instead of leaving a navigator empty.
+    if (parent != null) {
+      await parent.maybePop(result);
+      return;
+    }
+    await SystemNavigator.pop();
   }
 }

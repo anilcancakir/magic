@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:magic/magic.dart';
 import 'package:material_ui/material_ui.dart';
@@ -71,6 +74,67 @@ void main() {
       expect(asked, 1);
       expect(find.text('form'), findsNothing);
       expect(find.text('home'), findsOneWidget);
+    });
+
+    testWidgets('an approval that lands after a push does not pop the new '
+        'route', (tester) async {
+      final Completer<bool> answer = Completer<bool>();
+      final navigator = await _pumpFormRoute(
+        tester,
+        onWillPop: () => answer.future,
+      );
+
+      // 1. Ask, and push another route while the answer is pending.
+      unawaited(navigator.maybePop());
+      await tester.pump();
+      navigator.push(
+        MaterialPageRoute<void>(builder: (_) => const Text('other')),
+      );
+      await tester.pumpAndSettle();
+
+      // 2. The approval belongs to the form route, which is no longer on top.
+      answer.complete(true);
+      await tester.pumpAndSettle();
+
+      expect(find.text('other'), findsOneWidget);
+    });
+
+    testWidgets('an approved back on the first route bubbles instead of '
+        'removing it', (tester) async {
+      final List<String> platformCalls = <String>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (MethodCall call) async {
+          platformCalls.add(call.method);
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      final _FormController controller = _FormController();
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MagicForm(
+            formKey: GlobalKey<FormState>(),
+            controller: controller,
+            onWillPop: () async => true,
+            child: const Text('form'),
+          ),
+        ),
+      );
+
+      // The system back button, as the engine sends it.
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(find.text('form'), findsOneWidget);
+      expect(platformCalls, contains('SystemNavigator.pop'));
     });
   });
 }

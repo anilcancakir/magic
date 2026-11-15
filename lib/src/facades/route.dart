@@ -176,7 +176,7 @@ class MagicRoute {
   /// while child routes change.
   ///
   /// ```dart
-  /// Route.layout(
+  /// MagicRoute.layout(
   ///   builder: (child) => DashboardLayout(child: child),
   ///   routes: [
   ///     MagicRoute.page('/dashboard', DashboardHome.new),
@@ -184,6 +184,10 @@ class MagicRoute {
   ///   ],
   /// );
   /// ```
+  ///
+  /// The routes in the list leave the top-level table and live under the
+  /// layout only. `MagicRoute.group(layout: ...)` is the same with a prefix,
+  /// middleware and a shared `layoutId`.
   ///
   /// The layout widget should include a `MagicRouterOutlet` or use
   /// the `child` parameter to render nested content.
