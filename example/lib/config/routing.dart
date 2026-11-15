@@ -2,7 +2,7 @@
 ///
 /// Controls URL strategy and other routing behavior.
 /// Set `'url_strategy'` to `'path'` for clean web URLs (/dashboard instead of /#/dashboard).
-/// See: https://magic.fluttersdk.com/docs/basics/routing#url-strategy
+/// See: https://anilcancakir.com/magic/docs/basics/routing#url-strategy
 Map<String, dynamic> get routingConfig => {
   'routing': {
     'url_strategy':

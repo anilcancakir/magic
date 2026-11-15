@@ -375,7 +375,7 @@ MagicRoute.group(
 
 Moving between two shells rebuilds the layout and plays its entrance animation again, so the sidebar flashes and loses its state. Put every route that shows the same layout in groups with one `layoutId`.
 
-Shells are emitted in registration order of their first group, and go_router tries them in that order. In debug builds, `MagicRouter` prints a note once per layout widget type when a group without a `layoutId` builds the same layout widget as another group (two different explicit ids are taken as deliberate), and suggests the same `layoutId` to share one shell or a unique id to keep them apart on purpose.
+Shells are emitted in registration order of their first group, after every top-level route, and go_router tries them in that order: a top-level catch-all shadows every layout page. In debug builds, `MagicRouter` prints a note once per layout widget type when a group without a `layoutId` builds the same layout widget as another group (two different explicit ids are taken as deliberate), and suggests the same `layoutId` to share one shell or a unique id to keep them apart on purpose.
 
 > [!TIP]
 > Use layouts for any UI that should persist across page navigation, such as sidebars, bottom navigation bars, or headers.
@@ -407,6 +407,8 @@ MagicRoute.layout(
   routes: adminRoutes,
 );
 ```
+
+The routes you pass leave the top-level table and live under the layout only, as a group's routes do; an overlay route in the list is the exception and opens on the root navigator, above the shell (see [Bottom Sheet Routes](#bottom-sheet-routes)). go_router takes the first match, trying every top-level route first and then each shell in registration order. A catch-all such as `MagicRoute.page('/:slug', ...)` therefore captures every path it can match that is tried after it: at the top level it shadows every layout page, and last in an app shell it still captures `/login` from a guest shell registered later. Register a catch-all after every route it could shadow, in the last shell tried.
 
 > [!TIP]
 > For most cases, the `layout:` parameter on `MagicRoute.group()` is more convenient. Use `MagicRoute.layout()` when you need to reference a list of routes that are built separately.

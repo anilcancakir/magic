@@ -12,7 +12,7 @@ body:
     attributes:
       label: Documentation Page
       description: Which doc page has the issue?
-      placeholder: "doc/basics/routing.md or https://magic.fluttersdk.com/..."
+      placeholder: "doc/basics/routing.md or https://anilcancakir.com/magic/docs/..."
     validations:
       required: true
 

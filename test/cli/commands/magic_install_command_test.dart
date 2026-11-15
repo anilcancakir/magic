@@ -2965,4 +2965,38 @@ void main() async {
       expect(main, contains('MagicCrumbsIntegration.install();'));
     });
   });
+
+  group('MagicInstallCommand, links written into a new app', () {
+    // Every stub is copied into a consumer app verbatim, so a link to the
+    // retired fluttersdk domain would ship a dead URL into every new app.
+    test('no stub names the retired fluttersdk domain or plugin', () {
+      final stubsDir = Directory(p.join(_magicRoot, 'assets', 'stubs'));
+      final offenders = <String>[
+        for (final file in stubsDir.listSync(recursive: true).whereType<File>())
+          if (file.readAsStringSync().contains('fluttersdk'))
+            p.relative(file.path, from: stubsDir.path),
+      ];
+
+      expect(offenders, isEmpty);
+    });
+
+    test('the welcome view and routing config link to the live site', () {
+      final welcome = _loadStub('install/welcome_view');
+      final routing = _loadStub('install/routing_config');
+
+      expect(welcome, contains("url: 'https://anilcancakir.com/magic',"));
+      expect(
+        welcome,
+        contains(
+          "url: 'https://anilcancakir.com/magic/docs/packages/magic-cli',",
+        ),
+      );
+      expect(
+        routing,
+        contains(
+          'https://anilcancakir.com/magic/docs/basics/routing#url-strategy',
+        ),
+      );
+    });
+  });
 }

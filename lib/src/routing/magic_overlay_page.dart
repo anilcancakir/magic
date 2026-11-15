@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:meta/meta.dart';
 
 /// The frame an overlay route opens in.
 enum MagicOverlayPresentation {
@@ -129,6 +130,16 @@ mixin _OverlayDismissal<T> on ModalRoute<T> {
     super.onPopInvokedWithResult(didPop, result);
   }
 }
+
+/// Whether [route] is a magic overlay that answers `doNotPop` only because a
+/// close goes through the browser's Back, so a `maybePop` on it steps the
+/// browser instead of popping.
+///
+/// `MagicForm` reads it after its approval: such a route must be asked again,
+/// unlike a route that another pop entry still vetoes.
+@internal
+bool routeStepsBrowserBack(Route<Object?> route) =>
+    route is _OverlayDismissal && route._maybePopsThroughBrowser;
 
 class _MagicOverlayDialogRoute<T> extends DialogRoute<T>
     with _OverlayDismissal<T> {

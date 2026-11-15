@@ -108,7 +108,6 @@ void main() {
     });
 
     test('MagicRoute.get() works as alias for page()', () {
-      // ignore: deprecated_member_use_from_same_package
       MagicRoute.get('/home', () => const SizedBox());
       expect(MagicRouter.instance.routes.first.method, 'PAGE');
     });

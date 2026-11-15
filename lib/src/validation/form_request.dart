@@ -12,17 +12,18 @@ import 'validator.dart';
 ///
 /// ```dart
 /// class StoreMonitorRequest extends FormRequest {
-///   StoreMonitorRequest(this.actor);
-///
-///   final User actor;
+///   const StoreMonitorRequest();
 ///
 ///   @override
-///   bool authorize() => actor.can('monitor.create');
+///   bool authorize() => Gate.allows('monitor.create');
 ///
 ///   @override
 ///   Map<String, dynamic> prepared(Map<String, dynamic> data) => {
 ///     ...data,
-///     'slug': slugify(data['name'] as String? ?? ''),
+///     'slug': (data['name'] as String? ?? '')
+///         .trim()
+///         .toLowerCase()
+///         .replaceAll(RegExp(r'\s+'), '-'),
 ///   };
 ///
 ///   @override
@@ -33,7 +34,7 @@ import 'validator.dart';
 /// }
 ///
 /// // In the controller:
-/// final payload = StoreMonitorRequest(Auth.user()!).validate(form.data);
+/// final payload = const StoreMonitorRequest().validate(form.data);
 /// await Http.post('/monitors', data: payload);
 /// ```
 ///

@@ -10,7 +10,10 @@
 # GitHub login/auth walls (linked repos are public but auth redirects happen)
 https://github.com/login*
 
-# pub.dev search and analytics pages (rate-limited for CI IPs)
+# pub.dev package pages. Temporary, dated 2026-11-15: the recorded reason is
+# that pub.dev rate-limits requests from shared CI runners. Remove this line
+# once lychee runs with a request limit pub.dev accepts (--max-concurrency,
+# --retry-wait-time), so package links are checked again.
 https://pub.dev/packages*
 
 # Localhost and loopback references in code samples
