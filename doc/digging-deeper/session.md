@@ -98,7 +98,7 @@ Future<void> main() async {
 
 Wire it in `main()` after `await Magic.init()`, not in a `ServiceProvider.boot()`. Every `boot()` runs inside `Magic.init()`, and the first read of `routerConfig` builds the router. A `boot()` that reads it before `RouteServiceProvider.boot()` has registered the routes freezes the router early, so the next `addRoute` throws a `StateError`. Once `Magic.init()` returns, the router is built with every route in it.
 
-Compare the delegate's `currentConfiguration`, not `MagicRouter.instance.currentLocation`. The delegate sets its configuration and then notifies, while `currentLocation` changes only when the destination page builds, after the listeners have run: a listener reading `currentLocation` sees the previous page and ticks one navigation late. Two configurations are equal when their URI and route matches are, so a re-evaluation that lands on the same stack does not tick, and a push or a pop does.
+Compare the delegate's `currentConfiguration`, not `MagicRouter.instance.currentLocation`. The delegate sets its configuration and then notifies, while `currentLocation` changes only when the destination page builds, after the listeners have run: a listener reading `currentLocation` sees the previous page and ticks one navigation late. Two configurations are equal when their URI and route matches are, so a re-evaluation that lands on the same stack does not tick, and a push or a pop does. A query-only change (`MagicRoute.to('/search?q=flutter')` from `/search`) is a navigation too and ticks, the way a new GET request ages Laravel's flash data even when it renders the same page.
 
 <a name="testing"></a>
 ## Testing
