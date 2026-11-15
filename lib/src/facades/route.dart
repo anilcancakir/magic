@@ -103,7 +103,7 @@ class MagicRoute {
   /// Routes inside the callback inherit the group's prefix and middleware.
   ///
   /// ```dart
-  /// Route.group(
+  /// MagicRoute.group(
   ///   prefix: '/api/v1',
   ///   middleware: [ApiAuthMiddleware()],
   ///   routes: () {
@@ -116,8 +116,8 @@ class MagicRoute {
   /// Groups can be nested:
   ///
   /// ```dart
-  /// Route.group(prefix: '/admin', routes: () {
-  ///   Route.group(prefix: '/users', routes: () {
+  /// MagicRoute.group(prefix: '/admin', routes: () {
+  ///   MagicRoute.group(prefix: '/users', routes: () {
   ///     MagicRoute.page('/', AdminUsersController.index);     // /admin/users
   ///     MagicRoute.page('/:id', AdminUsersController.show);   // /admin/users/:id
   ///   });
