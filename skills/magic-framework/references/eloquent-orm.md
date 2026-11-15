@@ -49,7 +49,8 @@ class Monitor extends Model with HasTimestamps, InteractsWithPersistence {
         'updated_at': 'datetime',
       };
 
-  // Typed getters: ALWAYS use get<T>(), never getAttribute() directly
+  // Typed getters: get<T>() returns null (or defaultValue) for a missing or wrongly typed
+  // value; an exception the cast raises (EnumCast with strict: true) still propagates
   int? get id => get<int>('id');
   String? get name => get<String>('name');
   MonitorType? get type => MonitorType.fromValue(get<String>('type'));
@@ -127,7 +128,7 @@ class Monitor extends Model with HasTimestamps, InteractsWithPersistence {
 A built-in cast is computed once per raw value and memoised, so repeated
 reads of the same attribute return the identical instance rather than
 re-parsing. The memo is dropped by `setAttribute` for that key and by
-`setRawAttributes` for all of them. A `CastsAttributes` instance is NOT
+`setRawAttributes` for all of them. A `CastsAttributes` instance is not
 memoised, because it may derive its answer from something other than the
 attribute it is registered against.
 
@@ -262,6 +263,7 @@ class Post extends Model with HasTimestamps, InteractsWithPersistence { ... }
 3. If `useRemote`: POST `/{resource}` (new) or PUT `/{resource}/{id}` (existing). Sets `id` from response on create.
 4. If `useLocal`: INSERT or UPDATE through the bound `LocalModelStore`. The SQLite store drops attributes the table has no column for.
 5. On success: `exists = true`, `syncOriginal()`, dispatches `ModelCreated`/`ModelUpdated`, then `ModelSaved`.
+6. Returns `true` when any leg succeeded. A hybrid model whose remote leg is refused (a 422) while the local write succeeds returns `true` with `validationErrors` filled when the answer carries a Laravel `errors` map, so check them even after a `true`. A remote failure that is not a field failure (a 500, a transport error, or a 422 with no `errors` map) also returns `true` when the local write succeeds, with `validationErrors` empty: read `lastRemoteResponse`, which is the remote answer (`successful` false on a 500), `statusCode` 0 when no readable answer came back, and `null` when the driver threw.
 
 ### find(id) flow
 1. If `useLocal`: queries SQLite first; returns hydrated model on hit.
@@ -299,10 +301,10 @@ Dispatched via `Event.dispatch()` during the `save()` / `delete()` lifecycle.
 
 ## Gotchas
 
-- **Null Safety**: `get<T>()` returns `null` for missing or wrongly-typed values - it never throws.
+- **Null Safety**: `get<T>()` returns `null` (or `defaultValue`) for a missing or wrongly typed value instead of throwing a `TypeError`. It reads through `getAttribute()`, so an exception the cast itself raises still propagates: with `EnumCast(..., strict: true)` an unknown stored value throws `ArgumentError` before `get<T>()` can answer `null`.
 - **Column filtering**: the SQLite store behind `useLocal` drops attributes the table has no column for on insert and update.
 - **Manual Hydration**: Call `syncOriginal()` after manually hydrating a model to reset dirty state.
 - **Timestamps**: `HasTimestamps` stores timestamps as ISO 8601 strings; reads them back as `Carbon`.
-- **Typed Access**: NEVER read via `getAttribute()` in model getters. ALWAYS use `get<T>()`.
+- **Typed Access**: a model exposes a typed getter per field, and code outside the model reads those getters rather than a raw `getAttribute('key')`. Inside the getter, `get<T>('key')` (what `make:model` generates) returns `null` on a type mismatch; `getAttribute('key') as T?` (what the `doc/` pages show) throws a `TypeError` on one. Pick one per model.
 - **`useLocal` default is `false`**: Models are remote-only by default. Add `@override bool get useLocal => true;` to enable local persistence, and install `magic_local_storage`: with no `LocalModelStore` bound the model throws a `StateError` naming it.
-- **`create()`/`firstOrCreate()`/`updateOrCreate()`**: These static convenience methods do NOT exist on `InteractsWithPersistence`. Use `save()` on a constructed model instance instead.
+- **`create()`/`firstOrCreate()`/`updateOrCreate()`**: These static convenience methods do not exist on `InteractsWithPersistence`. Use `save()` on a constructed model instance instead.

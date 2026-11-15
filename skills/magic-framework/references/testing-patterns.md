@@ -22,7 +22,7 @@ Reference for testing Magic framework applications including service mocking, co
 
 ## Essential setUp Pattern
 
-Every Magic test MUST reset the global state in `setUp()` to prevent state leakage between tests. This is non-negotiable.
+Every Magic test resets the global state in `setUp()`: the container, the controllers and the facade fakes are static, so a test that skips the reset inherits the previous test's state and can pass for the wrong reason.
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';

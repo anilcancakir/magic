@@ -547,7 +547,7 @@ class _PostCreateViewState
 
 ## Gotchas
 
-- **Registration required**: The controller MUST be in the IoC container before `MagicView` builds. Register via `Magic.put(MyController())` or the singleton accessor (`Magic.findOrPut`).
+- **Registration required**: The controller is in the IoC container before `MagicView` builds, because `Magic.find` throws for a type nothing registered. Register via `Magic.put(MyController())` or the singleton accessor (`Magic.findOrPut`).
 - **onInit is synchronous at the call site**: `MagicStatefulView` calls `onInit()` synchronously. Async work inside it fires off but the first build runs before it completes - always handle the initial empty/loading state.
 - **No notifyListeners in build**: `setSuccess`, `setError`, etc. call `notifyListeners`. Never call them inside `build()` or a constructor.
 - **Dispose ValueNotifiers**: If you declare `ValueNotifier` fields, override `dispose()` and call `.dispose()` on each before `super.dispose()`.

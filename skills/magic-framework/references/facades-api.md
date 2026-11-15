@@ -32,7 +32,7 @@ Proxies calls to the default guard via the `AuthManager` singleton.
 | `Auth.login(Map<String, dynamic> data, Authenticatable user)` | `Future<void>` | Store credentials and set the authenticated user. |
 | `Auth.logout()` | `Future<void>` | Clear stored credentials and user from memory. |
 | `Auth.check()` | `bool` | True if user is authenticated. |
-| `Auth.guest` | `bool` | **Getter.** True if user is NOT authenticated. |
+| `Auth.guest` | `bool` | **Getter.** True if user is not authenticated. |
 | `Auth.user<T extends Model>()` | `T?` | Get the current user; null if unauthenticated. |
 | `Auth.id()` | `dynamic` | Primary key of the authenticated user. |
 | `Auth.restore()` | `Future<void>` | Restore session from secure storage on app boot. |
@@ -296,7 +296,7 @@ await Lang.detectAndSetLocale();
 
 ## Launch
 
-Resolves `Magic.make<LaunchService>('launch')`. Requires `LaunchServiceProvider` - NOT auto-registered. All methods return `false` on failure; they never throw.
+Resolves `Magic.make<LaunchService>('launch')`. Requires `LaunchServiceProvider` - not auto-registered. All methods return `false` on failure; they never throw.
 
 | Signature | Return Type | Notes |
 |-----------|-------------|-------|
@@ -324,7 +324,7 @@ if (await Launch.canLaunch('tel:+1234567890')) {
 
 ## Session
 
-Laravel-style flash store. Data written via `flash()` / `flashErrors()` lives in a **next** bucket and is promoted to **current** when the app calls `Session.tick()`. The router does NOT tick automatically - wire a routerDelegate listener gated on `MagicRouter.instance.currentLocation` changes during bootstrap (see example below). Each value survives exactly one hop.
+Laravel-style flash store. Data written via `flash()` / `flashErrors()` lives in a **next** bucket and is promoted to **current** when the app calls `Session.tick()`. The router does not tick automatically - wire a routerDelegate listener gated on changes of the delegate's `currentConfiguration` after `Magic.init()` (see example below). Each value survives exactly one hop.
 
 | Signature | Return Type | Notes |
 |-----------|-------------|-------|
@@ -351,13 +351,17 @@ String? error(String field);
 ```dart
 import 'package:magic/magic.dart';
 
-// Bootstrap (call once: Magic does not tick Session automatically):
-var lastLocation = MagicRouter.instance.currentLocation;
-MagicRouter.instance.router.routerDelegate.addListener(() {
-  final current = MagicRouter.instance.currentLocation;
-  if (current != lastLocation) {
+// In main(), after `await Magic.init()` (call once: Magic does not tick Session automatically).
+// A provider's boot() is too early: reading routerConfig there builds the router before the routes exist.
+// Compare the delegate's configuration: it is set before listeners run, while
+// currentLocation only changes when the new page builds, one notification late.
+final delegate = MagicRouter.instance.routerConfig.routerDelegate;
+var lastConfiguration = delegate.currentConfiguration;
+delegate.addListener(() {
+  final current = delegate.currentConfiguration;
+  if (current != lastConfiguration) {
     Session.tick();
-    lastLocation = current;
+    lastConfiguration = current;
   }
 });
 
@@ -498,7 +502,7 @@ Resolves `Magic.make<MagicVaultService>('vault')`. Backed by `flutter_secure_sto
 | `Vault.put(String key, String value)` | `Future<void>` | Write sensitive data to secure storage. |
 | `Vault.get(String key)` | `Future<String?>` | Read value; null if key does not exist. |
 | `Vault.delete(String key)` | `Future<void>` | Remove a specific key. |
-| `Vault.flush()` | `Future<void>` | Wipe ALL secure storage data for this app. |
+| `Vault.flush()` | `Future<void>` | Wipe all secure storage data for this app. |
 | `Vault.fake([Map<String, String> initialValues = const {}])` | `FakeVaultService` | **Testing.** Swap real `MagicVaultService` with in-memory `FakeVaultService`. Pass `initialValues` to pre-seed. Returns fake for assertions (`assertWritten`, `assertDeleted`, `assertContains`, `assertMissing`). |
 | `Vault.unfake()` | `void` | **Testing.** Remove fake and restore real `MagicVaultService`. Call in `tearDown`. |
 
