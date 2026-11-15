@@ -14,7 +14,7 @@
 # run when a skill fix has to arrive before the next release.
 #
 # Auth: uses the registry GitHub App (1-hour mint-on-demand
-# tokens). Requires REGISTRY_BOT_APP_ID + REGISTRY_BOT_PRIVATE_KEY
+# tokens). Requires REGISTRY_BOT_CLIENT_ID + REGISTRY_BOT_PRIVATE_KEY
 # secrets on this repo (same values as on anilcancakir/ai).
 
 name: Dispatch skill update to registry
@@ -22,7 +22,7 @@ name: Dispatch skill update to registry
 on:
     workflow_call:
         secrets:
-            REGISTRY_BOT_APP_ID:
+            REGISTRY_BOT_CLIENT_ID:
                 required: true
             REGISTRY_BOT_PRIVATE_KEY:
                 required: true
@@ -59,13 +59,13 @@ jobs:
 
             - name: Mint App token scoped to anilcancakir/ai
               id: app-token
-              uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2.1.0
+              uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
               with:
-                  app_id: ${{ secrets.REGISTRY_BOT_APP_ID }}
-                  private_key: ${{ secrets.REGISTRY_BOT_PRIVATE_KEY }}
-                  installation_retrieval_mode: repository
-                  installation_retrieval_payload: anilcancakir/ai
-                  repositories: '["ai"]'
+                  client-id: ${{ secrets.REGISTRY_BOT_CLIENT_ID }}
+                  private-key: ${{ secrets.REGISTRY_BOT_PRIVATE_KEY }}
+                  owner: anilcancakir
+                  repositories: ai
+                  permission-contents: write
 
             - name: Fire repository_dispatch to anilcancakir/ai
               uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4
