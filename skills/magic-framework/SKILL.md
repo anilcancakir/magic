@@ -443,7 +443,7 @@ Each official plugin is its own package with its own service provider, config an
 | Ready-made auth, profile, team and settings screens, paired with a Laravel backend | `magic_starter` | `MagicStarter` | `magic-starter` |
 | Error and performance monitoring with Sentry | `magic_sentry` | `MagicSentry.run`, `SentryServiceProvider` | `magic-sentry` |
 | Power and idle gates, macOS fullscreen | `magic_device` | `DevicePower`, `WindowFullscreen` | `magic-device` |
-| Debug-build E2E driving, runtime inspection and component previews | `magic_devtools` | `MagicDevtools`, `MagicPreview` | none yet: read `https://anilcancakir.com/magic/docs/packages/magic-devtools` |
+| Debug-build E2E driving, runtime inspection and component previews | `magic_devtools` | `MagicDevtools`, `MagicPreview` | `magic-devtools` |
 
 Two rules cover every plugin. A plugin's providers go in `lib/config/app.dart` after `AppServiceProvider` and `AuthServiceProvider`; the installer appends each to the END of the list, and `boot()` is a sequential await, so what one provider does in `boot()` is invisible to a provider that booted before it. When one provider's `boot()` must observe another's, order them; do not assume. And a plugin that needs native setup (an iOS entitlement, an Android intent filter) fails silently without it: finish the manual steps its own skill or installation page names. The five install steps, provider-order failures and the devtools wiring: `${CLAUDE_SKILL_DIR}/references/plugins.md`.
 

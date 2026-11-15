@@ -123,7 +123,7 @@ No global activation or package-name substitution is needed: `dart run magic:dow
 The installer adds `wind_kit`, `material_ui` and `dowel` to your `pubspec.yaml` and scaffolds `bin/dispatcher.dart` (plus the fast wrapper `bin/dowel`) through dowel's `install`. This command creates everything you need:
 
 - `lib/config/`: Configuration files (app, auth, cache, network, logging, routing, view)
-- `lib/app/`: Controllers, models, providers, middleware, policies
+- `lib/app/`: `providers/app_service_provider.dart`, `providers/route_service_provider.dart` and `kernel.dart` (controllers, models and the rest come from the `make:*` generators)
 - `lib/routes/`: Route definitions
 - `lib/resources/views/`: UI view classes
 - `lib/main.dart`: Bootstrapped entry point with `Magic.init()`
@@ -135,7 +135,7 @@ You can exclude features you don't need:
 dart run magic:dowel magic:install --without-auth --without-cache
 ```
 
-Available flags: `--without-auth`, `--without-network`, `--without-cache`, `--without-localization`, `--without-logging`.
+Available flags: `--without-auth`, `--without-network`, `--without-cache`, `--without-localization`, `--without-logging`, `--preserve` (inject the Magic bootstrap into an existing `lib/main.dart` instead of overwriting it; it rejects a synchronous `main()`, so make the entry point `async` first) and `--with-devtools` (wire `magic_devtools`, tapir and crumbs into `lib/main.dart` under `!kReleaseMode`).
 <a name="bootstrapping-your-application"></a>
 ## Bootstrapping Your Application
 
