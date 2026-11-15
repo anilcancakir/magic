@@ -325,6 +325,20 @@ class _RouteGuard extends PopEntry<Object?> {
     } finally {
       _canPop.value = false;
     }
-    if (!handled) unawaited(SystemNavigator.pop());
+    if (handled) return;
+    // As Flutter's own binding hands the exit off: a failing platform call is
+    // reported, not left as an unhandled zone error.
+    unawaited(
+      SystemNavigator.pop().catchError((Object error, StackTrace stack) {
+        FlutterError.reportError(
+          FlutterErrorDetails(
+            exception: error,
+            stack: stack,
+            library: 'magic',
+            context: ErrorDescription('while popping route'),
+          ),
+        );
+      }),
+    );
   }
 }

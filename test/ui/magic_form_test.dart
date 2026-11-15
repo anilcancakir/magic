@@ -521,6 +521,41 @@ void main() {
       exit.complete();
     });
 
+    testWidgets('an approved back hands its result to the form route only, '
+        'never to an outer page of another type', (tester) async {
+      final GlobalKey<NavigatorState> rootKey = GlobalKey<NavigatorState>();
+      final GlobalKey<NavigatorState> innerKey = GlobalKey<NavigatorState>();
+      final _FormController controller = _FormController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(navigatorKey: rootKey, home: const Text('home')),
+      );
+      // The outer page expects an int; the form sits on the first route of a
+      // navigator nested in it, so an approved back walks out to that page.
+      rootKey.currentState!.push(
+        MaterialPageRoute<int>(
+          builder: (_) => Navigator(
+            key: innerKey,
+            onGenerateRoute: (_) => MaterialPageRoute<void>(
+              builder: (_) => MagicForm(
+                formKey: GlobalKey<FormState>(),
+                controller: controller,
+                onWillPop: () async => true,
+                child: const Text('form'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await innerKey.currentState!.maybePop('x');
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('home'), findsOneWidget);
+    });
+
     testWidgets('an approved back on a layout page pushed over another page '
         'pops the shell, not the app', (tester) async {
       final List<String> platformCalls = _recordPlatformCalls(tester);
