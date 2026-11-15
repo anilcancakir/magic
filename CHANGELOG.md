@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-15
+
 ### Changed
 
 - **The pub.dev listing shows the Magic logo.** `pubspec.yaml` gains a `screenshots` entry that points at a 1024 pixel PNG render of the repository logo, as `wind_kit` does. (`pubspec.yaml`, `screenshots/`)

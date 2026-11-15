@@ -1,6 +1,6 @@
 name: magic
 description: "The full-stack framework for Flutter: Eloquent-style models, auth, routing, realtime and payments, ready on every device."
-version: 1.0.0
+version: 1.0.1
 homepage: https://anilcancakir.com/magic
 repository: https://github.com/anilcancakir/magic
 issue_tracker: https://github.com/anilcancakir/magic/issues
