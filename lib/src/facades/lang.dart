@@ -149,16 +149,15 @@ class Lang {
   /// ```dart
   /// Lang.addSource(
   ///   'magic_starter',
-  ///   const JsonAssetLoader(
+  ///   const JsonAssetLoader.package(
   ///     basePath: 'packages/magic_starter/assets/lang',
-  ///     fallbackLocale: null,
   ///   ),
   /// );
   /// ```
   ///
-  /// Pass `fallbackLocale: null` to a package's [JsonAssetLoader]: its default
-  /// answers a missing locale file with the whole `en.json`, which would then
-  /// outrank the host's own fallback strings.
+  /// Use [JsonAssetLoader.package] for a package's JSON catalogue: the plain
+  /// constructor answers a missing locale file with the whole `en.json`, which
+  /// would then outrank the host's own fallback strings.
   static void addSource(String package, TranslationLoader loader) {
     _translator.addSource(package, loader);
   }

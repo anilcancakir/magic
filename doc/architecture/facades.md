@@ -230,7 +230,7 @@ await Lang.setLocale(Locale('tr'));
 Lang.supportedLocales;              // Locales the app declares
 
 // A package's own catalogue, merged under the host's (call from register())
-Lang.addSource('my_package', const JsonAssetLoader(basePath: 'packages/my_package/assets/lang', fallbackLocale: null));
+Lang.addSource('my_package', const JsonAssetLoader.package(basePath: 'packages/my_package/assets/lang'));
 ```
 
 ### Launch

@@ -80,6 +80,10 @@ class Translator extends ChangeNotifier {
   int _sourcesVersion = 0;
   int _mergedSourcesVersion = 0;
 
+  /// Taken by every [load]; a load that finds a newer one started after it
+  /// leaves the catalogue to that one.
+  int _loadGeneration = 0;
+
   // ---------------------------------------------------------------------------
   // Configuration
   // ---------------------------------------------------------------------------
@@ -163,28 +167,38 @@ class Translator extends ChangeNotifier {
     // source registered while they are in flight, or a host loader that
     // throws, leaves the next load to merge again.
     final mergedVersion = _sourcesVersion;
+    final generation = ++_loadGeneration;
     final sources = _sources.entries.toList();
-    final conflicts = <String, Set<String>>{};
+    final fallbackConflicts = <String, Set<String>>{};
+    final ownConflicts = <String, Set<String>>{};
 
-    // Every read starts before any is awaited, so a locale with a fallback
-    // pays one round trip rather than one per catalogue. The spread order is
-    // what decides precedence, and it is unaffected by the order they
-    // complete in.
-    final packageFallback = _isFallback(locale)
-        ? Future.value(const <String, dynamic>{})
-        : _loadSources(sources, _fallbackLocale, conflicts);
-    final fallback = _loadFallbackFor(locale);
-    final packageOwn = _loadSources(sources, locale, conflicts);
-    final own = _loader.load(locale);
+    // Every read starts before any is awaited, and they are joined so a host
+    // loader that fails while a package read is pending still reaches the
+    // caller, rather than the zone. A locale with a fallback pays one round
+    // trip, not one per catalogue. The spread order below is what decides
+    // precedence, and it is unaffected by the order the reads complete in.
+    final layers = await Future.wait<Map<String, dynamic>>([
+      _isFallback(locale)
+          ? Future.value(const <String, dynamic>{})
+          : _loadSources(sources, _fallbackLocale, fallbackConflicts),
+      _loadFallbackFor(locale),
+      _loadSources(sources, locale, ownConflicts),
+      _loader.load(locale),
+    ]);
+
+    // A load that began after this one owns the catalogue: writing now would
+    // put an older merge, one that may lack a source registered since, over it.
+    if (generation != _loadGeneration) return;
 
     final data = <String, dynamic>{
-      ...await packageFallback,
-      ...await fallback,
-      ...await packageOwn,
-      ...await own,
+      ...layers[0],
+      ...layers[1],
+      ...layers[2],
+      ...layers[3],
     };
 
-    _warnAboutConflicts(conflicts, locale);
+    _warnAboutConflicts(fallbackConflicts, _fallbackLocale);
+    _warnAboutConflicts(ownConflicts, locale);
 
     // Convert all values to strings
     _sentences = data.map((key, value) => MapEntry(key, value.toString()));
@@ -288,7 +302,9 @@ class Translator extends ChangeNotifier {
     Locale locale,
   ) async {
     try {
-      return await loader.load(locale);
+      // Flattened as the host's own loader's output is, so a nested map and a
+      // dotted key name one key and a conflict between packages is seen.
+      return JsonAssetLoader.flatten(await loader.load(locale));
     } on Object catch (error) {
       // Guarded for the reason `_loadFallbackFor` records.
       if (Magic.bound('log')) {
@@ -303,16 +319,16 @@ class Translator extends ChangeNotifier {
     }
   }
 
-  /// One warning per key that two or more packages give different values in
-  /// the catalogue being merged for [locale] (or its fallback).
+  /// One warning per key that two or more packages give different values for
+  /// in [locale]'s catalogue.
   void _warnAboutConflicts(Map<String, Set<String>> conflicts, Locale locale) {
     if (conflicts.isEmpty || !Magic.bound('log')) return;
 
     for (final conflict in conflicts.entries) {
       Log.warning(
         'Translation key [${conflict.key}] has different values in the '
-        '[${conflict.value.join(', ')}] packages while loading '
-        '[${locale.languageCode}]; a value the host defines wins over both.',
+        '[${conflict.value.join(', ')}] packages for '
+        '[${locale.languageCode}]; a value the host defines for the key wins.',
       );
     }
   }

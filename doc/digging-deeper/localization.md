@@ -100,7 +100,7 @@ flutter:
 <a name="package-catalogues"></a>
 ## Package Catalogues
 
-A package that renders text ships its own catalogue and registers it with `Lang.addSource` from its provider's `register()`, which runs before the localisation provider's `boot()` loads the strings. Flutter bundles a package's asset under `packages/<package>/`, so a package that declares `assets/lang/` in its own `pubspec.yaml` reads it through a `JsonAssetLoader` with that base path:
+A package that renders text ships its own catalogue and registers it with `Lang.addSource` from its provider's `register()`, which runs before the localisation provider's `boot()` loads the strings. Flutter bundles a package's asset under `packages/<package>/`, so a package that declares `assets/lang/` in its own `pubspec.yaml` reads it through `JsonAssetLoader.package` with that base path:
 
 ```dart
 class StarterServiceProvider extends ServiceProvider {
@@ -110,9 +110,8 @@ class StarterServiceProvider extends ServiceProvider {
   void register() {
     Lang.addSource(
       'magic_starter',
-      const JsonAssetLoader(
+      const JsonAssetLoader.package(
         basePath: 'packages/magic_starter/assets/lang',
-        fallbackLocale: null,
       ),
     );
   }
@@ -128,15 +127,15 @@ Keys stay flat: a package's `common.back` answers `trans('common.back')`, exactl
 | 3 | every package source for L, in registration order |
 | 4 (highest) | the host catalogue for L |
 
-So the host's value always beats a package's in the same locale, a package's L string beats the host's F string, and F is the floor. When L is F, the layers collapse to the packages, then the host.
+So the host's value beats a package's in the same locale, a package's L string beats the host's F string, and F is the floor. When L is F, the layers collapse to the packages, then the host. Layer 4 is whatever the host's loader answers for L: the stock `JsonAssetLoader` answers a locale it has no file for with its fallback file, so for such a locale the host's English stands in as layer 4 and beats a package's string for L. Give each supported locale a host file (`{}` will do) to avoid it.
 
-- Two packages may carry the same key; the one registered later wins. Equal values are normal and silent; different values log one warning per key naming the packages, when a `log` service is bound.
+- Two packages may carry the same key; the one registered later wins. Equal values are normal and silent; nested and dotted forms of a key count as one, and different values log one warning per key and locale naming the packages, when a `log` service is bound.
 - Calling `Lang.addSource` again with the same package name replaces its loader and keeps its place in the order.
 - A package loader that throws contributes nothing for that locale and logs a warning when a `log` service is bound; it never blocks the host's strings.
 - A source added after the catalogue has loaded shows from the next load, for example `await Lang.setLocale(Lang.current)`.
 
 > [!NOTE]
-> Pass `fallbackLocale: null` to a package's `JsonAssetLoader`, as above. By default the loader answers a missing locale file with its whole `en.json`, so a package that ships `en.json` but no `tr.json` would serve its English strings in layer 3 for `tr`, above the host's own English in layer 2 and ahead of a fallback locale that is not `en`. With `null` a missing file is an empty layer, answered quietly, and the translator's own key-by-key fallback does the rest.
+> Use `JsonAssetLoader.package` for a package's JSON, as above. The plain constructor answers a missing locale file with its whole `en.json`, so a package that ships `en.json` but no `tr.json` would serve its English strings in layer 3 for `tr`, above the host's own English in layer 2 and ahead of a fallback locale that is not `en`. The package loader gives a locale with no file an empty layer, quietly, and the translator's own key-by-key fallback does the rest; a file that is there but will not parse is logged.
 
 <a name="defining-translation-strings"></a>
 ## Defining Translation Strings

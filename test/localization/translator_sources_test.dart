@@ -215,33 +215,40 @@ void main() {
       log.assertNothingLogged();
     });
 
-    test('different shared values warn once, naming both packages', () async {
-      final log = Log.fake();
-      Translator.instance.setLoader(_RecordingLoader({'en': {}, 'tr': {}}));
-      Translator.instance.addSource(
-        'starter',
-        _RecordingLoader({
-          'en': {'common.back': 'Back'},
-          'tr': {'common.back': 'Geri'},
-        }),
-      );
-      Translator.instance.addSource(
-        'notifications',
-        _RecordingLoader({
-          'en': {'common.back': 'Return'},
-          'tr': {'common.back': 'Dön'},
-        }),
-      );
+    test(
+      'different shared values warn once per locale, naming both packages',
+      () async {
+        final log = Log.fake();
+        Translator.instance.setLoader(_RecordingLoader({'en': {}, 'tr': {}}));
+        Translator.instance.addSource(
+          'starter',
+          _RecordingLoader({
+            'en': {'common.back': 'Back'},
+            'tr': {'common.back': 'Geri'},
+          }),
+        );
+        Translator.instance.addSource(
+          'notifications',
+          _RecordingLoader({
+            'en': {'common.back': 'Return'},
+            'tr': {'common.back': 'Dön'},
+          }),
+        );
 
-      await Translator.instance.load(const Locale('tr'));
+        await Translator.instance.load(const Locale('tr'));
 
-      expect(log.entries, hasLength(1));
-      expect(log.entries.single.level, 'warning');
-      expect(log.entries.single.message, contains('common.back'));
-      expect(log.entries.single.message, contains('starter'));
-      expect(log.entries.single.message, contains('notifications'));
-      expect(Translator.instance.get('common.back'), 'Dön');
-    });
+        expect(log.entries, hasLength(2));
+        for (final entry in log.entries) {
+          expect(entry.level, 'warning');
+          expect(entry.message, contains('common.back'));
+          expect(entry.message, contains('starter'));
+          expect(entry.message, contains('notifications'));
+        }
+        expect(log.entries.first.message, contains('[en]'));
+        expect(log.entries.last.message, contains('[tr]'));
+        expect(Translator.instance.get('common.back'), 'Dön');
+      },
+    );
 
     test('a different value warns nothing when no logger is bound', () async {
       expect(Magic.bound('log'), isFalse);
@@ -514,7 +521,7 @@ void main() {
     );
 
     test(
-      'an older load that lands last does not hide a newer source',
+      'an older load that lands last does not overwrite a newer one',
       () async {
         final host = _FirstReadGatedLoader({'host.key': 'Host'});
         Translator.instance.setLoader(host);
@@ -532,10 +539,7 @@ void main() {
         host.release.complete();
         await older;
 
-        expect(Translator.instance.has('late.key'), isFalse);
-
-        await Translator.instance.load(const Locale('en'));
-
+        // The older merge lacks the source and must not replace the newer one.
         expect(Translator.instance.get('late.key'), 'Late');
       },
     );
@@ -563,19 +567,88 @@ void main() {
       },
     );
 
+    test(
+      'a package catalogue with nested keys conflicts with a dotted one',
+      () async {
+        final fakeLog = Log.fake();
+        Translator.instance.setLoader(_RecordingLoader({'en': {}}));
+        Translator.instance.addSource(
+          'one',
+          _RecordingLoader({
+            'en': {'auth.failed': 'One'},
+          }),
+        );
+        Translator.instance.addSource(
+          'two',
+          _RecordingLoader({
+            'en': {
+              'auth': {'failed': 'Two'},
+            },
+          }),
+        );
+
+        await Translator.instance.load(const Locale('en'));
+
+        expect(Translator.instance.get('auth.failed'), 'Two');
+        expect(
+          fakeLog.entries.where((e) => e.level == 'warning'),
+          hasLength(1),
+        );
+      },
+    );
+
+    test('a conflict is reported for the locale it exists in', () async {
+      final fakeLog = Log.fake();
+      Translator.instance.setLoader(_RecordingLoader({'en': {}, 'tr': {}}));
+      Translator.instance.addSource(
+        'one',
+        _RecordingLoader({
+          'en': {'k': 'One'},
+          'tr': {},
+        }),
+      );
+      Translator.instance.addSource(
+        'two',
+        _RecordingLoader({
+          'en': {'k': 'Two'},
+          'tr': {},
+        }),
+      );
+
+      await Translator.instance.load(const Locale('tr'));
+
+      final warnings = fakeLog.entries.where((e) => e.level == 'warning');
+      expect(warnings, hasLength(1));
+      expect(warnings.single.message, contains('[en]'));
+      expect(warnings.single.message, isNot(contains('[tr]')));
+    });
+
     group('a package JsonAssetLoader', () {
+      test('a package loader answers a missing file empty and quiet', () async {
+        final fakeLog = Log.fake();
+
+        final loaded = await const JsonAssetLoader.package(
+          basePath: 'test/fixtures/lang',
+        ).load(const Locale('de'));
+
+        expect(loaded, isEmpty);
+        expect(fakeLog.entries, isEmpty);
+      });
+
       test(
-        'with no fallback locale answers a missing file empty and quiet',
+        'a file that will not parse is logged and contributes nothing',
         () async {
           final fakeLog = Log.fake();
 
-          final loaded = await const JsonAssetLoader(
-            basePath: 'test/fixtures/lang',
-            fallbackLocale: null,
-          ).load(const Locale('de'));
+          final loaded = await const JsonAssetLoader.package(
+            basePath: 'test/fixtures/lang_broken',
+          ).load(const Locale('en'));
 
           expect(loaded, isEmpty);
-          expect(fakeLog.entries, isEmpty);
+          expect(
+            fakeLog.entries.where((e) => e.level == 'warning').single.message,
+            contains('lang_broken/en.json'),
+          );
         },
       );
 
@@ -590,7 +663,7 @@ void main() {
         },
       );
 
-      test('with no fallback locale keeps the host English under a package '
+      test('a package loader keeps the host English under a package '
           'catalogue that has no file for the locale', () async {
         Translator.instance.setLoader(
           _RecordingLoader({
@@ -600,10 +673,7 @@ void main() {
         );
         Translator.instance.addSource(
           'starter',
-          const JsonAssetLoader(
-            basePath: 'test/fixtures/lang',
-            fallbackLocale: null,
-          ),
+          const JsonAssetLoader.package(basePath: 'test/fixtures/lang'),
         );
 
         await Translator.instance.load(const Locale('de'));

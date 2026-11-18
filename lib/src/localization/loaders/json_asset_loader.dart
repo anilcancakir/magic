@@ -46,23 +46,38 @@ class JsonAssetLoader implements TranslationLoader {
   final String basePath;
 
   /// The fallback locale to use when the requested locale is not found.
-  ///
-  /// `null` turns the whole-file fallback off: a missing locale file is an
-  /// empty layer, answered quietly. A package catalogue registered with
-  /// `Lang.addSource` wants this, since the translator already falls back key
-  /// by key, and a package's own English file would otherwise outrank the
-  /// host's English.
-  final String? fallbackLocale;
+  final String fallbackLocale;
+
+  /// Whether this loader serves a package's catalogue, see [JsonAssetLoader.package].
+  final bool _packageCatalogue;
 
   /// Create a new JSON asset loader.
   const JsonAssetLoader({
     this.basePath = 'assets/lang',
     this.fallbackLocale = 'en',
-  });
+  }) : _packageCatalogue = false;
+
+  /// A loader for a package's own catalogue, for `Lang.addSource`.
+  ///
+  /// The translator already falls back key by key and layers the host's
+  /// catalogue over every package's, so this loader never falls back to
+  /// another file itself: a package's own `en.json` would otherwise answer a
+  /// locale it has no file for and outrank the host's English. A locale with no
+  /// file is an empty layer, answered quietly; a file that is there but will
+  /// not parse is logged (when a `log` service is bound) and is empty too.
+  ///
+  /// ```dart
+  /// Lang.addSource(
+  ///   'magic_starter',
+  ///   const JsonAssetLoader.package(basePath: 'packages/magic_starter/assets/lang'),
+  /// );
+  /// ```
+  const JsonAssetLoader.package({required this.basePath})
+    : fallbackLocale = 'en',
+      _packageCatalogue = true;
 
   /// Reads [locale]'s catalogue, falling back to [fallbackLocale]'s whole file
-  /// unless that is `null`, which answers a missing file with an empty map and
-  /// no warning.
+  /// (never for a [JsonAssetLoader.package] loader).
   ///
   /// **An empty map is the failure, and it used to be a silent one.** Every
   /// caller reads a miss as a key rendering as itself, so a catalogue that did
@@ -78,8 +93,18 @@ class JsonAssetLoader implements TranslationLoader {
       final json = await _loadJson(locale.languageCode);
       return flatten(json);
     } catch (e) {
-      final fallbackLocale = this.fallbackLocale;
-      if (fallbackLocale == null) return {};
+      if (_packageCatalogue) {
+        // Only a file that exists and is broken is worth a line; a locale the
+        // package has no file for is the normal case.
+        if ((e is FormatException || e is TypeError) && Magic.bound('log')) {
+          Log.warning(
+            'Could not read the [$basePath/${locale.languageCode}.json] '
+            'translations: $e. That package contributes nothing for it.',
+          );
+        }
+
+        return {};
+      }
 
       // Try fallback locale
       if (locale.languageCode != fallbackLocale) {
