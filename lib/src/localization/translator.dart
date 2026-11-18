@@ -205,6 +205,10 @@ class Translator extends ChangeNotifier {
       ...layers[3],
     };
 
+    // Convert all values to strings first: a value whose toString throws fails
+    // the load before the date locale or anything else has changed.
+    final sentences = data.map((key, value) => MapEntry(key, value.toString()));
+
     // Everything that can call out or wait comes before the catalogue is
     // published, so a callback that starts another load is seen by the check
     // below and no state is half-written across an await.
@@ -216,8 +220,8 @@ class Translator extends ChangeNotifier {
 
     if (generation != _loadGeneration) return;
 
-    // Convert all values to strings, and publish in one synchronous step.
-    _sentences = data.map((key, value) => MapEntry(key, value.toString()));
+    // Publish in one synchronous step.
+    _sentences = sentences;
     _locale = locale;
     _mergedSourcesVersion = mergedVersion;
     _loaded = true;
