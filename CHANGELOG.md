@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Packages can register their own translation catalogue with `Lang.addSource(package, loader)`.** A package that renders text no longer needs the host to copy its keys into the host's `assets/lang/*.json`: its provider calls `Lang.addSource('my_package', const JsonAssetLoader(basePath: 'packages/my_package/assets/lang', fallbackLocale: null))` in `register()`, and `Translator.load` merges every source beneath the host. Keys stay flat, so `trans('common.back')` keeps working. For locale L with fallback F the layers are, lowest first: package sources for F, the host for F, package sources for L, the host for L, so the host always wins within a locale and F is the floor, provided a package's `JsonAssetLoader` passes `fallbackLocale: null` (its default answers a missing locale file with the whole `en.json`, which would outrank the host's own fallback strings). Between packages the later registration wins a shared key; different values for one key log one warning naming the packages, and equal values are silent. Registering the same package again replaces its loader in place, a package loader that throws contributes nothing, and a source added after the catalogue has loaded shows from the next load (for example `await Lang.setLocale(Lang.current)`). `JsonAssetLoader.fallbackLocale` is now nullable: `null` turns its whole-file fallback off and answers a missing file with an empty map and no warning. An app with no package source loads exactly as before. (`lib/src/localization/translator.dart`, `lib/src/facades/lang.dart`, `doc/digging-deeper/localization.md`)
+
 ## [1.0.1] - 2026-11-15
 
 ### Changed

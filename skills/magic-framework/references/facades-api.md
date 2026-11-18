@@ -273,6 +273,7 @@ Resolves `Translator.instance`.
 | `Lang.detectLocale()` | `Locale` | Best-match from device locale without changing active locale. |
 | `Lang.detectAndSetLocale()` | `Future<Locale>` | Detect and apply best-match locale. |
 | `Lang.setSupportedLocales(List<Locale> locales)` | `void` | Register supported locales. |
+| `Lang.addSource(String package, TranslationLoader loader)` | `void` | Register a package catalogue under the host's. Keys stay flat; per locale the host beats every package, and between packages the later registration wins. Re-registering a package replaces its loader in place. Give a package's `JsonAssetLoader` `fallbackLocale: null`, or its own `en.json` outranks the host's fallback strings. Call from a provider's `register()`; added after load, it shows from the next load. |
 | `Lang.addListener(VoidCallback listener)` | `void` | Subscribe to locale change events. |
 | `Lang.removeListener(VoidCallback listener)` | `void` | Unsubscribe from locale change events. |
 | `Lang.current` | `Locale` | **Getter.** Active locale. |

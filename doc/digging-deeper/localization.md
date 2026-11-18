@@ -4,6 +4,7 @@ Magic provides a Laravel-style localisation system that lets you retrieve and sw
 
 - [Introduction](#introduction)
 - [Configuration](#configuration)
+- [Package Catalogues](#package-catalogues)
 - [Defining Translation Strings](#defining-translation-strings)
 - [Retrieving Translations](#retrieving-translations)
     - [The trans() Helper](#the-trans-helper)
@@ -95,6 +96,47 @@ flutter:
 > `JsonAssetLoader` logs a warning naming the path when it gives up, which is
 > the difference between the two; the warning is skipped when no `log` service
 > is bound, so it is silent in a widget test that never calls `Magic.init`.
+
+<a name="package-catalogues"></a>
+## Package Catalogues
+
+A package that renders text ships its own catalogue and registers it with `Lang.addSource` from its provider's `register()`, which runs before the localisation provider's `boot()` loads the strings. Flutter bundles a package's asset under `packages/<package>/`, so a package that declares `assets/lang/` in its own `pubspec.yaml` reads it through a `JsonAssetLoader` with that base path:
+
+```dart
+class StarterServiceProvider extends ServiceProvider {
+  StarterServiceProvider(super.app);
+
+  @override
+  void register() {
+    Lang.addSource(
+      'magic_starter',
+      const JsonAssetLoader(
+        basePath: 'packages/magic_starter/assets/lang',
+        fallbackLocale: null,
+      ),
+    );
+  }
+}
+```
+
+Keys stay flat: a package's `common.back` answers `trans('common.back')`, exactly like the host's own key. For a requested locale L with fallback locale F, the catalogues merge in this order, the later layer winning a key:
+
+| Layer | Catalogue |
+|:---|:---|
+| 1 (lowest) | every package source for F, in registration order |
+| 2 | the host catalogue for F |
+| 3 | every package source for L, in registration order |
+| 4 (highest) | the host catalogue for L |
+
+So the host's value always beats a package's in the same locale, a package's L string beats the host's F string, and F is the floor. When L is F, the layers collapse to the packages, then the host.
+
+- Two packages may carry the same key; the one registered later wins. Equal values are normal and silent; different values log one warning per key naming the packages, when a `log` service is bound.
+- Calling `Lang.addSource` again with the same package name replaces its loader and keeps its place in the order.
+- A package loader that throws contributes nothing for that locale and logs a warning when a `log` service is bound; it never blocks the host's strings.
+- A source added after the catalogue has loaded shows from the next load, for example `await Lang.setLocale(Lang.current)`.
+
+> [!NOTE]
+> Pass `fallbackLocale: null` to a package's `JsonAssetLoader`, as above. By default the loader answers a missing locale file with its whole `en.json`, so a package that ships `en.json` but no `tr.json` would serve its English strings in layer 3 for `tr`, above the host's own English in layer 2 and ahead of a fallback locale that is not `en`. With `null` a missing file is an empty layer, answered quietly, and the translator's own key-by-key fallback does the rest.
 
 <a name="defining-translation-strings"></a>
 ## Defining Translation Strings

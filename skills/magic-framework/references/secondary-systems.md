@@ -316,6 +316,7 @@ Multi-language translation system with JSON-based message files and runtime loca
 | `Lang.current` | - | `Locale` | Get the current active locale. |
 | `Lang.isLoaded` | - | `bool` | Check if translations are loaded. |
 | `Lang.supportedLocales` | - | `List<Locale>` | Get list of supported locales. |
+| `Lang.addSource(package, loader)` | `String package`, `TranslationLoader loader` | `void` | Register a package catalogue under the host's. Keys stay flat; per locale the host beats every package and the later registered package wins a shared key. Give a package's `JsonAssetLoader` `fallbackLocale: null`. Call from a provider's `register()`; added after load, it shows from the next load. |
 | `Lang.addListener(callback)` | `VoidCallback callback` | `void` | Subscribe to locale changes. |
 | `Lang.removeListener(callback)` | `VoidCallback callback` | `void` | Unsubscribe from locale changes. |
 

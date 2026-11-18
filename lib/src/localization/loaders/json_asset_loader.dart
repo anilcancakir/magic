@@ -46,7 +46,13 @@ class JsonAssetLoader implements TranslationLoader {
   final String basePath;
 
   /// The fallback locale to use when the requested locale is not found.
-  final String fallbackLocale;
+  ///
+  /// `null` turns the whole-file fallback off: a missing locale file is an
+  /// empty layer, answered quietly. A package catalogue registered with
+  /// `Lang.addSource` wants this, since the translator already falls back key
+  /// by key, and a package's own English file would otherwise outrank the
+  /// host's English.
+  final String? fallbackLocale;
 
   /// Create a new JSON asset loader.
   const JsonAssetLoader({
@@ -54,7 +60,9 @@ class JsonAssetLoader implements TranslationLoader {
     this.fallbackLocale = 'en',
   });
 
-  /// Reads [locale]'s catalogue, falling back to [fallbackLocale]'s whole file.
+  /// Reads [locale]'s catalogue, falling back to [fallbackLocale]'s whole file
+  /// unless that is `null`, which answers a missing file with an empty map and
+  /// no warning.
   ///
   /// **An empty map is the failure, and it used to be a silent one.** Every
   /// caller reads a miss as a key rendering as itself, so a catalogue that did
@@ -70,6 +78,9 @@ class JsonAssetLoader implements TranslationLoader {
       final json = await _loadJson(locale.languageCode);
       return flatten(json);
     } catch (e) {
+      final fallbackLocale = this.fallbackLocale;
+      if (fallbackLocale == null) return {};
+
       // Try fallback locale
       if (locale.languageCode != fallbackLocale) {
         try {

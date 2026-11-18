@@ -228,6 +228,9 @@ trans('key', {'param': 'value'});  // Global helper
 Lang.current;                       // Current locale
 await Lang.setLocale(Locale('tr'));
 Lang.supportedLocales;              // Locales the app declares
+
+// A package's own catalogue, merged under the host's (call from register())
+Lang.addSource('my_package', const JsonAssetLoader(basePath: 'packages/my_package/assets/lang', fallbackLocale: null));
 ```
 
 ### Launch
