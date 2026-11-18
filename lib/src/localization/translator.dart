@@ -215,10 +215,19 @@ class Translator extends ChangeNotifier {
     _warnAboutConflicts(fallbackConflicts, fallback);
     _warnAboutConflicts(ownConflicts, locale);
 
+    // A callback above may have started a load that now owns the catalogue;
+    // do not touch the date locale for a load that has lost it.
+    if (generation != _loadGeneration) return;
+
     // Sync DateManager locale for date formatting (Carbon)
     await _syncDateManagerLocale(locale);
 
-    if (generation != _loadGeneration) return;
+    if (generation != _loadGeneration) {
+      // This sync may have landed after the load that owns the catalogue ran
+      // its own, so put the date locale back in step with the catalogue.
+      if (_loaded) await _syncDateManagerLocale(_locale);
+      return;
+    }
 
     // Publish in one synchronous step.
     _sentences = sentences;
