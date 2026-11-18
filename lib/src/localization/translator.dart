@@ -205,21 +205,21 @@ class Translator extends ChangeNotifier {
       ...layers[3],
     };
 
+    // Everything that can call out or wait comes before the catalogue is
+    // published, so a callback that starts another load is seen by the check
+    // below and no state is half-written across an await.
     _warnAboutConflicts(fallbackConflicts, fallback);
     _warnAboutConflicts(ownConflicts, locale);
-
-    // Convert all values to strings
-    _sentences = data.map((key, value) => MapEntry(key, value.toString()));
-    _locale = locale;
-    _mergedSourcesVersion = mergedVersion;
 
     // Sync DateManager locale for date formatting (Carbon)
     await _syncDateManagerLocale(locale);
 
-    // A newer load may have published while the date locale was syncing; its
-    // catalogue and locale stand, and this one must not announce its own.
     if (generation != _loadGeneration) return;
 
+    // Convert all values to strings, and publish in one synchronous step.
+    _sentences = data.map((key, value) => MapEntry(key, value.toString()));
+    _locale = locale;
+    _mergedSourcesVersion = mergedVersion;
     _loaded = true;
     notifyListeners();
     await Event.dispatch(LocaleChanged(locale));

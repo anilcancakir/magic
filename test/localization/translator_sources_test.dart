@@ -566,6 +566,21 @@ void main() {
       },
     );
 
+    test('two overlapping loads of one locale announce it once', () async {
+      final host = _FirstReadGatedLoader({'k': 'Host'});
+      Translator.instance.setLoader(host);
+      var notified = 0;
+      Translator.instance.addListener(() => notified++);
+
+      final older = Translator.instance.load(const Locale('tr'));
+      await Translator.instance.load(const Locale('tr'));
+      host.release.complete();
+      await older;
+
+      expect(notified, 1);
+      expect(Translator.instance.get('k'), 'Host');
+    });
+
     test('a cached locale supersedes a pending load of another one', () async {
       final host = _GatedLocaleLoader({
         'en': {'k': 'English'},
