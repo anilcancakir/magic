@@ -54,6 +54,28 @@ class _GatedLoader implements TranslationLoader {
   }
 }
 
+/// Answers every locale at once except [gated], whose read waits for [release].
+class _GatedLocaleLoader implements TranslationLoader {
+  _GatedLocaleLoader(this._data, {required this.gated});
+
+  final Map<String, Map<String, dynamic>> _data;
+  final String gated;
+  final Completer<void> release = Completer<void>();
+
+  @override
+  Future<Map<String, dynamic>> load(Locale locale) async {
+    if (locale.languageCode == gated) await release.future;
+    return Map<String, dynamic>.from(_data[locale.languageCode] ?? {});
+  }
+}
+
+/// Never answers, as a package read that hangs would not.
+class _HangingLoader implements TranslationLoader {
+  @override
+  Future<Map<String, dynamic>> load(Locale locale) =>
+      Completer<Map<String, dynamic>>().future;
+}
+
 /// Holds its first read until [release] completes; every later read answers at
 /// once, so a test finishes a second load before the first one lands.
 class _FirstReadGatedLoader implements TranslationLoader {
@@ -543,6 +565,33 @@ void main() {
         expect(Translator.instance.get('late.key'), 'Late');
       },
     );
+
+    test('a cached locale supersedes a pending load of another one', () async {
+      final host = _GatedLocaleLoader({
+        'en': {'k': 'English'},
+        'tr': {'k': 'Turkish'},
+      }, gated: 'tr');
+      Translator.instance.setLoader(host);
+      await Translator.instance.load(const Locale('en'));
+
+      final pending = Translator.instance.load(const Locale('tr'));
+      await Translator.instance.load(const Locale('en'));
+      host.release.complete();
+      await pending;
+
+      expect(Translator.instance.get('k'), 'English');
+    });
+
+    test('a host loader that throws is reported without waiting for a hung '
+        'package read', () async {
+      Translator.instance.setLoader(_SyncThrowingLoader());
+      Translator.instance.addSource('hung', _HangingLoader());
+
+      await expectLater(
+        Translator.instance.load(const Locale('en')),
+        throwsStateError,
+      ).timeout(const Duration(seconds: 5));
+    });
 
     test(
       'a load whose host loader throws leaves the source to the next load',

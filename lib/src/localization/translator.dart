@@ -155,11 +155,17 @@ class Translator extends ChangeNotifier {
   /// locale, lowest to highest: packages for [fallbackLocale], host for
   /// [fallbackLocale], packages for [locale], host for [locale]. So the host
   /// beats a package within a locale, and a package's [locale] string beats
-  /// the host's fallback string.
+  /// the host's fallback string. That precedence applies to what the loaders
+  /// return: the stock host loader answers a locale it has no file for with
+  /// its fallback file, which then stands in as the host's [locale] layer, so
+  /// give each supported locale a host file (`{}` will do).
   Future<void> load(Locale locale) async {
     if (_loaded &&
         _mergedSourcesVersion == _sourcesVersion &&
         _locale == locale) {
+      // This request is already satisfied, so a load of another locale that is
+      // still pending is stale and must not replace it when it lands.
+      _loadGeneration++;
       return;
     }
 
@@ -168,23 +174,25 @@ class Translator extends ChangeNotifier {
     // throws, leaves the next load to merge again.
     final mergedVersion = _sourcesVersion;
     final generation = ++_loadGeneration;
+    final fallback = _fallbackLocale;
     final sources = _sources.entries.toList();
     final fallbackConflicts = <String, Set<String>>{};
     final ownConflicts = <String, Set<String>>{};
 
     // Every read starts before any is awaited, and they are joined so a host
-    // loader that fails while a package read is pending still reaches the
-    // caller, rather than the zone. A locale with a fallback pays one round
-    // trip, not one per catalogue. The spread order below is what decides
-    // precedence, and it is unaffected by the order the reads complete in.
+    // loader that fails, even by throwing before it returns a future, reaches
+    // the caller at once, rather than the zone or after a slow package read. A
+    // locale with a fallback pays one round trip, not one per catalogue. The
+    // spread order below is what decides precedence, and it is unaffected by
+    // the order the reads complete in.
     final layers = await Future.wait<Map<String, dynamic>>([
       _isFallback(locale)
           ? Future.value(const <String, dynamic>{})
-          : _loadSources(sources, _fallbackLocale, fallbackConflicts),
+          : _loadSources(sources, fallback, fallbackConflicts),
       _loadFallbackFor(locale),
       _loadSources(sources, locale, ownConflicts),
-      _loader.load(locale),
-    ]);
+      Future.sync(() => _loader.load(locale)),
+    ], eagerError: true);
 
     // A load that began after this one owns the catalogue: writing now would
     // put an older merge, one that may lack a source registered since, over it.
@@ -197,7 +205,7 @@ class Translator extends ChangeNotifier {
       ...layers[3],
     };
 
-    _warnAboutConflicts(fallbackConflicts, _fallbackLocale);
+    _warnAboutConflicts(fallbackConflicts, fallback);
     _warnAboutConflicts(ownConflicts, locale);
 
     // Convert all values to strings
@@ -207,6 +215,10 @@ class Translator extends ChangeNotifier {
 
     // Sync DateManager locale for date formatting (Carbon)
     await _syncDateManagerLocale(locale);
+
+    // A newer load may have published while the date locale was syncing; its
+    // catalogue and locale stand, and this one must not announce its own.
+    if (generation != _loadGeneration) return;
 
     _loaded = true;
     notifyListeners();

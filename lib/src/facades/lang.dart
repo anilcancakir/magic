@@ -155,7 +155,7 @@ class Lang {
   /// );
   /// ```
   ///
-  /// Use [JsonAssetLoader.package] for a package's JSON catalogue: the plain
+  /// Use `JsonAssetLoader.package` for a package's JSON catalogue: the plain
   /// constructor answers a missing locale file with the whole `en.json`, which
   /// would then outrank the host's own fallback strings.
   static void addSource(String package, TranslationLoader loader) {
