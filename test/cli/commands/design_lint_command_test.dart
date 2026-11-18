@@ -57,7 +57,10 @@ Components.
 ''';
 
 DowelContext _ctx(BufferedOutput output, List<String> args) {
-  final parser = ArgParser()..addOption('input');
+  // The parser comes from the command's own signature, so the flag types and
+  // defaults the real CLI uses are the ones under test.
+  final parser = ArgParser();
+  CommandSignature.parse(DesignLintCommand().signature).applyTo(parser);
   final input = ArgvInput.parse(parser, args);
   return DowelContext.bare(input, output);
 }
@@ -211,6 +214,144 @@ components:
       await lint(orphan);
 
       expect(output.content, contains('brand-magenta'));
+    });
+  });
+
+  group('DesignLintCommand.handle() --dart', () {
+    late Directory root;
+    late BufferedOutput output;
+
+    setUp(() {
+      root = Directory.systemTemp.createTempSync('design_lint_dart_');
+      output = BufferedOutput();
+    });
+
+    tearDown(() {
+      if (root.existsSync()) root.deleteSync(recursive: true);
+    });
+
+    void write(String relativePath, String content) {
+      File(p.join(root.path, relativePath))
+        ..createSync(recursive: true)
+        ..writeAsStringSync(content);
+    }
+
+    Future<int> lintDart([List<String> extra = const <String>[]]) {
+      final cmd = DesignLintCommand(projectRoot: root.path);
+      return cmd.handle(_ctx(output, <String>['--dart', ...extra]));
+    }
+
+    for (final literal in <String>[
+      'Color(0xFF112233)',
+      'Color.fromARGB(255, 17, 34, 51)',
+      'Color.fromRGBO(17, 34, 51, 1)',
+      'Colors.red',
+    ]) {
+      test('reports $literal as path:line and exits 1', () async {
+        write('lib/ui/card.dart', 'import "x.dart";\n\nfinal c = $literal;\n');
+
+        final code = await lintDart();
+
+        expect(code, 1);
+        expect(
+          output.content,
+          contains('lib/ui/card.dart:3: raw colour literal'),
+        );
+        expect(output.content, contains('[ERROR] 1 raw colour literal(s)'));
+      });
+    }
+
+    test('exits 0 on a clean tree without reading DESIGN.md', () async {
+      write(
+        'lib/clean.dart',
+        '// Colors.red\n'
+            '/// Never `Color(0xFF112233)`.\n'
+            '/* Color.fromARGB(255, 0, 0, 0)\n'
+            '   Color.fromRGBO(0, 0, 0, 1) */\n'
+            'final first = kBrandColors.first;\n'
+            "final url = 'https://x.dev/a'; final ok = 1;\n",
+      );
+
+      final code = await lintDart();
+
+      expect(code, 0);
+      expect(output.content, isNot(contains('[ERROR]')));
+      expect(output.content, isNot(contains('DESIGN.md not found')));
+    });
+
+    test('ignores --input in --dart mode', () async {
+      write('lib/clean.dart', 'final ok = 1;\n');
+
+      final code = await lintDart(<String>['--input=MISSING.md']);
+
+      expect(code, 0);
+    });
+
+    test(
+      'exits 1 when the project has no lib/, rather than pass empty',
+      () async {
+        final code = await lintDart();
+
+        expect(code, 1);
+        expect(output.content, contains('[ERROR] No lib/ directory'));
+      },
+    );
+
+    test('prints hits as plain lines, not styled error output', () async {
+      write('lib/ui/card.dart', 'final c = Colors.red;\n');
+
+      await lintDart();
+
+      expect(output.content, isNot(contains('[ERROR] lib/ui/card.dart')));
+    });
+
+    test('finds a hit after a triple-quoted string holding //', () async {
+      write(
+        'lib/doc.dart',
+        "const help = '''\n"
+            'see https://x.dev // not a comment\n'
+            "''';\n"
+            'final c = Colors.red;\n',
+      );
+
+      final code = await lintDart();
+
+      expect(code, 1);
+      expect(output.content, contains('lib/doc.dart:4: '));
+      expect(output.content, isNot(contains('lib/doc.dart:2:')));
+    });
+
+    test('skips an allowlisted file and directory prefix', () async {
+      write('lib/config/wind_theme.g.dart', 'final c = Color(0xFF112233);\n');
+      write('lib/generated/a/b.dart', 'final c = Colors.red;\n');
+      write(
+        '.design-token-allowlist',
+        '# Generated\n'
+            'lib/config/wind_theme.g.dart | design:sync output\n'
+            'lib/generated/ | generated tree\n',
+      );
+
+      final code = await lintDart();
+
+      expect(code, 0);
+    });
+
+    test('reads the allowlist from --allowlist', () async {
+      write('lib/legacy.dart', 'final c = Colors.red;\n');
+      write('tool/colours.allow', 'lib/legacy.dart | legacy\n');
+
+      final code = await lintDart(<String>['--allowlist=tool/colours.allow']);
+
+      expect(code, 0);
+    });
+
+    test('never scans test/', () async {
+      write('lib/clean.dart', 'final ok = 1;\n');
+      write('test/widget_test.dart', 'final c = Colors.red;\n');
+
+      final code = await lintDart();
+
+      expect(code, 0);
     });
   });
 }

@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:dowel/dowel.dart';
 import 'package:path/path.dart' as p;
 
 import '../helpers/design_md_parser.dart';
+import '../helpers/design_token_scanner.dart';
 
 /// The severity of a [_Finding].
 enum _Severity {
@@ -46,6 +49,10 @@ class _Finding {
 /// The Tailwind/DTCG export-conformance and rem-based spacing/rounded rules
 /// from the reference linter are intentionally dropped; wind uses 4px logical
 /// spacing and arbitrary-hex aliases, so those checks do not apply.
+///
+/// With `--dart` the command skips DESIGN.md and instead runs
+/// [DesignTokenScanner] over `lib/**/*.dart`, failing on any raw colour
+/// literal outside the `--allowlist` file.
 class DesignLintCommand extends DowelCommand {
   /// Creates a [DesignLintCommand].
   ///
@@ -97,18 +104,26 @@ class DesignLintCommand extends DowelCommand {
   @override
   String get signature =>
       'design:lint '
-      '{--input=DESIGN.md : Path to the DESIGN.md to validate, relative to the project root}';
+      '{--input=DESIGN.md : Path to the DESIGN.md to validate, relative to the project root} '
+      '{--dart : Scan lib/**/*.dart for raw colour literals instead of validating DESIGN.md} '
+      '{--allowlist=.design-token-allowlist : Paths the --dart scan skips, relative to the project root}';
 
   @override
-  String get description => 'Validate a DESIGN.md against the design rules.';
+  String get description =>
+      'Validate a DESIGN.md against the design rules, or with --dart scan lib/ '
+      'for raw colour literals.';
 
   @override
   CommandBoot get boot => CommandBoot.none;
 
   @override
   Future<int> handle(DowelContext ctx) async {
-    // 1. Resolve the input path and read it.
     final root = _projectRootOverride ?? FileHelper.findProjectRoot();
+    if ((ctx.input.option('dart') as bool?) ?? false) {
+      return _lintDart(ctx, root);
+    }
+
+    // 1. Resolve the input path and read it.
     final inputPath = p.join(
       root,
       (ctx.input.option('input') as String?) ?? 'DESIGN.md',
@@ -135,6 +150,40 @@ class DesignLintCommand extends DowelCommand {
 
     // 3. Report and decide the exit code on error-severity findings.
     return _report(ctx, findings);
+  }
+
+  /// `--dart`: reports every raw colour literal under `lib/` outside the
+  /// allowlist as `path:line` and exits 1 on any. DESIGN.md is not read.
+  int _lintDart(DowelContext ctx, String root) {
+    if (!Directory(p.join(root, 'lib')).existsSync()) {
+      ctx.output.error('No lib/ directory under $root; nothing was scanned.');
+      return 1;
+    }
+
+    final allowlist = DesignTokenAllowlist.load(
+      p.join(
+        root,
+        (ctx.input.option('allowlist') as String?) ?? '.design-token-allowlist',
+      ),
+    );
+    final hits = DesignTokenScanner.scan(root, allowlist);
+
+    if (hits.isEmpty) {
+      ctx.output.success('No raw colour literals found outside the allowlist.');
+      return 0;
+    }
+
+    // Plain `path:line:` lines on stdout, so editors and CI annotators can
+    // parse them; `error` would prefix each one with a colour code and a glyph.
+    for (final hit in hits) {
+      ctx.output.writeln(
+        '${hit.path}:${hit.line}: raw colour literal; use a DESIGN.md token.',
+      );
+    }
+    ctx.output.error(
+      '${hits.length} raw colour literal(s) found outside the allowlist.',
+    );
+    return 1;
   }
 
   /// broken-ref: every unresolved component reference is an error.
