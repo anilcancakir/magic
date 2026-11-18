@@ -34,13 +34,20 @@ void main() {
 
       final stripped = DesignTokenScanner.stripComments(source);
 
-      expect(stripped, 'a \n\n b\n');
+      expect(stripped, 'a  \n\n b\n');
+    });
+
+    test('leaves a space where a block comment was', () {
+      expect(
+        DesignTokenScanner.stripComments('return/*x*/Colors.red'),
+        'return Colors.red',
+      );
     });
 
     test('tracks nested block comments', () {
       expect(
         DesignTokenScanner.stripComments('/* a /* b */ Colors.red */ c'),
-        ' c',
+        '  c',
       );
     });
 
@@ -109,6 +116,8 @@ void main() {
       'Color.from(alpha: 1, red: 0, green: 0, blue: 0)',
       'Colors.red',
       'MaterialColor(0xFF112233, {})',
+      'ui.Colors.red',
+      'Color(0XFF112233)',
     ]) {
       test('matches $literal', () {
         expect(DesignTokenScanner.pattern.hasMatch(literal), isTrue);
@@ -117,6 +126,7 @@ void main() {
 
     for (final clean in <String>[
       'kBrandColors.first',
+      r'theme$Colors.first',
       'context.colors.primary',
       'ColorScheme.fromSeed(seedColor: seed)',
     ]) {
@@ -201,9 +211,85 @@ void main() {
       expect(hits, isEmpty);
     });
 
+    test('finds a Color( whose 0x literal wraps onto the next line', () {
+      _write(
+        root,
+        'lib/a.dart',
+        'final c = const Color(\n'
+            '  0xFF112233,\n'
+            ');\n'
+            'final d = Color(0XFF000000);\n',
+      );
+
+      final hits = DesignTokenScanner.scan(
+        root.path,
+        DesignTokenAllowlist.parse(''),
+      );
+
+      expect(hits.map((hit) => '${hit.path}:${hit.line}'), <String>[
+        'lib/a.dart:1',
+        'lib/a.dart:4',
+      ]);
+    });
+
+    test('a block comment between two tokens does not hide the second', () {
+      _write(root, 'lib/a.dart', 'Widget f() => return/*x*/Colors.red;\n');
+
+      final hits = DesignTokenScanner.scan(
+        root.path,
+        DesignTokenAllowlist.parse(''),
+      );
+
+      expect(hits.single.line, 1);
+    });
+
+    test('CR-only and CRLF files keep their line numbers', () {
+      _write(root, 'lib/cr.dart', '// note\rfinal c = Colors.red;\r');
+      _write(
+        root,
+        'lib/crlf.dart',
+        'final a = 1;\r\nfinal c = Colors.red;\r\n',
+      );
+
+      final hits = DesignTokenScanner.scan(
+        root.path,
+        DesignTokenAllowlist.parse(''),
+      );
+
+      expect(hits.map((hit) => '${hit.path}:${hit.line}'), <String>[
+        'lib/cr.dart:2',
+        'lib/crlf.dart:2',
+      ]);
+    });
+
+    test('one finding per line however many literals it holds', () {
+      _write(
+        root,
+        'lib/a.dart',
+        'final a = [Colors.red, Colors.blue, Color(0xFF000000)];\n',
+      );
+
+      final hits = DesignTokenScanner.scan(
+        root.path,
+        DesignTokenAllowlist.parse(''),
+      );
+
+      expect(hits, hasLength(1));
+    });
+
     test('does not follow a symbolic link under lib/', () {
       _write(root, 'lib/a/x.dart', 'final c = Colors.red;\n');
-      Link('${root.path}/lib/a/up').createSync('..');
+      try {
+        Link('${root.path}/lib/a/up').createSync('..');
+      } on FileSystemException catch (error) {
+        // Windows refuses a symlink without the privilege (ERROR_PRIVILEGE_NOT_HELD);
+        // any other failure is a real one.
+        if (Platform.isWindows && error.osError?.errorCode == 1314) {
+          markTestSkipped('creating a symbolic link needs a privilege here');
+          return;
+        }
+        rethrow;
+      }
 
       final hits = DesignTokenScanner.scan(
         root.path,

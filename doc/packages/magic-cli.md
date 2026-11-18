@@ -537,7 +537,7 @@ dart run magic:dowel design:lint
 dart run magic:dowel design:lint --input=DESIGN.md
 ```
 
-Without `--dart` the command exits nonzero only on an error-severity finding (a broken reference). Warnings and info notes are reported but do not fail the lint. Rules:
+Without `--dart` the command exits nonzero on an error-severity finding (a broken reference) and when the `--input` file is missing, before any rule runs. Warnings and info notes are reported but do not fail the lint. Rules:
 
 - **broken-ref** (error): a component references a token (`{colors.x}`, `{rounded.x}`, `{spacing.x}`) that does not resolve.
 - **missing-primary** (warning): colours are defined but `primary` is absent.
@@ -555,7 +555,7 @@ Without `--dart` the command exits nonzero only on an error-severity finding (a 
 dart run magic:dowel design:lint --dart
 ```
 
-The scan reads every `*.dart` file under `lib/` (never `test/`), in path order, and flags any line that matches `Color\(0x|Color\.from(ARGB|RGBO)?\(|(^|[^A-Za-z0-9_])Colors\.`: `Color(0x...)` (`MaterialColor(0x...)` too), `Color.fromARGB`, `Color.fromRGBO`, the bare `Color.from(` and `Colors.*`, but not an identifier such as `kBrandColors.first`. Comments (`//`, `///` and nested `/* */`) are removed before matching; string content, triple-quoted and raw strings included, is kept, so `'Colors.red'` inside a string is still a hit. Each hit prints as a plain `lib/path.dart:LINE: raw colour literal; use a DESIGN.md token.` line on the standard output, followed by a count on the error output. The command exits 1 on any hit and 0 when the tree is clean, and exits 1 with a message when the project has no `lib/` directory, so a gate run from the wrong place cannot pass by scanning nothing. Symbolic links under `lib/` are not followed. It is a regex over the source, not an AST: hardcoded pixel values and a missing `dark:` pair go unnoticed.
+The scan reads every `*.dart` file under `lib/` (never `test/`), in path order, and flags every line a match of `Color\(\s*0[xX]|Color\.from(ARGB|RGBO)?\(|(?<![A-Za-z0-9_$])Colors\.` starts on: `Color(0x...)` (`MaterialColor(0x...)` too), `Color.fromARGB`, `Color.fromRGBO`, the bare `Color.from(` and `Colors.*`, but not an identifier such as `kBrandColors.first` or `theme$Colors.first`. A match may span lines, so `Color(` followed by `0xFF112233` on the next line is a hit. Comments (`//`, `///` and nested `/* */`) are removed before matching; string content, triple-quoted and raw strings included, is kept, so `'Colors.red'` inside a string is still a hit. Each hit prints as a plain `lib/path.dart:LINE: raw colour literal; use a DESIGN.md token.` line on the standard output, followed by a count on the error output. The command exits 1 on any hit and 0 when the tree is clean, and exits 1 with a message when the project has no `lib/` directory, so a gate run from the wrong place cannot pass by scanning nothing. Symbolic links under `lib/` are not followed. It is a regex over the source, not an AST: hardcoded pixel values and a missing `dark:` pair go unnoticed.
 
 Files that may hold raw colours (a generated theme, a legacy screen) go in `.design-token-allowlist` at the project root, one entry per line:
 

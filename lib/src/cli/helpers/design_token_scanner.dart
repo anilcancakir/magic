@@ -91,18 +91,21 @@ class _Frame {
 class DesignTokenScanner {
   const DesignTokenScanner._();
 
-  /// `Colors.` needs a left boundary or it matches `kBrandColors.first`.
-  /// `Color(0x` has none on purpose: `MaterialColor(0xFF...)` is a raw hex
-  /// too. `Color.from` covers `fromARGB`, `fromRGBO` and the bare `from(`.
+  /// `Colors.` needs a left boundary or it matches `kBrandColors.first` or
+  /// `theme$Colors.first`. `Color(0x` has none on purpose: `MaterialColor(0xFF...)`
+  /// is a raw hex too, and the `0x` may sit on the next line once a formatter
+  /// wraps a long call. `Color.from` covers `fromARGB`, `fromRGBO` and the bare
+  /// `from(`.
   static final RegExp pattern = RegExp(
-    r'Color\(0x|Color\.from(ARGB|RGBO)?\(|(^|[^A-Za-z0-9_])Colors\.',
+    r'Color\(\s*0[xX]|Color\.from(ARGB|RGBO)?\(|(?<![A-Za-z0-9_$])Colors\.',
   );
 
   static final RegExp _identifierChar = RegExp(r'[A-Za-z0-9_$]');
 
   /// Scans every `*.dart` under `<projectRoot>/lib`, sorted by path, and
-  /// returns one hit per matching line. `test/` and files [allowlist] allows
-  /// are never read.
+  /// returns one hit per line a match starts on. A match may span lines
+  /// (`Color(` then `0xFF...` on the next). `test/` and files [allowlist]
+  /// allows are never read.
   static List<DesignTokenHit> scan(
     String projectRoot,
     DesignTokenAllowlist allowlist,
@@ -124,11 +127,25 @@ class DesignTokenScanner {
     for (final path in files.keys.toList()..sort()) {
       if (allowlist.allows(path)) continue;
 
-      final lines = stripComments(files[path]!.readAsStringSync()).split('\n');
-      for (var index = 0; index < lines.length; index++) {
-        if (pattern.hasMatch(lines[index])) {
-          hits.add((path: path, line: index + 1));
+      // One line ending, so a CR-only file keeps its line numbers and its
+      // `//` comments end where Dart ends them.
+      final source = files[path]!
+          .readAsStringSync()
+          .replaceAll('\r\n', '\n')
+          .replaceAll('\r', '\n');
+      final stripped = stripComments(source);
+
+      var line = 1;
+      var offset = 0;
+      var lastHitLine = 0;
+      for (final match in pattern.allMatches(stripped)) {
+        for (; offset < match.start; offset++) {
+          if (stripped.codeUnitAt(offset) == 0x0A) line++;
         }
+        if (line == lastHitLine) continue;
+
+        hits.add((path: path, line: line));
+        lastHitLine = line;
       }
     }
 
@@ -137,6 +154,8 @@ class DesignTokenScanner {
 
   /// Removes `//`, `///` and (nested) `/* */` comments from Dart [source],
   /// keeping every newline so line numbers survive and keeping string content.
+  /// A block comment leaves one space behind, so the tokens either side of it
+  /// stay apart.
   ///
   /// Strings are tracked as Dart lexes them: `'`, `"`, `'''`, `"""`, the raw
   /// `r` prefix, escapes and `${...}` interpolations holding strings of their
@@ -182,6 +201,8 @@ class DesignTokenScanner {
         continue;
       }
       if (pair == '/*') {
+        // A space, so `return/*x*/Colors.red` does not fuse into one word.
+        out.write(' ');
         blockDepth = 1;
         i += 2;
         continue;
