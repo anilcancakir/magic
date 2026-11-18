@@ -78,7 +78,7 @@ body:
     id: magic-version
     attributes:
       label: Magic Version
-      placeholder: "1.0.1"
+      placeholder: "1.1.0"
     validations:
       required: true
 
