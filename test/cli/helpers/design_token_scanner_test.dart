@@ -117,6 +117,7 @@ void main() {
       'Colors.red',
       'MaterialColor(0xFF112233, {})',
       'ui.Colors.red',
+      'ui.Color.fromARGB(255, 1, 2, 3)',
       'Color(0XFF112233)',
     ]) {
       test('matches $literal', () {
@@ -127,6 +128,7 @@ void main() {
     for (final clean in <String>[
       'kBrandColors.first',
       r'theme$Colors.first',
+      'BrandColor.from(json)',
       'context.colors.primary',
       'ColorScheme.fromSeed(seedColor: seed)',
     ]) {
@@ -260,6 +262,40 @@ void main() {
         'lib/cr.dart:2',
         'lib/crlf.dart:2',
       ]);
+    });
+
+    test('a comment between the tokens of a colour does not hide it', () {
+      _write(
+        root,
+        'lib/a.dart',
+        'final a = Color /* label */ (0xFF112233);\n'
+            'final b = Colors /* label */ .red;\n'
+            'final c = Color.fromARGB /* label */ (255, 1, 2, 3);\n',
+      );
+
+      final hits = DesignTokenScanner.scan(
+        root.path,
+        DesignTokenAllowlist.parse(''),
+      );
+
+      expect(hits.map((hit) => hit.line), <int>[1, 2, 3]);
+    });
+
+    test('a file that is not UTF-8 is still scanned', () {
+      File(p.join(root.path, 'lib', 'a.dart'))
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(<int>[
+          ...'final c = Colors.red; // '.codeUnits,
+          0xff,
+          0x0a,
+        ]);
+
+      final hits = DesignTokenScanner.scan(
+        root.path,
+        DesignTokenAllowlist.parse(''),
+      );
+
+      expect(hits.single.line, 1);
     });
 
     test('one finding per line however many literals it holds', () {

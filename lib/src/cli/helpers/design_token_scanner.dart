@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -91,13 +92,17 @@ class _Frame {
 class DesignTokenScanner {
   const DesignTokenScanner._();
 
-  /// `Colors.` needs a left boundary or it matches `kBrandColors.first` or
-  /// `theme$Colors.first`. `Color(0x` has none on purpose: `MaterialColor(0xFF...)`
-  /// is a raw hex too, and the `0x` may sit on the next line once a formatter
-  /// wraps a long call. `Color.from` covers `fromARGB`, `fromRGBO` and the bare
-  /// `from(`.
+  /// `Colors.` and `Color.from` need a left boundary or they match
+  /// `kBrandColors.first`, `theme$Colors.first` and `BrandColor.from(json)`.
+  /// `Color(0x` has none on purpose: `MaterialColor(0xFF...)` is a raw hex too.
+  /// Whitespace is allowed between tokens, since a comment between them is
+  /// stripped to a space and a formatter may wrap a long call, so `Color(` and
+  /// its `0x...` may sit on different lines. `Color.from` covers `fromARGB`,
+  /// `fromRGBO` and the bare `from(`.
   static final RegExp pattern = RegExp(
-    r'Color\(\s*0[xX]|Color\.from(ARGB|RGBO)?\(|(?<![A-Za-z0-9_$])Colors\.',
+    r'Color\s*\(\s*0[xX]'
+    r'|(?<![A-Za-z0-9_$])Color\s*\.\s*from(ARGB|RGBO)?\s*\('
+    r'|(?<![A-Za-z0-9_$])Colors\s*\.',
   );
 
   static final RegExp _identifierChar = RegExp(r'[A-Za-z0-9_$]');
@@ -129,8 +134,9 @@ class DesignTokenScanner {
 
       // One line ending, so a CR-only file keeps its line numbers and its
       // `//` comments end where Dart ends them.
-      final source = files[path]!
-          .readAsStringSync()
+      // A file that is not UTF-8 is still scanned, not a crash.
+      final source = utf8
+          .decode(files[path]!.readAsBytesSync(), allowMalformed: true)
           .replaceAll('\r\n', '\n')
           .replaceAll('\r', '\n');
       final stripped = stripComments(source);
