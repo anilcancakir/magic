@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **`design:lint --dart` flags raw colour literals in the app's Dart source.** It scans every `*.dart` file under `lib/` (never `test/`) for `Color(0x...)`, `Color.fromARGB`, `Color.fromRGBO`, the bare `Color.from(` and `Colors.*` (`Color\s*\(\s*0[xX]|(?<![A-Za-z0-9_$])Color\s*\.\s*from(ARGB|RGBO)?\s*\(|(?<![A-Za-z0-9_$])Colors\s*\.`), prints one plain `path:line` per hit and exits 1 on any (or when the project has no `lib/`), so an app no longer needs its own `bin/design-tokens` script (the copies had drifted, and some missed `fromARGB` and `fromRGBO`). Comments, nested block comments included, are stripped before matching while string content is kept, and triple-quoted and raw strings are tracked, so a `//` inside a string neither hides nor fakes a hit, though colour-like text inside a string (`'See Colors.red'`) is kept and still matches. A match may span lines, so a `Color(` with its `0x...` on the next line is found, and a hit is reported on the line its match starts. Paths listed in `.design-token-allowlist` (`<path> | <reason>`, a trailing `/` for a directory; `--allowlist=` picks another file) are skipped. In this mode DESIGN.md is not read; without `--dart` the command behaves as before. (`lib/src/cli/commands/design_lint_command.dart`, `lib/src/cli/helpers/design_token_scanner.dart`, `doc/packages/magic-cli.md`)
+
 ## [1.0.1] - 2026-11-15
 
 ### Changed
