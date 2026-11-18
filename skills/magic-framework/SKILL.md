@@ -1,11 +1,11 @@
 ---
 name: magic-framework
 description: "Write idiomatic Flutter code on the magic framework: facades, models, controllers, views, routing, forms, auth and tests."
-version: 0.3.0
+version: 0.3.1
 when_to_use: "Use when code imports package:magic or touches Magic.init, a facade, a model, a controller, a provider or a make:* command."
 ---
 
-<!-- magic 1.0.1 | Skill v0.3.0 (2026-11-18). API surface verified against lib/src. -->
+<!-- magic 1.0.1 | Skill v0.3.1 (2026-11-18). API surface verified against lib/src. -->
 
 # Magic Framework
 
@@ -112,7 +112,7 @@ The assumptions a Laravel developer gets wrong most: the container autowires (it
 | `MagicRoute` | (router) | `page`, `group`, `layout`, `resource(name, ctrl, {only, except})`, `to`, `toNamed`, `push`, `back({fallback})`, `replace`, `setTitle`, `currentTitle`, `config` |
 | `Gate` | (manager) | `define`, `before`, `allows`, `denies`, `allowsAny(list)`, `allowsAll(list)`, `has`, `abilities`, `flush` |
 | `Session` | (store) | `flash(map)`, `flashErrors(map)`, `old(field, [fallback])`, `oldRaw`, `error(field)`, `errors(field)`, `hasError`, `hasFlash`, `tick()` |
-| `Lang` | (translator) | `get(key, [replace])`, `has`, `current`, `isLoaded`, `supportedLocales`, `setLocale`, `detectLocale`, `detectAndSetLocale`, `setSupportedLocales`, `addListener/removeListener`, `delegate` |
+| `Lang` | (translator) | `get(key, [replace])`, `has`, `current`, `isLoaded`, `supportedLocales`, `setLocale`, `detectLocale`, `detectAndSetLocale`, `setSupportedLocales`, `addSource(package, loader)`, `addListener/removeListener`, `delegate` |
 | `Vault` | `vault` | `put(key, value)`, `get`, `delete`, `flush`, `fake([initial])` |
 | `Storage` | (manager) | `disk([name])`, `put`, `get`, `getFile`, `exists`, `delete`, `url`, `download` (on IO it needs `magic_picker`, else `UnsupportedError`; web needs nothing), `setManager`, `flush` |
 | `Launch` | `launch` | `url(u, {mode})`, `email`, `phone`, `sms`, `canLaunch` |

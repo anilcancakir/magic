@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../foundation/magic.dart';
+import '../localization/contracts/translation_loader.dart';
 import '../localization/translator.dart';
 import '../localization/lang_delegate.dart';
 
@@ -136,6 +137,29 @@ class Lang {
   /// ```
   static void setSupportedLocales(List<Locale> locales) {
     _translator.setSupportedLocales(locales);
+  }
+
+  /// Register [package]'s own catalogue beneath the host's.
+  ///
+  /// Keys stay flat, the host's value for a locale always wins, and between
+  /// packages the later registration wins. Call it from a provider's
+  /// `register()`; a source added after the catalogue has loaded shows from
+  /// the next load, such as `await Lang.setLocale(Lang.current)`.
+  ///
+  /// ```dart
+  /// Lang.addSource(
+  ///   'magic_starter',
+  ///   const JsonAssetLoader.package(
+  ///     basePath: 'packages/magic_starter/assets/lang',
+  ///   ),
+  /// );
+  /// ```
+  ///
+  /// Use `JsonAssetLoader.package` for a package's JSON catalogue: the plain
+  /// constructor answers a missing locale file with the whole `en.json`, which
+  /// would then outrank the host's own fallback strings.
+  static void addSource(String package, TranslationLoader loader) {
+    _translator.addSource(package, loader);
   }
 
   // ---------------------------------------------------------------------------

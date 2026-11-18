@@ -68,6 +68,22 @@ class Translator extends ChangeNotifier {
   /// The fallback locale.
   Locale _fallbackLocale = const Locale('en');
 
+  /// Package catalogues keyed by package name, in registration order.
+  ///
+  /// A `LinkedHashMap`, so assigning an existing key replaces the loader and
+  /// keeps its position.
+  final Map<String, TranslationLoader> _sources = <String, TranslationLoader>{};
+
+  /// Bumped by every [addSource]; [_mergedSourcesVersion] is the value the
+  /// current catalogue was merged at. They differ while a registered source is
+  /// missing from the catalogue, which is when [load] must not return early.
+  int _sourcesVersion = 0;
+  int _mergedSourcesVersion = 0;
+
+  /// Taken by every [load]; a load that finds a newer one started after it
+  /// leaves the catalogue to that one.
+  int _loadGeneration = 0;
+
   // ---------------------------------------------------------------------------
   // Configuration
   // ---------------------------------------------------------------------------
@@ -75,6 +91,22 @@ class Translator extends ChangeNotifier {
   /// Set the translation loader.
   void setLoader(TranslationLoader loader) {
     _loader = loader;
+  }
+
+  /// Register [package]'s own catalogue beneath the host's.
+  ///
+  /// Package keys are flat and shared with the host and with every other
+  /// package, so `common.back` from a package answers `trans('common.back')`.
+  /// The host's value for a locale always beats a package's; between packages
+  /// the later registration wins. Registering [package] again replaces its
+  /// loader and keeps its position.
+  ///
+  /// The intended place is a provider's `register()`, which runs before the
+  /// localisation provider's `boot()` loads the catalogue. A source added
+  /// after that shows from the next [load] or [setLocale].
+  void addSource(String package, TranslationLoader loader) {
+    _sources[package] = loader;
+    _sourcesVersion++;
   }
 
   /// Set supported locales.
@@ -116,24 +148,91 @@ class Translator extends ChangeNotifier {
   /// Merging here rather than in the loader is deliberate: this class owns
   /// [fallbackLocale], and every [TranslationLoader] a host writes gets the
   /// behaviour without knowing about it.
+  ///
+  /// ### Package sources
+  ///
+  /// Catalogues registered with [addSource] layer in below the host for each
+  /// locale, lowest to highest: packages for [fallbackLocale], host for
+  /// [fallbackLocale], packages for [locale], host for [locale]. So the host
+  /// beats a package within a locale, and a package's [locale] string beats
+  /// the host's fallback string. That precedence applies to what the loaders
+  /// return: the stock host loader answers a locale it has no file for with
+  /// its fallback file, which then stands in as the host's [locale] layer, so
+  /// give each supported locale a host file (`{}` will do).
   Future<void> load(Locale locale) async {
-    if (_loaded && _locale == locale) return;
+    if (_loaded &&
+        _mergedSourcesVersion == _sourcesVersion &&
+        _locale == locale) {
+      // This request is already satisfied, so a load of another locale that is
+      // still pending is stale and must not replace it when it lands.
+      _loadGeneration++;
+      return;
+    }
 
-    // Both reads start before either is awaited, so a locale with a fallback
-    // pays one round trip rather than two. The spread order is what decides
-    // precedence, and it is unaffected by the order they complete in.
-    final fallback = _loadFallbackFor(locale);
-    final own = _loader.load(locale);
+    // Taken before the reads start and stored only once the merge lands: a
+    // source registered while they are in flight, or a host loader that
+    // throws, leaves the next load to merge again.
+    final mergedVersion = _sourcesVersion;
+    final generation = ++_loadGeneration;
+    final fallback = _fallbackLocale;
+    final sources = _sources.entries.toList();
+    final fallbackConflicts = <String, Set<String>>{};
+    final ownConflicts = <String, Set<String>>{};
 
-    final data = <String, dynamic>{...await fallback, ...await own};
+    // Every read starts before any is awaited, and they are joined so a host
+    // loader that fails, even by throwing before it returns a future, reaches
+    // the caller at once, rather than the zone or after a slow package read. A
+    // locale with a fallback pays one round trip, not one per catalogue. The
+    // spread order below is what decides precedence, and it is unaffected by
+    // the order the reads complete in.
+    final layers = await Future.wait<Map<String, dynamic>>([
+      _isFallback(locale)
+          ? Future.value(const <String, dynamic>{})
+          : _loadSources(sources, fallback, fallbackConflicts),
+      _loadFallbackFor(locale),
+      _loadSources(sources, locale, ownConflicts),
+      Future.sync(() => _loader.load(locale)),
+    ], eagerError: true);
 
-    // Convert all values to strings
-    _sentences = data.map((key, value) => MapEntry(key, value.toString()));
-    _locale = locale;
+    // A load that began after this one owns the catalogue: writing now would
+    // put an older merge, one that may lack a source registered since, over it.
+    if (generation != _loadGeneration) return;
+
+    final data = <String, dynamic>{
+      ...layers[0],
+      ...layers[1],
+      ...layers[2],
+      ...layers[3],
+    };
+
+    // Convert all values to strings first: a value whose toString throws fails
+    // the load before the date locale or anything else has changed.
+    final sentences = data.map((key, value) => MapEntry(key, value.toString()));
+
+    // Everything that can call out or wait comes before the catalogue is
+    // published, so a callback that starts another load is seen by the check
+    // below and no state is half-written across an await.
+    _warnAboutConflicts(fallbackConflicts, fallback);
+    _warnAboutConflicts(ownConflicts, locale);
+
+    // A callback above may have started a load that now owns the catalogue;
+    // do not touch the date locale for a load that has lost it.
+    if (generation != _loadGeneration) return;
 
     // Sync DateManager locale for date formatting (Carbon)
     await _syncDateManagerLocale(locale);
 
+    if (generation != _loadGeneration) {
+      // This sync may have landed after the load that owns the catalogue ran
+      // its own, so put the date locale back in step with the catalogue.
+      if (_loaded) await _syncDateManagerLocale(_locale);
+      return;
+    }
+
+    // Publish in one synchronous step.
+    _sentences = sentences;
+    _locale = locale;
+    _mergedSourcesVersion = mergedVersion;
     _loaded = true;
     notifyListeners();
     await Event.dispatch(LocaleChanged(locale));
@@ -149,7 +248,7 @@ class Translator extends ChangeNotifier {
   /// must not take the locale's own strings down with it, which is the one
   /// thing worse than a raw key on screen.
   Future<Map<String, dynamic>> _loadFallbackFor(Locale locale) async {
-    if (locale.languageCode == _fallbackLocale.languageCode) {
+    if (_isFallback(locale)) {
       return const <String, dynamic>{};
     }
 
@@ -171,6 +270,91 @@ class Translator extends ChangeNotifier {
       }
 
       return const <String, dynamic>{};
+    }
+  }
+
+  /// Whether [locale] is the fallback locale, compared by language code.
+  bool _isFallback(Locale locale) =>
+      locale.languageCode == _fallbackLocale.languageCode;
+
+  /// Every package catalogue for [locale], merged in registration order.
+  ///
+  /// A key two packages give different values is recorded in [conflicts]
+  /// against both package names; equal values are the normal case for shared
+  /// keys such as `common.back` and record nothing.
+  Future<Map<String, dynamic>> _loadSources(
+    List<MapEntry<String, TranslationLoader>> sources,
+    Locale locale,
+    Map<String, Set<String>> conflicts,
+  ) async {
+    final reads = [
+      for (final source in sources)
+        _loadSource(source.key, source.value, locale),
+    ];
+
+    final merged = <String, dynamic>{};
+    final owners = <String, String>{};
+
+    for (var i = 0; i < sources.length; i++) {
+      final package = sources[i].key;
+
+      for (final entry in (await reads[i]).entries) {
+        final previous = owners[entry.key];
+
+        if (previous != null &&
+            merged[entry.key].toString() != entry.value.toString()) {
+          conflicts.putIfAbsent(entry.key, () => <String>{})
+            ..add(previous)
+            ..add(package);
+        }
+
+        merged[entry.key] = entry.value;
+        owners[entry.key] = package;
+      }
+    }
+
+    return merged;
+  }
+
+  /// [package]'s catalogue for [locale], or an empty map when it will not load.
+  ///
+  /// A package catalogue is never a requirement, for the same reason the
+  /// fallback is not (see [_loadFallbackFor]): one broken package must not take
+  /// the host's strings, or another package's, down with it.
+  Future<Map<String, dynamic>> _loadSource(
+    String package,
+    TranslationLoader loader,
+    Locale locale,
+  ) async {
+    try {
+      // Flattened as the host's own loader's output is, so a nested map and a
+      // dotted key name one key and a conflict between packages is seen.
+      return JsonAssetLoader.flatten(await loader.load(locale));
+    } on Object catch (error) {
+      // Guarded for the reason `_loadFallbackFor` records.
+      if (Magic.bound('log')) {
+        Log.warning(
+          'Could not load the [$package] translations for '
+          '[${locale.languageCode}]: $error. Its keys fall back to the host '
+          'and the other packages.',
+        );
+      }
+
+      return const <String, dynamic>{};
+    }
+  }
+
+  /// One warning per key that two or more packages give different values for
+  /// in [locale]'s catalogue.
+  void _warnAboutConflicts(Map<String, Set<String>> conflicts, Locale locale) {
+    if (conflicts.isEmpty || !Magic.bound('log')) return;
+
+    for (final conflict in conflicts.entries) {
+      Log.warning(
+        'Translation key [${conflict.key}] has different values in the '
+        '[${conflict.value.join(', ')}] packages for '
+        '[${locale.languageCode}]; a value the host defines for the key wins.',
+      );
     }
   }
 
