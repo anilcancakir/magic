@@ -39,7 +39,7 @@ All commands are invoked via `dart run magic:dowel <command>` from the Flutter p
 | **Generator** | `dart run magic:dowel make:resource Name` | Full CRUD vertical: composes model, repository, actions, requests, form, controller, views and tests |
 | **Codegen** | `dart run magic:dowel previews:refresh` | Regenerate `_previews.g.dart` from `*.preview.dart` files |
 | **Design** | `dart run magic:dowel design:sync` | Generate the wind theme (aliases + brand seed) from `DESIGN.md` |
-| **Design** | `dart run magic:dowel design:lint` | Validate `DESIGN.md` against the design rules |
+| **Design** | `dart run magic:dowel design:lint` | Validate `DESIGN.md` against the design rules; `--dart` scans `lib/` for raw colour literals |
 
 `make:migration`, `make:seeder` and `make:factory` belong to `magic_local_storage`, and `key:generate` to `magic_encryption`; each is registered by that plugin's dowel provider, so it exists only after `plugin:install` for it (see the `magic-local-storage` and `magic-encryption` skills).
 
@@ -636,11 +636,16 @@ Validates a `DESIGN.md` against these rules: broken-ref (error), missing-primary
 
 ```bash
 dart run magic:dowel design:lint --input=DESIGN.md
+dart run magic:dowel design:lint --dart
 ```
+
+`--dart` skips DESIGN.md and scans `lib/**/*.dart` (never `test/`) for `Color(0x...)`, `Color.fromARGB`, `Color.fromRGBO`, `Color.from(` and `Colors.*` after stripping comments (string content is kept). Each hit prints as `lib/path.dart:LINE: ...` and any hit exits 1. `.design-token-allowlist` lines are `<path> | <reason>`; a path ending in `/` is a directory prefix, `#` lines and blank lines are skipped, and a missing file allows nothing.
 
 | Flag | Effect |
 |:-----|:-------|
 | `--input=PATH` | DESIGN.md to validate, relative to the project root (default `DESIGN.md`). |
+| `--dart` | Scan `lib/**/*.dart` for raw colour literals instead of validating DESIGN.md. |
+| `--allowlist=PATH` | Allowlist for `--dart`, relative to the project root (default `.design-token-allowlist`). |
 
 
 ## Common Patterns

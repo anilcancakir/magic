@@ -1,11 +1,11 @@
 ---
 name: magic-framework
 description: "Write idiomatic Flutter code on the magic framework: facades, models, controllers, views, routing, forms, auth and tests."
-version: 0.2.1
+version: 0.3.1
 when_to_use: "Use when code imports package:magic or touches Magic.init, a facade, a model, a controller, a provider or a make:* command."
 ---
 
-<!-- magic 1.0.1 | Skill v0.2.1 (2026-11-18). API surface verified against lib/src. -->
+<!-- magic 1.0.1 | Skill v0.3.1 (2026-11-18). API surface verified against lib/src. -->
 
 # Magic Framework
 
@@ -422,7 +422,7 @@ dart run magic:dowel make:resource Monitor            # a full CRUD vertical: mo
 
 Other generators: `make:middleware`, `make:provider`, `make:event`, `make:listener`, `make:enum` (`--wire` for a backend-mirroring enum), `make:lang` (`--from=<locale>` copies an existing catalogue's key tree), `make:repository`, `make:action` (`--kind=create|update|delete --model=<Model>`), `make:form` (`--resource=<Model>` for the full create and edit contract) and `make:test` (`--kind=controller|action|form|repository|request|view|unit`, which mirrors a generator's own output under `test/`). `make:controller`, `make:view`, `make:action`, `make:form`, `make:repository` and `make:request` also accept `--test` to chain `make:test` after a successful write. Generators accept `--force` and nested paths (`Admin/Dashboard`). `make:migration`, `make:seeder` and `make:factory` come from `magic_local_storage`, and `key:generate` from `magic_encryption`, each only after that plugin is installed.
 
-Design-first workflow: `make:component Avatar [--variants=intent,size] [--slots]` scaffolds an atomic component folder (`avatar.dart`, `avatar.recipe.dart`, `index.dart`) under `lib/ui/components/` plus its widget test; `avatar.preview.dart` and the chained `previews:refresh` appear only when the project already keeps a preview catalogue (`--preview` and `--no-preview` override). `previews:refresh [--path=lib]` regenerates `_previews.g.dart` from every `*.preview.dart` file. `design:sync [--input=DESIGN.md] [--output=lib/config/wind_theme.g.dart]` emits `designAliases` and `designColors` from a DESIGN.md front matter; `design:lint [--input=DESIGN.md]` validates it (a nonzero exit on error severity only).
+Design-first workflow: `make:component Avatar [--variants=intent,size] [--slots]` scaffolds an atomic component folder (`avatar.dart`, `avatar.recipe.dart`, `index.dart`) under `lib/ui/components/` plus its widget test; `avatar.preview.dart` and the chained `previews:refresh` appear only when the project already keeps a preview catalogue (`--preview` and `--no-preview` override). `previews:refresh [--path=lib]` regenerates `_previews.g.dart` from every `*.preview.dart` file. `design:sync [--input=DESIGN.md] [--output=lib/config/wind_theme.g.dart]` emits `designAliases` and `designColors` from a DESIGN.md front matter; `design:lint [--input=DESIGN.md]` validates it (a nonzero exit on error severity only), and `design:lint --dart [--allowlist=.design-token-allowlist]` instead scans `lib/**/*.dart` for `Color(0x...)`, `Color.fromARGB`, `Color.fromRGBO` and `Colors.*` outside comments, printing `path:line` per hit and exiting 1 on any.
 
 Every command and flag: `${CLAUDE_SKILL_DIR}/references/cli-commands.md`.
 
