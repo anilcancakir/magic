@@ -87,13 +87,6 @@ jobs:
       # here, before the irreversible publish. A repository URL that does not
       # match the default branch's pubspec.yaml costs the 10 points of "valid
       # pubspec"; an unreachable homepage only warns.
-      #
-      # pana converts the pubspec `screenshots` with `cwebp`, `gif2webp` and
-      # `webpinfo`, which the runner image lacks; without them the screenshot
-      # check scores 0 of 10 and the release stops here.
-      - name: Install the WebP tools pana needs for screenshots
-        run: sudo apt-get update && sudo apt-get install -y webp
-
       - name: Require full pub.dev points (pana)
         run: |
           dart pub global activate pana 0.23.13
