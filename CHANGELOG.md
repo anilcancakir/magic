@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Removed
+
+- **The pub.dev listing no longer carries the Magic logo as a screenshot.** dart.dev asks for no logos or branding imagery under the pubspec `screenshots` field, so the entry, `screenshots/magic-logo.png` and the WebP tools step `publish.yml` ran for pana are gone. The README still opens with the logo. (`pubspec.yaml`, `screenshots/`, `.github/workflows/publish.yml`)
+
 ## [1.1.0] - 2026-11-18
 
 ### Added
