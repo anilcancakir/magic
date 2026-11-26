@@ -2,25 +2,26 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
+import '../../../support/magic_paths.dart';
 import 'backup_exclusion_io.dart';
 import 'local_adapter_contract.dart';
 
 /// The Local Adapter for Mobile/Desktop (IO) platforms.
 ///
-/// This adapter uses `dart:io` and `path_provider` to manage files
-/// in the application's documents directory.
+/// This adapter uses `dart:io` and `MagicPaths.appData()` to manage files
+/// in the application's data directory.
 ///
 /// ## Storage Location
 ///
-/// Files are stored in: `{AppDocumentsDir}/{root}/{path}`
+/// Files are stored in: `{AppDataDir}/{root}/{path}`, where the data directory
+/// is the documents directory, or `app_data` under the cache directory on tvOS.
 ///
 /// For example, with root `storage`:
 /// - iOS: `/var/mobile/.../Documents/storage/avatars/user.jpg`
 /// - Android: `/data/data/.../files/storage/avatars/user.jpg`
 class LocalAdapter implements LocalAdapterContract {
-  /// The root subfolder within the documents directory.
+  /// The root subfolder within the app data directory.
   final String root;
 
   /// Cached base directory path.
@@ -51,7 +52,7 @@ class LocalAdapter implements LocalAdapterContract {
   Future<String> _getBasePath() async {
     if (_basePath != null) return _basePath!;
 
-    final docsDir = await getApplicationDocumentsDirectory();
+    final docsDir = await MagicPaths.appData();
     final baseDir = Directory(p.join(docsDir.path, root));
 
     if (!await baseDir.exists()) {

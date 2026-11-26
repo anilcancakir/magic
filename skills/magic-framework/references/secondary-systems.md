@@ -91,6 +91,10 @@ final subscription = AppLifecycle.states().listen((state) {
 });
 ```
 
+### MagicPlatform and MagicPaths
+
+flutter-tvos reports an Apple TV as iOS (`Platform.isIOS`, `defaultTargetPlatform`), so ask `MagicPlatform.isTvOS` (`lib/src/support/magic_platform.dart`) before any iOS gate; it is always `false` on web. Tests set `MagicPlatform.debugTvOSOverride = true` and restore it in `addTearDown`, never a `Platform` hack. Never read `Platform.isTvOS` (it exists only in the patched SDK). `MagicPaths.appData()` (`lib/src/support/magic_paths.dart`) is the directory an app keeps its files in: documents everywhere, `app_data` under the cache directory on tvOS (only `Library/Caches` and `tmp` are writable there), created when missing. `FileStore` and `LocalAdapter` resolve through it. It throws `UnsupportedError` on web. On tvOS `DateManager` does not ask `flutter_timezone` and the `User-Agent` platform reads `tvOS`.
+
 ## Cache System
 
 The Cache system provides a unified key-value caching API with TTL (time-to-live) support. Backed by the `CacheManager` and resolved via the `Cache` facade.
@@ -581,7 +585,7 @@ await Storage.disk('public').put('uploads/file.pdf', bytes);
 
 ### Excluding a Disk from Backup
 
-A local disk lives under the app's documents directory, which iOS and macOS back up. `'exclude_from_backup': true` in the disk config marks the root with `kCFURLIsExcludedFromBackupKey` on the first path the disk resolves (iOS and macOS only; default `false`, a no-op elsewhere). A refused mark throws a `FileSystemException`.
+A local disk lives under the app's documents directory (`MagicPaths.appData()`, under the cache directory on tvOS), which iOS and macOS back up. `'exclude_from_backup': true` in the disk config marks the root with `kCFURLIsExcludedFromBackupKey` on the first path the disk resolves (iOS and macOS only; default `false`, a no-op elsewhere). A refused mark throws a `FileSystemException`.
 
 ```dart
 'downloads': {

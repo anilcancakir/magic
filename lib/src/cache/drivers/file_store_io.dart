@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter/foundation.dart';
 
 import '../cache_store.dart';
 import '../../facades/config.dart';
+import '../../support/magic_paths.dart';
 
 /// Native File-based Cache Driver (IO Implementation).
 class FileStore implements CacheStore {
@@ -27,7 +27,7 @@ class FileStore implements CacheStore {
 
   @override
   Future<void> init() async {
-    final dir = await getApplicationDocumentsDirectory();
+    final dir = await MagicPaths.appData();
     final path = p.join(dir.path, '$fileName.json');
     _file = File(path);
 

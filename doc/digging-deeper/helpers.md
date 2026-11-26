@@ -13,6 +13,7 @@ Static helpers for locale-aware strings and numbers, dot-path map access, defens
 - [Countdown](#countdown)
 - [Debouncer](#debouncer)
 - [UrlGenerator](#urlgenerator)
+- [MagicPlatform and MagicPaths](#magicplatform-and-magicpaths)
 - [Related Documentation](#related-documentation)
 
 <a name="str"></a>
@@ -252,6 +253,19 @@ UrlGenerator.localized('/pricing');         // '/tr/pricing' under an active non
 ```
 
 The origin is read from `Config.get(UrlGenerator.originKey, ...)` (`'app.url'` by default), falling back to `Env.filled('APP_URL', '')`. Override `UrlGenerator.originKey` once, before any call, for an app whose origin config lives under a different key (a marketing-site origin distinct from the API base URL). `localized()` prefixes the active language unless it is the configured default one, or degrades to the bare path when the active language is not in `localization.supported_locales`.
+
+<a name="magicplatform-and-magicpaths"></a>
+## MagicPlatform and MagicPaths
+
+flutter-tvos reports an Apple TV as iOS (`Platform.isIOS`, `defaultTargetPlatform`), so every iOS check also fires on tvOS. `MagicPlatform.isTvOS` is the one answer to ask first: it reads `Platform.operatingSystem == 'tvos'` and is always `false` on the web. Tests fake it with `MagicPlatform.debugTvOSOverride = true` and restore it with `addTearDown(() => MagicPlatform.debugTvOSOverride = null)`.
+
+```dart
+if (MagicPlatform.isTvOS) {
+  return;
+}
+```
+
+`MagicPaths.appData()` answers the directory an app keeps its own files in. It is the documents directory everywhere except tvOS, where only `Library/Caches` and `tmp` are writable: there it is `app_data` under the cache directory, created when missing. The system may purge the cache directory when storage runs low, so keep only what the app can rebuild. `MagicPaths.appData()` is not available on the web and throws an `UnsupportedError` there; the web drivers use `localStorage`.
 
 <a name="related-documentation"></a>
 ## Related Documentation

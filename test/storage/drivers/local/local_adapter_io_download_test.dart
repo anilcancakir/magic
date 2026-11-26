@@ -107,4 +107,49 @@ void main() {
       },
     );
   });
+
+  group('LocalAdapter location', () {
+    late Directory cacheDir;
+
+    setUp(() {
+      cacheDir = Directory.systemTemp.createTempSync('magic_location_cache_');
+
+      // Told apart by the method asked, so resolving the wrong directory fails.
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(_pathProviderChannel, (
+            MethodCall call,
+          ) async {
+            return switch (call.method) {
+              'getApplicationDocumentsDirectory' => documentsDir.path,
+              'getApplicationCacheDirectory' => cacheDir.path,
+              _ => null,
+            };
+          });
+    });
+
+    tearDown(() {
+      MagicPlatform.debugTvOSOverride = null;
+      if (cacheDir.existsSync()) {
+        cacheDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('writes under the documents directory off tvOS', () async {
+      MagicPlatform.debugTvOSOverride = false;
+
+      final String written = await adapter.write('a.txt', Uint8List(1));
+
+      expect(written, p.join(documentsDir.path, 'storage', 'a.txt'));
+      expect(cacheDir.listSync(), isEmpty);
+    });
+
+    test('writes under app_data in the cache directory on tvOS', () async {
+      MagicPlatform.debugTvOSOverride = true;
+
+      final String written = await adapter.write('a.txt', Uint8List(1));
+
+      expect(written, p.join(cacheDir.path, 'app_data', 'storage', 'a.txt'));
+      expect(documentsDir.listSync(), isEmpty);
+    });
+  });
 }

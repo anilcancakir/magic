@@ -1,11 +1,11 @@
 ---
 name: magic-framework
 description: "Write idiomatic Flutter code on the magic framework: facades, models, controllers, views, routing, forms, auth and tests."
-version: 0.3.1
+version: 0.3.2
 when_to_use: "Use when code imports package:magic or touches Magic.init, a facade, a model, a controller, a provider or a make:* command."
 ---
 
-<!-- magic 1.2.0 | Skill v0.3.1 (2026-11-18). API surface verified against lib/src. -->
+<!-- magic 1.2.0 | Skill v0.3.2 (2026-11-26). API surface verified against lib/src. -->
 
 # Magic Framework
 

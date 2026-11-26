@@ -16,7 +16,7 @@ Magic provides an expressive, unified API for various caching backends, with bui
 <a name="introduction"></a>
 ## Introduction
 
-Magic provides an expressive, unified API for various caching backends. The framework ships with a native `FileStore` driver that supports both Mobile/Desktop (File System) and Web (LocalStorage).
+Magic provides an expressive, unified API for various caching backends. The framework ships with a native `FileStore` driver that supports both Mobile/Desktop (File System) and Web (LocalStorage). On tvOS the file lives in `app_data` under the cache directory, because an Apple TV denies writes to Documents (see [MagicPaths](./helpers.md#magicplatform-and-magicpaths)).
 
 Caching is essential for reducing API calls, storing computed values, and improving application performance.
 

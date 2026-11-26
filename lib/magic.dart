@@ -43,6 +43,8 @@ export 'src/support/poll.dart';
 export 'src/support/countdown.dart';
 export 'src/support/debouncer.dart';
 export 'src/support/url_generator.dart';
+export 'src/support/magic_platform.dart';
+export 'src/support/magic_paths.dart';
 
 // Actions
 export 'src/actions/action_outcome.dart';

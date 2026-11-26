@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart'
 
 import '../facades/config.dart';
 import '../network/drivers/dio_network_driver.dart';
+import '../support/magic_platform.dart';
 import '../support/service_provider.dart';
 import '../support/str.dart';
 
@@ -118,6 +119,9 @@ class NetworkServiceProvider extends ServiceProvider {
 
   /// The platform name a server can read, in the casing Apple and Google use.
   static String _platformName() {
+    // flutter-tvos reports an Apple TV as iOS, so ask before the platform switch.
+    if (MagicPlatform.isTvOS) return 'tvOS';
+
     return switch (defaultTargetPlatform) {
       TargetPlatform.iOS => 'iOS',
       TargetPlatform.android => 'Android',

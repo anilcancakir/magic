@@ -69,7 +69,8 @@ Map<String, dynamic> get networkConfig => {
 
 `NetworkServiceProvider` adds a `User-Agent` of `<App Name> (Flutter; <platform>)`
 unless `headers` already carries one, reading the name from `app.name` and the
-platform from `defaultTargetPlatform`. Without it Dart sends
+platform from `defaultTargetPlatform`, or `tvOS` on an Apple TV, which Flutter
+reports as iOS. Without it Dart sends
 `Dart/<sdk> (dart:io)`, which says nothing about the app and is identical across
 every Flutter client a backend has, so anything the server derives from the agent
 answers wrongly rather than partially.

@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **`MagicPlatform.isTvOS` and `MagicPaths.appData()` make magic aware of tvOS.** flutter-tvos reports an Apple TV as iOS (`Platform.isIOS`, `defaultTargetPlatform`), so every iOS gate also fired there, and an Apple TV denies writes to Documents. `MagicPlatform.isTvOS` reads `Platform.operatingSystem == 'tvos'` (always `false` on the web), and tests fake it with `MagicPlatform.debugTvOSOverride`. `MagicPaths.appData()` answers the documents directory everywhere except tvOS, where it is `app_data` under the cache directory, created when missing. `FileStore` and the local storage disk now resolve their directory through it, so on tvOS they write under `Library/Caches`; every other platform keeps its path. The default `User-Agent` names the platform `tvOS` there, and `DateManager` neither asks `flutter_timezone` nor logs an error, leaving the configured timezone in place. (`lib/src/support/magic_platform.dart`, `lib/src/support/magic_paths.dart`, `lib/src/cache/drivers/file_store_io.dart`, `lib/src/storage/drivers/local/local_adapter_io.dart`, `lib/src/network/network_service_provider.dart`, `lib/src/support/date_manager.dart`, `doc/digging-deeper/helpers.md`)
+
 ## [1.2.0] - 2026-11-26
 
 ### Added

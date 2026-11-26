@@ -27,6 +27,7 @@ void main() {
 
   tearDown(() {
     debugDefaultTargetPlatformOverride = null;
+    MagicPlatform.debugTvOSOverride = null;
   });
 
   group('the default User-Agent', () {
@@ -49,6 +50,27 @@ void main() {
       expect(
         _resolveDriver().defaultHeaders['User-Agent'],
         'Uptizm (Flutter; iOS)',
+      );
+    });
+
+    test('names tvOS, which Flutter reports as iOS', () {
+      // flutter-tvos answers `TargetPlatform.iOS` on an Apple TV, so the
+      // platform name alone would file a TV under phones.
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      MagicPlatform.debugTvOSOverride = true;
+      MagicApp.reset();
+      Magic.flush();
+      Config.set('app', <String, dynamic>{'name': 'Uptizm'});
+      Config.set('network', <String, dynamic>{
+        'drivers': <String, dynamic>{
+          'api': <String, dynamic>{'base_url': 'https://api.example.test'},
+        },
+      });
+      NetworkServiceProvider(MagicApp.instance).register();
+
+      expect(
+        _resolveDriver().defaultHeaders['User-Agent'],
+        'Uptizm (Flutter; tvOS)',
       );
     });
 
