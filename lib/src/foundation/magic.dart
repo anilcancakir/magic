@@ -369,7 +369,10 @@ class Magic {
   ///   ),
   /// );
   /// ```
-  static Future<T?> dialog<T>(Widget dialog, {bool barrierDismissible = true}) {
+  ///
+  /// [barrierDismissible] falls back to `view.dialog.barrier_dismissible`
+  /// (`true` by default) when null.
+  static Future<T?> dialog<T>(Widget dialog, {bool? barrierDismissible}) {
     return MagicFeedback.showCustomDialog<T>(
       dialog,
       barrierDismissible: barrierDismissible,

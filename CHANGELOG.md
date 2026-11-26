@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **The confirm label takes its colour from the view config (#327).** `MagicFeedback.confirm` rendered its action label with a hardcoded `text-white`, and the label's own text colour wins over the button box's, so an app with a light `button_confirm_class` got a white label on a light button. The label now reads `view.confirm.button_confirm_text_class`, or `view.confirm.button_danger_text_class` when `isDangerous`. Both default to `text-white`: dropping the class instead would have turned every default blue and red button's label dark. (`lib/config/view.dart`, `lib/src/ui/magic_feedback.dart`, `doc/basics/ui-helpers.md`)
+
+### Fixed
+
+- **`view.snackbar.position`, `view.dialog.barrier_dismissible`, `view.dialog.barrier_color` and `view.loading.barrier_class` now do what the default config says (#328).** Nothing in `lib/` read them: the barrier was a hardcoded `Colors.black54` and the confirm dialog always closed on a barrier tap. A snackbar now shows at the top when the position is `'top'` (toasts stay at the bottom); `Magic.dialog` and `Magic.confirm` read the dismissible flag, and an explicit `Magic.dialog(barrierDismissible:)` still wins, so its parameter is now a nullable `bool?` defaulting to the config; the dialog, confirm and loading barriers resolve the `bg-*` colour of their className through `WindParser` against the app's `WindTheme`, so `dark:` peers apply and a className without a background colour leaves Flutter's `Colors.black54`. The default barrier is the configured `bg-black/50` (alpha 0.50 instead of 0.54). (`lib/src/ui/magic_feedback.dart`, `lib/src/foundation/magic.dart`, `doc/basics/ui-helpers.md`)
+- **The default feedback styles follow dark mode (#329).** Every neutral colour in `defaultViewConfig` was light-only, so a dark app got white dialog, confirm and loading panels. Each now carries its `dark:` peer: `bg-white dark:bg-gray-900` panels, `text-gray-900 dark:text-gray-100` titles, `text-gray-600 dark:text-gray-400` messages and cancel label, a `dark:bg-gray-700` toast and a `bg-black/50 dark:bg-black/70` barrier. The saturated status fills (`bg-green-500 text-white` and the like) read the same in both modes and stay. The fallbacks `MagicFeedback` uses when no view config is loaded match the defaults, which also replaces the dialog fallback's stray `bg-red-100` with the configured `bg-white`. (`lib/config/view.dart`, `lib/src/ui/magic_feedback.dart`, `doc/basics/ui-helpers.md`)
+
 ### Removed
 
 - **The pub.dev listing no longer carries the Magic logo as a screenshot.** dart.dev asks for no logos or branding imagery under the pubspec `screenshots` field, so the entry, `screenshots/magic-logo.png` and the WebP tools step `publish.yml` ran for pana are gone. The README still opens with the logo. (`pubspec.yaml`, `screenshots/`, `.github/workflows/publish.yml`)

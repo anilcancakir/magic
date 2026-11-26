@@ -42,7 +42,7 @@ Magic.loading();
 <a name="snackbars"></a>
 ## Snackbars
 
-Show notification messages at the bottom of the screen.
+Show notification messages at the bottom of the screen, or at the top when `view.snackbar.position` is `'top'`.
 
 ### Basic Snackbar
 
@@ -244,13 +244,14 @@ Toasts are ideal for quick confirmations that don't require user interaction.
 <a name="configuration"></a>
 ## Configuration
 
-Customise appearance via `lib/config/view.dart`; any key you leave out keeps its default from `defaultViewConfig`:
+Customise appearance via `lib/config/view.dart`; any key you leave out keeps its default from `defaultViewConfig`. The defaults pair every neutral colour with a `dark:` peer, so the panels follow the app's `WindTheme` brightness:
 
 ```dart
 Map<String, dynamic> get viewConfig => {
   'view': {
     // Snackbar styling
     'snackbar': {
+      'position': 'bottom', // or 'top'
       'duration': 4000,
       'style': {
         'success': 'bg-green-500 text-white p-4 rounded-lg',
@@ -259,37 +260,49 @@ Map<String, dynamic> get viewConfig => {
         'warning': 'bg-amber-500 text-white p-4 rounded-lg',
       },
     },
-    
-    // Dialog container
+
+    // Dialog container; the barrier keys also apply to Magic.confirm
     'dialog': {
-      'class': 'bg-white rounded-xl p-6 shadow-2xl w-80 max-w-md',
+      'barrier_dismissible': true,
+      'barrier_color': 'bg-black/50 dark:bg-black/70',
+      'class': 'bg-white dark:bg-gray-900 rounded-xl p-6 shadow-2xl max-w-lg',
     },
-    
+
     // Confirmation dialog
     'confirm': {
-      'container_class': 'bg-white rounded-xl p-6 shadow-2xl w-80',
-      'title_class': 'text-lg font-bold text-gray-900',
-      'message_class': 'text-gray-600 mt-2',
-      'button_cancel_class': 'px-4 py-2 text-gray-600',
+      'container_class': 'bg-white dark:bg-gray-900 rounded-xl p-6 shadow-2xl w-80',
+      'title_class': 'text-lg font-bold text-gray-900 dark:text-gray-100',
+      'message_class': 'text-gray-600 dark:text-gray-400 mt-2',
+      'button_cancel_class': 'px-4 py-2 text-gray-600 dark:text-gray-400',
       'button_confirm_class': 'px-4 py-2 bg-primary text-white rounded-lg',
+      'button_confirm_text_class': 'text-white',
       'button_danger_class': 'px-4 py-2 bg-red-500 text-white rounded-lg',
+      'button_danger_text_class': 'text-white',
     },
-    
+
     // Loading overlay
     'loading': {
-      'container_class': 'bg-white rounded-xl p-6 shadow-2xl',
+      'barrier_class': 'bg-black/50 dark:bg-black/70',
+      'container_class': 'bg-white dark:bg-gray-900 rounded-xl p-6 shadow-2xl',
       'spinner_class': 'text-primary',
-      'text_class': 'text-gray-600 text-sm mt-4',
+      'text_class': 'text-gray-600 dark:text-gray-400 text-sm mt-4',
     },
-    
+
     // Toast
     'toast': {
       'duration': 2000,
-      'class': 'bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg',
+      'class': 'bg-gray-800 dark:bg-gray-700 text-white px-6 py-3 rounded-full shadow-lg',
     },
   },
 };
 ```
+
+| Key | Effect |
+|:---|:---|
+| `snackbar.position` | `'bottom'` (the default) or `'top'`; toasts always show at the bottom |
+| `dialog.barrier_dismissible` | Whether a tap on the barrier closes `Magic.dialog` and `Magic.confirm`; an explicit `Magic.dialog(barrierDismissible:)` wins |
+| `dialog.barrier_color`, `loading.barrier_class` | The barrier takes the `bg-*` colour of the className, `dark:` peers included; a className without one leaves Flutter's `Colors.black54` |
+| `confirm.button_confirm_text_class`, `confirm.button_danger_text_class` | The confirm label's className, picked by `isDangerous`; set it with the button class, since the label's own text colour wins over the button's |
 
 > [!TIP]
 > Use `wind_kit` utility classes in your config for consistent styling across all UI helpers.
@@ -720,6 +733,7 @@ class UserProfileView extends MagicView<UserController> {
 | Mistake | Fix |
 |:---|:---|
 | Calling `Magic.info()` or `Magic.warning()` | Only `success` and `error` have shortcuts; use `Magic.snackbar(title, message, type: 'info')` or `type: 'warning'` |
+| A light `button_confirm_class` with a white confirm label | The label has its own className; set `view.confirm.button_confirm_text_class` (or `button_danger_text_class`) to a text colour that reads on the button |
 | Calling `Magic.loading()` and not closing it when the work throws | Close it in a `finally` block with `Magic.closeLoading()`, or the blocking overlay stays on screen |
 | A `MagicSelector` builder that reads a value from the enclosing `build` | The cached subtree never sees it change; select every value the builder needs (a record compares by content) and do inherited lookups inside a `Builder` |
 | A `MagicSelector` selector that returns a fresh `List` or `Map` | Collections compare by identity, so it rebuilds on every notification; select a scalar, a record or an object with a stable identity |
