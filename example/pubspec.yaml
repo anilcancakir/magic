@@ -37,7 +37,7 @@ dependencies:
   magic:
     path: ..
     version: 1.2.0
-  dowel: ^1.0.0
+  dowel: ^1.1.0
   material_ui: ^1.11.1
 
 dev_dependencies:

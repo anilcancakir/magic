@@ -117,10 +117,10 @@ packages:
     dependency: "direct main"
     description:
       name: dowel
-      sha256: "8e4b6c4e8d0c0fb4f21a19a954e0a34f730936ef46a4ad6655db6f1f9b8f7ba6"
+      sha256: e9d98a0d3160fe8c3bdeb1838c55f6c6a57cacc8dae7a4098cb20e49569ed8e6
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.0"
+    version: "1.1.0"
   equatable:
     dependency: transitive
     description:
