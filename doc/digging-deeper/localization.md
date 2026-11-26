@@ -480,7 +480,8 @@ backend can interpret the client's timestamps.
 You do not need any timezone detection code of your own. When detection cannot
 resolve a valid identifier, the configured `timezone` stays in place; Magic does
 not guess a zone from the device's UTC offset, because an offset does not identify
-a zone (many zones share an offset and differ in DST rules).
+a zone (many zones share an offset and differ in DST rules). On tvOS the platform
+is not asked, so the configured `timezone` always applies.
 
 <a name="cli-commands"></a>
 ## CLI Commands

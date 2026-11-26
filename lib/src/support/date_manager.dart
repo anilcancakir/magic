@@ -9,6 +9,7 @@ import '../facades/config.dart';
 import '../facades/log.dart';
 import '../foundation/magic.dart';
 import '../localization/translator.dart';
+import 'magic_platform.dart';
 
 /// The Date Manager Service.
 ///
@@ -228,6 +229,8 @@ class DateManager {
   /// synchronous [detectTimezone].
   ///
   /// Returns the identifier, or null when the platform reports nothing usable.
+  /// On tvOS it is always null and the platform is not asked: there is no
+  /// timezone plugin there, so the configured zone stays in place.
   /// Never throws: a missing plugin registration or a platform channel failure
   /// degrades to null so the configured timezone stays in place.
   ///
@@ -244,6 +247,10 @@ class DateManager {
     // detectTimezone() keep reporting a zone this call could not confirm, which
     // is the opposite of the "degrades to null" contract in the docblock above.
     _platformTimezone = null;
+
+    // tvOS has no flutter_timezone plugin: answer before the native call, and
+    // leave the configured zone in place without logging an error every boot.
+    if (MagicPlatform.isTvOS) return null;
 
     try {
       final TimezoneInfo info = await FlutterTimezone.getLocalTimezone();

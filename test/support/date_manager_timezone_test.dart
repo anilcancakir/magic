@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:magic/magic.dart';
@@ -101,6 +102,59 @@ void main() {
         anyOf(isNull, equals(DateTime.now().timeZoneName)),
         reason: 'the stale Pacific/Auckland must not survive a failed lookup',
       );
+    });
+  });
+
+  group('DateManager on tvOS', () {
+    setUp(() {
+      MagicPlatform.debugTvOSOverride = true;
+    });
+
+    tearDown(() {
+      MagicPlatform.debugTvOSOverride = null;
+    });
+
+    test('does not ask the platform for a timezone', () async {
+      var asked = 0;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(_timezoneChannel, (MethodCall call) async {
+            asked++;
+            return 'Pacific/Auckland';
+          });
+
+      final String? detected = await DateManager.instance
+          .detectPlatformTimezone();
+
+      expect(detected, isNull);
+      expect(asked, 0);
+      expect(DateManager.instance.detectTimezone(), isNot('Pacific/Auckland'));
+    });
+
+    test('logs no error for the missing plugin', () async {
+      _clearPlatformTimezone();
+      final List<String?> printed = <String?>[];
+      final DebugPrintCallback original = debugPrint;
+      debugPrint = (String? message, {int? wrapWidth}) => printed.add(message);
+      addTearDown(() => debugPrint = original);
+
+      await DateManager.instance.detectPlatformTimezone();
+
+      expect(printed, isEmpty);
+    });
+
+    test('boot keeps the configured timezone', () async {
+      Config.set('localization.auto_detect_timezone', true);
+      Config.set('localization.timezone', 'Asia/Tokyo');
+      _mockPlatformTimezone('Pacific/Auckland');
+
+      await DateManager.instance.boot();
+
+      expect(DateManager.instance.isBooted, isTrue);
+      expect(
+        DateManager.instance.timezoneName,
+        anyOf('Asia/Tokyo', DateTime.now().timeZoneName),
+      );
+      expect(DateManager.instance.timezoneName, isNot('Pacific/Auckland'));
     });
   });
 

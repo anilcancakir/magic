@@ -241,6 +241,8 @@ sends it as the `X-Timezone` header on every outgoing request. When detection
 cannot resolve a valid zone, the configured `localization.timezone` value stays in
 place; Magic does not guess a zone from the UTC offset, because an offset does not
 identify a zone (Istanbul and Kyiv share a winter offset but differ in DST rules).
+On tvOS the platform is not asked at all, since there is no timezone plugin, so
+the configured zone stays in place and no error is logged.
 
 Carbon instances do NOT pick this zone up implicitly. A `Carbon` built without an
 explicit zone uses the system local time, so the detected identifier is there for

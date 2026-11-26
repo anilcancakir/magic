@@ -65,7 +65,7 @@ Map<String, dynamic> get filesystemsConfig => {
 
 Pass it to `Magic.init(configFactories: [...])` with your other config files. `local` is the only driver; a disk with any other `driver` throws when it is first resolved.
 
-A local disk writes under the app's documents directory, which iOS backs up to iCloud and macOS to Time Machine. Set `exclude_from_backup` to `true` on a disk holding large files the app can fetch again, such as downloaded media. On iOS and macOS the disk's root directory is then marked with `kCFURLIsExcludedFromBackupKey` the first time the disk resolves a path, and everything stored under it is left out of the backup. If the platform refuses the mark, that first call throws a `FileSystemException` and the next one tries again. The key defaults to `false` and has no effect on Android, Windows, Linux or the web.
+A local disk writes under the app's documents directory (`app_data` under the cache directory on tvOS, see [MagicPaths](./helpers.md#magicplatform-and-magicpaths)), which iOS backs up to iCloud and macOS to Time Machine. Set `exclude_from_backup` to `true` on a disk holding large files the app can fetch again, such as downloaded media. On iOS and macOS the disk's root directory is then marked with `kCFURLIsExcludedFromBackupKey` the first time the disk resolves a path, and everything stored under it is left out of the backup. If the platform refuses the mark, that first call throws a `FileSystemException` and the next one tries again. The key defaults to `false` and has no effect on Android, Windows, Linux or the web.
 
 <a name="storing-files"></a>
 ## Storing Files
