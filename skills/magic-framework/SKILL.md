@@ -5,7 +5,7 @@ version: 0.3.1
 when_to_use: "Use when code imports package:magic or touches Magic.init, a facade, a model, a controller, a provider or a make:* command."
 ---
 
-<!-- magic 1.1.0 | Skill v0.3.1 (2026-11-18). API surface verified against lib/src. -->
+<!-- magic 1.2.0 | Skill v0.3.1 (2026-11-18). API surface verified against lib/src. -->
 
 # Magic Framework
 
