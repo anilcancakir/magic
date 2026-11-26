@@ -301,7 +301,7 @@ Map<String, dynamic> get viewConfig => {
 |:---|:---|
 | `snackbar.position` | `'bottom'` (the default) or `'top'`; toasts always show at the bottom |
 | `dialog.barrier_dismissible` | Whether a tap on the barrier closes `Magic.dialog` and `Magic.confirm`; an explicit `Magic.dialog(barrierDismissible:)` wins |
-| `dialog.barrier_color`, `loading.barrier_class` | The barrier takes the `bg-*` colour of the className, `dark:` peers included; a className without one leaves Flutter's `Colors.black54` |
+| `dialog.barrier_color`, `loading.barrier_class` | The barrier takes the `bg-*` colour of the className, `dark:` peers included; for a className without one, the dialog, confirm and loading overlays (all opened through `showDialog`) use the app's dialog theme `barrierColor` (an ambient `DialogTheme`, then `ThemeData.dialogTheme`), and `Colors.black54` when neither sets one |
 | `confirm.button_confirm_text_class`, `confirm.button_danger_text_class` | The confirm label's className, picked by `isDangerous`; set it with the button class, since the label's own text colour wins over the button's |
 
 > [!TIP]

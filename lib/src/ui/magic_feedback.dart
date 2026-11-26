@@ -48,8 +48,10 @@ class MagicFeedback {
   /// Resolves the `bg-*` colour of the barrier className under [key] against
   /// the navigator's [WindTheme], so a `dark:` peer follows the brightness.
   ///
-  /// Returns null when the className sets no background colour, which leaves
-  /// `showDialog` on its own `Colors.black54` default.
+  /// Returns null when the className sets no background colour. `showDialog`
+  /// (which the dialog, confirm and loading overlays all use) then takes the
+  /// ambient `DialogTheme` barrier colour, then the `ThemeData.dialogTheme`
+  /// one, and only then `Colors.black54`.
   static Color? _barrierColor(BuildContext context, String key) {
     final String className = _getConfig(key, 'bg-black/50 dark:bg-black/70');
 
