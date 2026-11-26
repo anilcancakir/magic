@@ -41,6 +41,23 @@ class MagicFeedback {
     return Config.get<int>(key, defaultValue) ?? defaultValue;
   }
 
+  static bool _getBoolConfig(String key, bool defaultValue) {
+    return Config.get<bool>(key, defaultValue) ?? defaultValue;
+  }
+
+  /// Resolves the `bg-*` colour of the barrier className under [key] against
+  /// the navigator's [WindTheme], so a `dark:` peer follows the brightness.
+  ///
+  /// Returns null when the className sets no background colour. `showDialog`
+  /// (which the dialog, confirm and loading overlays all use) then takes the
+  /// ambient `DialogTheme` barrier colour, then the `ThemeData.dialogTheme`
+  /// one, and only then `Colors.black54`.
+  static Color? _barrierColor(BuildContext context, String key) {
+    final String className = _getConfig(key, 'bg-black/50 dark:bg-black/70');
+
+    return WindParser.parse(className, context).decoration?.color;
+  }
+
   // ---------------------------------------------------------------------------
   // Snackbar
   // ---------------------------------------------------------------------------
@@ -85,7 +102,11 @@ class MagicFeedback {
       );
     }
 
-    _showOverlayToast(snackbarContent, durationMs);
+    _showOverlayToast(
+      snackbarContent,
+      durationMs,
+      atTop: _getConfig('view.snackbar.position', 'bottom') == 'top',
+    );
   }
 
   /// Show a success snackbar.
@@ -113,25 +134,30 @@ class MagicFeedback {
   // ---------------------------------------------------------------------------
 
   /// Show a custom dialog.
+  ///
+  /// [barrierDismissible] falls back to `view.dialog.barrier_dismissible`
+  /// when null; the barrier takes its colour from `view.dialog.barrier_color`.
   static Future<T?> showCustomDialog<T>(
     Widget content, {
-    bool barrierDismissible = true,
+    bool? barrierDismissible,
   }) {
     if (_context == null) {
       _warn('MagicFeedback: Cannot show dialog - context not mounted');
       return Future.value(null);
     }
 
-    final dismissible = barrierDismissible;
+    final dismissible =
+        barrierDismissible ??
+        _getBoolConfig('view.dialog.barrier_dismissible', true);
     final containerClass = _getConfig(
       'view.dialog.class',
-      'bg-red-100 rounded-xl p-6 shadow-2xl max-w-lg',
+      'bg-white dark:bg-gray-900 rounded-xl p-6 shadow-2xl max-w-lg',
     );
 
     return showDialog<T>(
       context: _context!,
       barrierDismissible: dismissible,
-      barrierColor: Colors.black54,
+      barrierColor: _barrierColor(_context!, 'view.dialog.barrier_color'),
       builder: (context) {
         Widget dialogContent;
 
@@ -178,19 +204,19 @@ class MagicFeedback {
 
     final containerClass = _getConfig(
       'view.confirm.container_class',
-      'bg-white rounded-xl p-6 shadow-2xl w-80',
+      'bg-white dark:bg-gray-900 rounded-xl p-6 shadow-2xl w-80',
     );
     final titleClass = _getConfig(
       'view.confirm.title_class',
-      'text-lg font-bold text-gray-900',
+      'text-lg font-bold text-gray-900 dark:text-gray-100',
     );
     final messageClass = _getConfig(
       'view.confirm.message_class',
-      'text-gray-600 mt-2',
+      'text-gray-600 dark:text-gray-400 mt-2',
     );
     final cancelBtnClass = _getConfig(
       'view.confirm.button_cancel_class',
-      'px-4 py-2 text-gray-600',
+      'px-4 py-2 text-gray-600 dark:text-gray-400',
     );
     final confirmBtnClass = isDangerous
         ? _getConfig(
@@ -201,11 +227,17 @@ class MagicFeedback {
             'view.confirm.button_confirm_class',
             'px-4 py-2 bg-blue-500 text-white rounded-lg',
           );
+    final confirmTextClass = isDangerous
+        ? _getConfig('view.confirm.button_danger_text_class', 'text-white')
+        : _getConfig('view.confirm.button_confirm_text_class', 'text-white');
 
     final result = await showDialog<bool>(
       context: _context!,
-      barrierDismissible: true,
-      barrierColor: Colors.black54,
+      barrierDismissible: _getBoolConfig(
+        'view.dialog.barrier_dismissible',
+        true,
+      ),
+      barrierColor: _barrierColor(_context!, 'view.dialog.barrier_color'),
       builder: (context) {
         if (MagicViewRegistry.instance.hasConfirmBuilder) {
           return MagicViewRegistry.instance.buildConfirm(
@@ -241,7 +273,7 @@ class MagicFeedback {
                       onTap: () => Navigator.of(context).pop(true),
                       child: WDiv(
                         className: confirmBtnClass,
-                        child: WText(confirmText, className: 'text-white'),
+                        child: WText(confirmText, className: confirmTextClass),
                       ),
                     ),
                   ],
@@ -276,7 +308,7 @@ class MagicFeedback {
 
     final containerClass = _getConfig(
       'view.loading.container_class',
-      'bg-white rounded-xl p-6 shadow-2xl',
+      'bg-white dark:bg-gray-900 rounded-xl p-6 shadow-2xl',
     );
     final spinnerClass = _getConfig(
       'view.loading.spinner_class',
@@ -284,13 +316,13 @@ class MagicFeedback {
     );
     final textClass = _getConfig(
       'view.loading.text_class',
-      'text-gray-600 text-sm mt-4',
+      'text-gray-600 dark:text-gray-400 text-sm mt-4',
     );
 
     showDialog(
       context: _context!,
       barrierDismissible: false,
-      barrierColor: Colors.black54,
+      barrierColor: _barrierColor(_context!, 'view.loading.barrier_class'),
       builder: (context) {
         if (MagicViewRegistry.instance.hasLoadingBuilder) {
           return MagicViewRegistry.instance.buildLoading(context, message);
@@ -350,7 +382,8 @@ class MagicFeedback {
         duration?.inMilliseconds ?? _getIntConfig('view.toast.duration', 2000);
     final toastClass = _getConfig(
       'view.toast.class',
-      'bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg',
+      'bg-gray-800 dark:bg-gray-700 text-white px-6 py-3 rounded-full '
+          'shadow-lg',
     );
 
     Widget toastContent;
@@ -378,7 +411,9 @@ class MagicFeedback {
   static OverlayEntry? _activeToast;
   static Timer? _toastTimer;
 
-  /// Renders [content] as a transient bottom overlay toast for [durationMs].
+  /// Renders [content] as a transient overlay toast for [durationMs], pinned
+  /// to the bottom edge, or to the top edge when [atTop] is set (the snackbar
+  /// reads it from `view.snackbar.position`).
   ///
   /// Delivery is via the router's [Navigator] overlay, NOT
   /// `ScaffoldMessenger.showSnackBar`: the whole magic UI layer is Wind-based
@@ -393,7 +428,11 @@ class MagicFeedback {
   /// logged warning when no overlay is available (never throws into the
   /// caller). The toast is non-interactive ([IgnorePointer]) so it never blocks
   /// the UI beneath it.
-  static void _showOverlayToast(Widget content, int durationMs) {
+  static void _showOverlayToast(
+    Widget content,
+    int durationMs, {
+    bool atTop = false,
+  }) {
     final OverlayState? overlay =
         MagicRouter.instance.navigatorKey.currentState?.overlay;
     if (overlay == null) {
@@ -407,12 +446,15 @@ class MagicFeedback {
       builder: (_) => Positioned(
         left: 0,
         right: 0,
-        bottom: 0,
+        top: atTop ? 0 : null,
+        bottom: atTop ? null : 0,
         child: SafeArea(
-          minimum: const EdgeInsets.only(bottom: 24),
+          minimum: atTop
+              ? const EdgeInsets.only(top: 24)
+              : const EdgeInsets.only(bottom: 24),
           child: IgnorePointer(
             child: Align(
-              alignment: Alignment.bottomCenter,
+              alignment: atTop ? Alignment.topCenter : Alignment.bottomCenter,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: ConstrainedBox(
